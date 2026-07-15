@@ -17,6 +17,7 @@ class EnsureUserIsActive
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
+
             return redirect()->route('login')->withErrors(['email' => 'Akun Anda sedang dinonaktifkan.']);
         }
 

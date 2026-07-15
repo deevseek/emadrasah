@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-class ActivityLog extends \Spatie\Activitylog\Models\Activity
+use Spatie\Activitylog\Models\Activity;
+
+class ActivityLog extends Activity
 {
     protected $fillable = [
         'log_name',
