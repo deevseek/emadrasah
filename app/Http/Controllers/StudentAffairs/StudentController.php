@@ -1,20 +1,161 @@
 <?php
 
 declare(strict_types=1);
+
 namespace App\Http\Controllers\StudentAffairs;
-use App\Enums\AdmissionType; use App\Enums\Gender; use App\Enums\StudentDocumentType; use App\Enums\StudentStatus; use App\Http\Controllers\Controller; use App\Http\Requests\StudentAffairs\GuardianStudentRequest; use App\Http\Requests\StudentAffairs\StatusChangeRequest; use App\Http\Requests\StudentAffairs\StudentDocumentRequest; use App\Http\Requests\StudentAffairs\StudentRequest; use App\Models\AcademicYear; use App\Models\Classroom; use App\Models\Guardian; use App\Models\Student; use App\Models\StudentDocument; use App\Models\User; use App\Services\StudentAffairs\GuardianAssignmentService; use App\Services\StudentAffairs\StudentDocumentService; use App\Services\StudentAffairs\StudentService; use App\Services\StudentAffairs\StudentStatusService; use Illuminate\Http\Request; use Illuminate\Support\Facades\Storage; use Illuminate\View\View; use Symfony\Component\HttpFoundation\StreamedResponse;
+
+use App\Enums\AdmissionType;
+use App\Enums\Gender;
+use App\Enums\GuardianRelationship;
+use App\Enums\StudentDocumentType;
+use App\Enums\StudentStatus;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\StudentAffairs\GuardianStudentRequest;
+use App\Http\Requests\StudentAffairs\StatusChangeRequest;
+use App\Http\Requests\StudentAffairs\StudentDocumentRequest;
+use App\Http\Requests\StudentAffairs\StudentRequest;
+use App\Models\AcademicYear;
+use App\Models\Classroom;
+use App\Models\Guardian;
+use App\Models\Student;
+use App\Models\StudentDocument;
+use App\Models\User;
+use App\Services\StudentAffairs\GuardianAssignmentService;
+use App\Services\StudentAffairs\StudentDocumentService;
+use App\Services\StudentAffairs\StudentService;
+use App\Services\StudentAffairs\StudentStatusService;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+
 class StudentController extends Controller
 {
- public function index(Request $request): View { $q=Student::with(['activeEnrollment.classroom','guardians'])->when($request->search,fn($x,$s)=>$x->where(fn($w)=>$w->where('name','like',"%$s%")->orWhere('student_number','like',"%$s%")->orWhere('national_student_number','like',"%$s%")->orWhere('national_identity_number','like',"%$s%")))->when($request->status,fn($x,$s)=>$x->where('student_status',$s))->when($request->gender,fn($x,$s)=>$x->where('gender',$s))->when($request->classroom_id,fn($x,$id)=>$x->whereHas('enrollments',fn($e)=>$e->where('classroom_id',$id)->where('enrollment_status','active'))); return view('student-affairs.students.index',['students'=>$q->latest()->paginate(15)->withQueryString(),'statuses'=>StudentStatus::cases(),'genders'=>Gender::cases(),'academicYears'=>AcademicYear::all(),'classrooms'=>Classroom::with('academicYear')->get()]); }
- public function create(): View { return view('student-affairs.students.form',$this->refs()+['student'=>new Student]); }
- public function store(StudentRequest $request, StudentService $service) { $student=$service->save($request->validated(), null, $request->file('photo')); return redirect()->route('students.show',$student)->with('status','Data siswa berhasil ditambahkan.'); }
- public function show(Student $student): View { $student->load(['user','guardians','enrollments.classroom.academicYear','statusHistories.changedBy','documents.uploader']); return view('student-affairs.students.show',['student'=>$student,'guardians'=>Guardian::where('is_active',true)->get(),'relationships'=>\App\Enums\GuardianRelationship::cases(),'documentTypes'=>StudentDocumentType::cases(),'statuses'=>StudentStatus::cases()]); }
- public function edit(Student $student): View { return view('student-affairs.students.form',$this->refs()+['student'=>$student]); }
- public function update(StudentRequest $request, Student $student, StudentService $service) { $service->save($request->validated(), $student, $request->file('photo')); return redirect()->route('students.show',$student)->with('status','Data siswa berhasil diperbarui.'); }
- public function destroy(Student $student) { $student->update(['is_active'=>false]); $student->delete(); return redirect()->route('students.index')->with('status','Data siswa dinonaktifkan.'); }
- public function attachGuardian(GuardianStudentRequest $request, Student $student, GuardianAssignmentService $service) { $service->attach($student,$request->validated()); return back()->with('status','Wali siswa berhasil ditautkan.'); }
- public function changeStatus(StatusChangeRequest $request, Student $student, StudentStatusService $service) { $service->change($student,$request->validated()); return back()->with('status','Status siswa berhasil diubah.'); }
- public function uploadDocument(StudentDocumentRequest $request, Student $student, StudentDocumentService $service) { $service->upload($student,$request->validated(),$request->file('file')); return back()->with('status','Dokumen siswa berhasil diunggah.'); }
- public function downloadDocument(StudentDocument $document): StreamedResponse { abort_unless(auth()->user()?->can('students.manage-documents') || auth()->user()?->can('students.view'),403); return Storage::disk('public')->download($document->file_path); }
- private function refs(): array { return ['genders'=>Gender::cases(),'admissionTypes'=>AdmissionType::cases(),'statuses'=>StudentStatus::cases(),'users'=>User::whereDoesntHave('student')->get()]; }
+    public function index(Request $request): View
+    {
+        $query = Student::with(['activeEnrollment.classroom', 'guardians'])
+            ->when($request->search, fn ($query, $search) => $query->where(fn ($where) => $where
+                ->where('name', 'like', "%{$search}%")
+                ->orWhere('student_number', 'like', "%{$search}%")
+                ->orWhere('national_student_number', 'like', "%{$search}%")
+                ->orWhere('national_identity_number', 'like', "%{$search}%")))
+            ->when($request->status, fn ($query, $status) => $query->where('student_status', $status))
+            ->when($request->gender, fn ($query, $gender) => $query->where('gender', $gender))
+            ->when($request->academic_year_id, fn ($query, $academicYearId) => $query->whereHas('enrollments', fn ($enrollment) => $enrollment
+                ->where('academic_year_id', $academicYearId)
+                ->where('enrollment_status', 'active')))
+            ->when($request->classroom_id, fn ($query, $classroomId) => $query->whereHas('enrollments', fn ($enrollment) => $enrollment
+                ->where('classroom_id', $classroomId)
+                ->where('enrollment_status', 'active')));
+
+        return view('student-affairs.students.index', [
+            'students' => $query->latest()->paginate(15)->withQueryString(),
+            'statuses' => StudentStatus::cases(),
+            'genders' => Gender::cases(),
+            'academicYears' => AcademicYear::all(),
+            'classrooms' => Classroom::with('academicYear')->get(),
+        ]);
+    }
+
+    public function create(): View
+    {
+        return view('student-affairs.students.form', $this->refs() + ['student' => new Student]);
+    }
+
+    public function store(StudentRequest $request, StudentService $service): RedirectResponse
+    {
+        $student = $service->save($request->validated(), null, $request->file('photo'));
+
+        return redirect()->route('students.show', $student)->with('status', 'Data siswa berhasil ditambahkan.');
+    }
+
+    public function show(Student $student): View
+    {
+        $student->load(['user', 'guardians', 'enrollments.classroom.academicYear', 'statusHistories.changedBy', 'documents.uploader']);
+
+        return view('student-affairs.students.show', [
+            'student' => $student,
+            'guardians' => Guardian::where('is_active', true)->get(),
+            'relationships' => GuardianRelationship::cases(),
+            'documentTypes' => StudentDocumentType::cases(),
+            'statuses' => StudentStatus::cases(),
+        ]);
+    }
+
+    public function edit(Student $student): View
+    {
+        return view('student-affairs.students.form', $this->refs() + ['student' => $student]);
+    }
+
+    public function update(StudentRequest $request, Student $student, StudentService $service): RedirectResponse
+    {
+        $service->save($request->validated(), $student, $request->file('photo'));
+
+        return redirect()->route('students.show', $student)->with('status', 'Data siswa berhasil diperbarui.');
+    }
+
+    public function destroy(Student $student, StudentService $service): RedirectResponse
+    {
+        $service->delete($student);
+
+        return redirect()->route('students.index')->with('status', 'Data siswa dinonaktifkan.');
+    }
+
+    public function attachGuardian(GuardianStudentRequest $request, Student $student, GuardianAssignmentService $service): RedirectResponse
+    {
+        $service->attach($student, $request->validated());
+
+        return back()->with('status', 'Wali siswa berhasil ditautkan.');
+    }
+
+    public function updateGuardian(GuardianStudentRequest $request, Student $student, Guardian $guardian, GuardianAssignmentService $service): RedirectResponse
+    {
+        $service->update($student, $guardian->id, collect($request->validated())->except('guardian_id')->all());
+
+        return back()->with('status', 'Relasi wali siswa berhasil diperbarui.');
+    }
+
+    public function detachGuardian(Student $student, Guardian $guardian, GuardianAssignmentService $service): RedirectResponse
+    {
+        $service->detach($student, $guardian->id);
+
+        return back()->with('status', 'Relasi wali siswa berhasil dihapus.');
+    }
+
+    public function changeStatus(StatusChangeRequest $request, Student $student, StudentStatusService $service): RedirectResponse
+    {
+        $service->change($student, $request->validated());
+
+        return back()->with('status', 'Status siswa berhasil diubah.');
+    }
+
+    public function uploadDocument(StudentDocumentRequest $request, Student $student, StudentDocumentService $service): RedirectResponse
+    {
+        $service->upload($student, $request->validated(), $request->file('file'));
+
+        return back()->with('status', 'Dokumen siswa berhasil diunggah.');
+    }
+
+    public function downloadDocument(StudentDocument $document): StreamedResponse
+    {
+        return Storage::disk('public')->download($document->file_path);
+    }
+
+    public function deleteDocument(StudentDocument $document, StudentDocumentService $service): RedirectResponse
+    {
+        $service->delete($document);
+
+        return back()->with('status', 'Dokumen siswa berhasil dihapus.');
+    }
+
+    private function refs(): array
+    {
+        return [
+            'genders' => Gender::cases(),
+            'admissionTypes' => AdmissionType::cases(),
+            'statuses' => StudentStatus::cases(),
+            'users' => User::whereDoesntHave('student')->get(),
+        ];
+    }
 }
