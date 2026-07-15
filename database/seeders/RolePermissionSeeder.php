@@ -7,12 +7,13 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 class RolePermissionSeeder extends Seeder
 {
     public function run(): void
     {
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         $permissions = collect([
             'dashboard.view',
@@ -55,5 +56,7 @@ class RolePermissionSeeder extends Seeder
         Role::findByName('super-admin')->syncPermissions($permissions->values());
         Role::findByName('admin-madrasah')->syncPermissions($permissions->except(['users.deactivate'])->values());
         Role::findByName('wali-murid')->syncPermissions([$permissions['dashboard.view']]);
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 }

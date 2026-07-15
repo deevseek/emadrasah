@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-
-class Role extends Model
+class Role extends \Spatie\Permission\Models\Role
 {
-    protected $fillable = ['name', 'display_name'];
-
-    public function permissions(): BelongsToMany { return $this->belongsToMany(Permission::class); }
-    public function users(): BelongsToMany { return $this->belongsToMany(User::class); }
+    protected $fillable = [
+        'name',
+        'guard_name',
+        'display_name',
+    ];
 }
