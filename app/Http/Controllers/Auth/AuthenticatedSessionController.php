@@ -15,11 +15,14 @@ use Illuminate\View\View;
 
 class AuthenticatedSessionController extends Controller
 {
-    public function create(): View { return view('auth.login'); }
+    public function create(): View
+    {
+        return view('auth.login');
+    }
 
     public function store(Request $request): RedirectResponse
     {
-        $credentials = $request->validate(['email' => ['required','email'], 'password' => ['required','string']]);
+        $credentials = $request->validate(['email' => ['required', 'email'], 'password' => ['required', 'string']]);
         $key = 'login:'.$request->ip().':'.strtolower($credentials['email']);
         if (RateLimiter::tooManyAttempts($key, 5)) {
             throw ValidationException::withMessages(['email' => 'Terlalu banyak percobaan login. Silakan coba beberapa menit lagi.']);
@@ -38,6 +41,7 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
         $request->user()->forceFill(['last_login_at' => now()])->save();
         $this->record($request, $request->user()->id, true);
+
         return redirect()->intended(route('dashboard'));
     }
 
@@ -46,11 +50,12 @@ class AuthenticatedSessionController extends Controller
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
         return redirect()->route('login');
     }
 
     private function record(Request $request, ?int $userId, bool $successful, ?string $reason = null): void
     {
-        LoginHistory::create(['user_id'=>$userId,'email'=>(string)$request->input('email'),'ip_address'=>$request->ip(),'user_agent'=>(string)$request->userAgent(),'successful'=>$successful,'failure_reason'=>$reason,'attempted_at'=>now()]);
+        LoginHistory::create(['user_id' => $userId, 'email' => (string) $request->input('email'), 'ip_address' => $request->ip(), 'user_agent' => (string) $request->userAgent(), 'successful' => $successful, 'failure_reason' => $reason, 'attempted_at' => now()]);
     }
 }
