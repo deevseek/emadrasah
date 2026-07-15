@@ -31,6 +31,10 @@ class RolePermissionSeeder extends Seeder
             'employees.view', 'employees.create', 'employees.update', 'employees.delete',
             'teaching-assignments.view', 'teaching-assignments.create', 'teaching-assignments.update', 'teaching-assignments.delete',
             'schedules.view', 'schedules.create', 'schedules.update', 'schedules.delete',
+            'students.view','students.create','students.update','students.delete','students.change-status','students.manage-documents',
+            'guardians.view','guardians.create','guardians.update','guardians.delete',
+            'student-guardians.view','student-guardians.create','student-guardians.update','student-guardians.delete',
+            'student-enrollments.view','student-enrollments.create','student-enrollments.update','student-enrollments.delete','student-enrollments.transfer',
         ])->mapWithKeys(fn (string $name): array => [
             $name => Permission::firstOrCreate([
                 'name' => $name,
@@ -61,11 +65,11 @@ class RolePermissionSeeder extends Seeder
 
         Role::findByName('super-admin')->syncPermissions($permissions->values());
         Role::findByName('admin-madrasah')->syncPermissions($permissions->except(['users.deactivate'])->values());
-        Role::findByName('kepala-madrasah')->syncPermissions($permissions->only(['dashboard.view', 'grade-levels.view', 'classrooms.view', 'subjects.view', 'employees.view', 'teaching-assignments.view', 'schedules.view'])->values());
-        Role::findByName('tata-usaha')->syncPermissions($permissions->only(['dashboard.view', 'grade-levels.view', 'classrooms.view', 'subjects.view', 'employees.view', 'employees.create', 'employees.update'])->values());
-        Role::findByName('operator')->syncPermissions($permissions->only(['dashboard.view', 'grade-levels.view', 'grade-levels.create', 'grade-levels.update', 'classrooms.view', 'classrooms.create', 'classrooms.update', 'subjects.view', 'subjects.create', 'subjects.update', 'employees.view', 'teaching-assignments.view', 'teaching-assignments.create', 'teaching-assignments.update', 'schedules.view', 'schedules.create', 'schedules.update'])->values());
-        Role::findByName('guru-kelas')->syncPermissions($permissions->only(['dashboard.view', 'classrooms.view', 'subjects.view', 'teaching-assignments.view', 'schedules.view'])->values());
-        Role::findByName('guru-mata-pelajaran')->syncPermissions($permissions->only(['dashboard.view', 'subjects.view', 'teaching-assignments.view', 'schedules.view'])->values());
+        Role::findByName('kepala-madrasah')->syncPermissions($permissions->only(['dashboard.view', 'grade-levels.view', 'classrooms.view', 'subjects.view', 'employees.view', 'teaching-assignments.view', 'schedules.view','students.view','guardians.view','student-guardians.view','student-enrollments.view'])->values());
+        Role::findByName('tata-usaha')->syncPermissions($permissions->only(['dashboard.view', 'grade-levels.view', 'classrooms.view', 'subjects.view', 'employees.view', 'employees.create', 'employees.update','students.view','students.create','students.update','students.change-status','students.manage-documents','guardians.view','guardians.create','guardians.update','student-guardians.view','student-guardians.create','student-guardians.update','student-enrollments.view','student-enrollments.create','student-enrollments.update','student-enrollments.transfer'])->values());
+        Role::findByName('operator')->syncPermissions($permissions->only(['dashboard.view', 'grade-levels.view', 'grade-levels.create', 'grade-levels.update', 'classrooms.view', 'classrooms.create', 'classrooms.update', 'subjects.view', 'subjects.create', 'subjects.update', 'employees.view', 'teaching-assignments.view', 'teaching-assignments.create', 'teaching-assignments.update', 'schedules.view', 'schedules.create', 'schedules.update','students.view','students.create','students.update','guardians.view','guardians.create','guardians.update','student-guardians.view','student-guardians.create','student-guardians.update','student-enrollments.view','student-enrollments.create','student-enrollments.update','student-enrollments.transfer'])->values());
+        Role::findByName('guru-kelas')->syncPermissions($permissions->only(['dashboard.view', 'classrooms.view', 'subjects.view', 'teaching-assignments.view', 'schedules.view','students.view','guardians.view','student-guardians.view','student-enrollments.view'])->values());
+        Role::findByName('guru-mata-pelajaran')->syncPermissions($permissions->only(['dashboard.view', 'subjects.view', 'teaching-assignments.view', 'schedules.view','students.view','guardians.view','student-guardians.view','student-enrollments.view'])->values());
         Role::findByName('wali-murid')->syncPermissions([$permissions['dashboard.view']]);
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();

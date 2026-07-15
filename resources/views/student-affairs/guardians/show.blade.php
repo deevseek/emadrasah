@@ -1,0 +1,1 @@
+<x-app-layout><h1>Detail Wali: {{ $guardian->name }}</h1><section class="bg-white p-4"><p>Telepon: {{ $guardian->phone ?? '-' }}</p><p>Status: {{ $guardian->is_active ? 'Aktif' : 'Tidak Aktif' }}</p><h2>Hubungan dengan siswa</h2><ul>@foreach($guardian->students as $student)<li>{{ $student->name }} - {{ $student->pivot->relationship }}</li>@endforeach</ul></section></x-app-layout>
