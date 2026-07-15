@@ -1,0 +1,1 @@
+<x-app-layout><form method="post" action="{{ route('password.change.update') }}">@csrf @method('put')<input name="password" type="password"><input name="password_confirmation" type="password"><button>Ubah password</button></form></x-app-layout>

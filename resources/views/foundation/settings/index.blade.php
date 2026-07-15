@@ -1,0 +1,1 @@
+<x-app-layout><x-slot:title>Pengaturan</x-slot:title>@foreach($settings as $setting)<form method="post" action="{{ route('settings.update',$setting) }}" class="mb-2">@csrf @method('put')<b>{{ $setting->group }}.{{ $setting->key }}</b><input name="value" value="{{ $setting->value }}"><button>Simpan</button></form>@endforeach{{ $settings->links() }}</x-app-layout>
