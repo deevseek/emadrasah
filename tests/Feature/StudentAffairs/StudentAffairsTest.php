@@ -19,6 +19,7 @@ use App\Models\StudentEnrollment;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Activitylog\Models\Activity;
 use Spatie\Permission\Models\Permission;
@@ -72,12 +73,19 @@ class StudentAffairsTest extends TestCase
     private function classroom(int $capacity = 2): Classroom
     {
         $year = AcademicYear::firstOrCreate(['name' => '2026/2027'], ['starts_on' => '2026-07-01', 'ends_on' => '2027-06-30', 'is_active' => true]);
-        $grade = GradeLevel::firstOrCreate(['code' => 'I'], ['name' => 'Kelas I', 'level' => 1]);
+        $grade = GradeLevel::query()->where('level', 1)->firstOrFail();
 
         return Classroom::firstOrCreate(
             ['academic_year_id' => $year->id, 'code' => '1A'],
             ['grade_level_id' => $grade->id, 'name' => '1A', 'capacity' => $capacity, 'is_active' => true]
         );
+    }
+
+    private function fakePng(string $name = 'foto.png'): UploadedFile
+    {
+        $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', true);
+
+        return UploadedFile::fake()->createWithContent($name, $png);
     }
 
     public function test_permissions_and_forbidden_access(): void
@@ -99,7 +107,7 @@ class StudentAffairsTest extends TestCase
         $this->actingAs($admin);
 
         $user = User::factory()->create();
-        $payload = $this->studentData(['user_id' => $user->id, 'photo' => UploadedFile::fake()->image('foto.jpg')]);
+        $payload = $this->studentData(['user_id' => $user->id, 'photo' => $this->fakePng('foto.png')]);
         $this->post(route('students.store'), $payload)->assertRedirect();
         $student = Student::where('student_number', 'S-1001')->firstOrFail();
         Storage::disk('public')->assertExists($student->photo_path);
@@ -111,7 +119,7 @@ class StudentAffairsTest extends TestCase
         $this->post(route('students.store'), $this->studentData(['student_number' => 'S-BAD', 'national_student_number' => 'NISN-BAD', 'national_identity_number' => 'NIK-BAD', 'photo' => UploadedFile::fake()->create('virus.pdf', 10, 'application/pdf')]))->assertSessionHasErrors('photo');
 
         $oldPhoto = $student->photo_path;
-        $this->put(route('students.update', $student), $this->studentData(['name' => 'Siswa Diperbarui', 'photo' => UploadedFile::fake()->image('baru.png')]))->assertRedirect();
+        $this->put(route('students.update', $student), $this->studentData(['name' => 'Siswa Diperbarui', 'photo' => $this->fakePng('baru.png')]))->assertRedirect();
         $student->refresh();
         Storage::disk('public')->assertMissing($oldPhoto);
         Storage::disk('public')->assertExists($student->photo_path);
@@ -140,7 +148,11 @@ class StudentAffairsTest extends TestCase
 
         $other = Guardian::create($this->guardianData(['national_identity_number' => 'NIK-W-2', 'name' => 'Wali Kedua', 'email' => 'wali2@example.test']));
         $this->post(route('students.guardians.store', $student), $attach + ['guardian_id' => $other->id])->assertRedirect();
+        $student->refresh();
         $this->assertSame(1, $student->guardians()->wherePivot('is_primary', true)->count());
+        $this->assertTrue((bool) $student->guardians()->whereKey($other->id)->firstOrFail()->pivot->is_primary);
+        $this->assertFalse((bool) $student->guardians()->whereKey($guardian->id)->firstOrFail()->pivot->is_primary);
+        $this->assertTrue((bool) $studentTwo->guardians()->whereKey($guardian->id)->firstOrFail()->pivot->is_primary);
         $this->delete(route('guardians.destroy', $guardian))->assertRedirect();
         $this->assertSoftDeleted('guardians', ['id' => $guardian->id]);
         $this->assertTrue(Activity::where('event', 'like', 'guardian.%')->exists());
@@ -184,12 +196,23 @@ class StudentAffairsTest extends TestCase
         $this->post(route('students.documents.store', $student), ['document_type' => StudentDocumentType::FamilyCard->value, 'file' => UploadedFile::fake()->create('big.pdf', 5000, 'application/pdf')])->assertSessionHasErrors('file');
         $this->delete(route('student-documents.destroy', $document))->assertRedirect();
 
-        $before = Student::count() + Guardian::count() + StudentEnrollment::count();
         $this->seed(\Database\Seeders\StudentAffairsSeeder::class);
+        $firstCounts = [
+            'students' => Student::count(),
+            'guardians' => Guardian::count(),
+            'enrollments' => StudentEnrollment::count(),
+            'pivots' => DB::table('guardian_student')->count(),
+        ];
+
         $this->seed(\Database\Seeders\StudentAffairsSeeder::class);
-        $after = Student::count() + Guardian::count() + StudentEnrollment::count();
-        $this->assertSame($after, Student::count() + Guardian::count() + StudentEnrollment::count());
-        $this->assertGreaterThanOrEqual($before, $after);
+        $secondCounts = [
+            'students' => Student::count(),
+            'guardians' => Guardian::count(),
+            'enrollments' => StudentEnrollment::count(),
+            'pivots' => DB::table('guardian_student')->count(),
+        ];
+
+        $this->assertSame($firstCounts, $secondCounts);
         $this->assertTrue(Activity::whereIn('event', ['student.enrolled', 'student.status.changed', 'student.document.uploaded'])->count() >= 3);
     }
 }

@@ -21,7 +21,7 @@ class GuardianAssignmentService
             }
 
             if (! empty($data['is_primary'])) {
-                $student->guardians()->wherePivot('is_primary', true)->update(['guardian_student.is_primary' => false]);
+                $this->resetPrimaryGuardians($student, (int) $data['guardian_id']);
             }
 
             $student->guardians()->attach($data['guardian_id'], collect($data)->except('guardian_id')->all());
@@ -37,12 +37,25 @@ class GuardianAssignmentService
             }
 
             if (! empty($data['is_primary'])) {
-                $student->guardians()->wherePivot('is_primary', true)->whereKeyNot($guardianId)->update(['guardian_student.is_primary' => false]);
+                $this->resetPrimaryGuardians($student, $guardianId);
             }
 
-            $student->guardians()->updateExistingPivot($guardianId, $data);
+            $student->guardians()->updateExistingPivot($guardianId, $data + ['updated_at' => now()]);
             $this->logger->log('student.guardian.updated', $student, [], ['guardian_id' => $guardianId] + $data, 'Relasi wali siswa diperbarui.');
         });
+    }
+
+    private function resetPrimaryGuardians(Student $student, int $exceptGuardianId): void
+    {
+        DB::table('guardian_student')
+            ->where('student_id', $student->id)
+            ->where('guardian_id', '!=', $exceptGuardianId)
+            ->where('is_primary', true)
+            ->lockForUpdate()
+            ->update([
+                'is_primary' => false,
+                'updated_at' => now(),
+            ]);
     }
 
     public function detach(Student $student, int $guardianId): void
