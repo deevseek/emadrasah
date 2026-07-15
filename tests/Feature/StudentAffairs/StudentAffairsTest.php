@@ -147,8 +147,20 @@ class StudentAffairsTest extends TestCase
         $this->post(route('students.guardians.store', $student), $attach)->assertSessionHasErrors('guardian_id');
 
         $other = Guardian::create($this->guardianData(['national_identity_number' => 'NIK-W-2', 'name' => 'Wali Kedua', 'email' => 'wali2@example.test']));
-        $this->post(route('students.guardians.store', $student), $attach + ['guardian_id' => $other->id])->assertRedirect();
+        $otherAttach = array_replace($attach, [
+            'guardian_id' => $other->id,
+        ]);
+
+        $this->assertNotSame($guardian->id, $other->id);
+        $this->assertSame($other->id, $otherAttach['guardian_id']);
+
+        $this->post(route('students.guardians.store', $student), $otherAttach)
+            ->assertSessionHasNoErrors()
+            ->assertRedirect();
         $student->refresh();
+        $student->unsetRelation('guardians');
+        $studentTwo->refresh();
+        $studentTwo->unsetRelation('guardians');
         $this->assertSame(1, $student->guardians()->wherePivot('is_primary', true)->count());
         $this->assertTrue((bool) $student->guardians()->whereKey($other->id)->firstOrFail()->pivot->is_primary);
         $this->assertFalse((bool) $student->guardians()->whereKey($guardian->id)->firstOrFail()->pivot->is_primary);
@@ -170,7 +182,18 @@ class StudentAffairsTest extends TestCase
         $this->post(route('student-enrollments.store'), $payload)->assertSessionHasErrors('student_id');
 
         $other = Student::create($this->studentData(['student_number' => 'S-1002', 'national_student_number' => 'NISN-1002', 'national_identity_number' => 'NIK-S-1002']));
-        $this->post(route('student-enrollments.store'), $payload + ['student_id' => $other->id])->assertSessionHasErrors('classroom_id');
+        $otherPayload = array_replace($payload, [
+            'student_id' => $other->id,
+        ]);
+
+        $this->assertNotSame($student->id, $other->id);
+        $this->assertSame($other->id, $otherPayload['student_id']);
+        $this->assertFalse($other->enrollments()->where('enrollment_status', EnrollmentStatus::Active)->exists());
+
+        $response = $this->post(route('student-enrollments.store'), $otherPayload);
+
+        $response->assertSessionHasErrors('classroom_id');
+        $response->assertSessionDoesntHaveErrors('student_id');
         $other->update(['student_status' => StudentStatus::Inactive]);
         $openClass = $this->classroom(5);
         $this->post(route('student-enrollments.store'), ['student_id' => $other->id, 'academic_year_id' => $openClass->academic_year_id, 'classroom_id' => $openClass->id])->assertSessionHasErrors('student_id');
