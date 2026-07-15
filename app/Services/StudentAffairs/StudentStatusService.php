@@ -1,0 +1,6 @@
+<?php
+
+declare(strict_types=1);
+namespace App\Services\StudentAffairs;
+use App\Enums\EnrollmentStatus; use App\Enums\StudentStatus; use App\Models\Student; use App\Models\StudentStatusHistory; use App\Services\ActivityLogger; use Illuminate\Support\Facades\Auth; use Illuminate\Support\Facades\DB;
+class StudentStatusService { public function __construct(private ActivityLogger $logger) {} public function change(Student $student, array $data): StudentStatusHistory { return DB::transaction(function() use($student,$data){ $previous=$student->student_status; $new=StudentStatus::from($data['new_status']); $history=StudentStatusHistory::create($data+['student_id'=>$student->id,'previous_status'=>$previous?->value,'changed_by'=>Auth::id()]); $student->update(['student_status'=>$new,'is_active'=>!$new->blocksActiveEnrollment()]); if($new->blocksActiveEnrollment()) $student->enrollments()->where('enrollment_status',EnrollmentStatus::Active->value)->update(['enrollment_status'=>match($new){StudentStatus::Graduated=>EnrollmentStatus::Graduated,StudentStatus::Transferred=>EnrollmentStatus::Transferred,default=>EnrollmentStatus::Withdrawn},'completed_at'=>$data['effective_date']]); $this->logger->log('student.status.changed',$student,['student_status'=>$previous?->value],['student_status'=>$new->value],'Status siswa diubah.'); return $history; }); } }

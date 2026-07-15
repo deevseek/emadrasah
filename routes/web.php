@@ -11,6 +11,9 @@ use App\Http\Controllers\Foundation\DashboardController;
 use App\Http\Controllers\Foundation\SchoolProfileController;
 use App\Http\Controllers\Foundation\SettingController;
 use App\Http\Controllers\Foundation\UserManagementController;
+use App\Http\Controllers\StudentAffairs\EnrollmentController;
+use App\Http\Controllers\StudentAffairs\GuardianController;
+use App\Http\Controllers\StudentAffairs\StudentController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/dashboard');
@@ -51,6 +54,30 @@ Route::middleware(['auth', 'active'])->group(function (): void {
     Route::get('/users/{user}', [UserManagementController::class, 'show'])->middleware('permission:users.view')->name('users.show');
     Route::get('/users/{user}/edit', [UserManagementController::class, 'edit'])->middleware('permission:users.update')->name('users.edit');
     Route::put('/users/{user}', [UserManagementController::class, 'update'])->middleware('permission:users.update')->name('users.update');
+
+    Route::get('/students', [StudentController::class, 'index'])->middleware('permission:students.view')->name('students.index');
+    Route::get('/students/create', [StudentController::class, 'create'])->middleware('permission:students.create')->name('students.create');
+    Route::post('/students', [StudentController::class, 'store'])->middleware('permission:students.create')->name('students.store');
+    Route::get('/students/{student}', [StudentController::class, 'show'])->middleware('permission:students.view')->name('students.show');
+    Route::get('/students/{student}/edit', [StudentController::class, 'edit'])->middleware('permission:students.update')->name('students.edit');
+    Route::put('/students/{student}', [StudentController::class, 'update'])->middleware('permission:students.update')->name('students.update');
+    Route::delete('/students/{student}', [StudentController::class, 'destroy'])->middleware('permission:students.delete')->name('students.destroy');
+    Route::post('/students/{student}/guardians', [StudentController::class, 'attachGuardian'])->middleware('permission:student-guardians.create')->name('students.guardians.store');
+    Route::post('/students/{student}/status', [StudentController::class, 'changeStatus'])->middleware('permission:students.change-status')->name('students.status.store');
+    Route::post('/students/{student}/documents', [StudentController::class, 'uploadDocument'])->middleware('permission:students.manage-documents')->name('students.documents.store');
+    Route::get('/student-documents/{document}/download', [StudentController::class, 'downloadDocument'])->middleware('permission:students.view')->name('student-documents.download');
+    Route::get('/guardians', [GuardianController::class, 'index'])->middleware('permission:guardians.view')->name('guardians.index');
+    Route::get('/guardians/create', [GuardianController::class, 'create'])->middleware('permission:guardians.create')->name('guardians.create');
+    Route::post('/guardians', [GuardianController::class, 'store'])->middleware('permission:guardians.create')->name('guardians.store');
+    Route::get('/guardians/{guardian}', [GuardianController::class, 'show'])->middleware('permission:guardians.view')->name('guardians.show');
+    Route::get('/guardians/{guardian}/edit', [GuardianController::class, 'edit'])->middleware('permission:guardians.update')->name('guardians.edit');
+    Route::put('/guardians/{guardian}', [GuardianController::class, 'update'])->middleware('permission:guardians.update')->name('guardians.update');
+    Route::delete('/guardians/{guardian}', [GuardianController::class, 'destroy'])->middleware('permission:guardians.delete')->name('guardians.destroy');
+    Route::get('/student-enrollments', [EnrollmentController::class, 'index'])->middleware('permission:student-enrollments.view')->name('student-enrollments.index');
+    Route::post('/student-enrollments', [EnrollmentController::class, 'store'])->middleware('permission:student-enrollments.create')->name('student-enrollments.store');
+    Route::post('/student-enrollments/{enrollment}/transfer', [EnrollmentController::class, 'transfer'])->middleware('permission:student-enrollments.transfer')->name('student-enrollments.transfer');
+    Route::delete('/student-enrollments/{enrollment}', [EnrollmentController::class, 'destroy'])->middleware('permission:student-enrollments.delete')->name('student-enrollments.destroy');
+
     Route::prefix('academic')->group(function (): void {
         Route::get('/grade-levels', [AcademicResourceController::class, 'gradeLevels'])->middleware('permission:grade-levels.view')->name('grade-levels.index');
         Route::get('/grade-levels/create', [AcademicResourceController::class, 'createGradeLevel'])->middleware('permission:grade-levels.create')->name('grade-levels.create');
