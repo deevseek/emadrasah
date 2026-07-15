@@ -4,6 +4,12 @@
         ['label' => 'Profil Madrasah', 'route' => 'school-profile.edit', 'permission' => 'school-profile.view'],
         ['label' => 'Pengaturan', 'route' => 'settings.index', 'permission' => 'settings.view'],
         ['label' => 'Pengguna', 'route' => 'users.index', 'permission' => 'users.view'],
+        ['label' => 'Tingkat Kelas', 'route' => 'grade-levels.index', 'permission' => 'grade-levels.view'],
+        ['label' => 'Kelas', 'route' => 'classrooms.index', 'permission' => 'classrooms.view'],
+        ['label' => 'Mata Pelajaran', 'route' => 'subjects.index', 'permission' => 'subjects.view'],
+        ['label' => 'Pegawai', 'route' => 'employees.index', 'permission' => 'employees.view'],
+        ['label' => 'Penugasan Mengajar', 'route' => 'teaching-assignments.index', 'permission' => 'teaching-assignments.view'],
+        ['label' => 'Jadwal Pelajaran', 'route' => 'schedules.index', 'permission' => 'schedules.view'],
     ];
 @endphp
 
