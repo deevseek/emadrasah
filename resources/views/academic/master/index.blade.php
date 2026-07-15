@@ -1,17 +1,24 @@
 <x-app-layout :title="$title">
-    <div class="space-y-6">
-        <form class="grid gap-3 rounded-xl border bg-white p-4 md:grid-cols-4" method="get">
-            <input name="q" value="{{ request('q') }}" placeholder="Cari data" class="rounded-lg border-slate-300">
-            <select name="status" class="rounded-lg border-slate-300"><option value="">Semua status</option><option value="active" @selected(request('status')==='active')>Aktif</option><option value="inactive" @selected(request('status')==='inactive')>Nonaktif</option></select>
-            <select name="academic_year_id" class="rounded-lg border-slate-300"><option value="">Semua tahun ajaran</option>@foreach($academicYears as $year)<option value="{{ $year->id }}" @selected(request('academic_year_id')==$year->id)>{{ $year->name }}</option>@endforeach</select>
-            <button class="rounded-lg bg-emerald-950 px-4 py-2 font-semibold text-white">Filter</button>
-        </form>
-        <div class="rounded-xl border bg-white p-4">
-            <div class="mb-4 flex items-center justify-between"><h2 class="text-lg font-semibold text-emerald-950">Daftar {{ $title }}</h2>@can($key.'.create')<a href="{{ route($key.'.create') }}" class="rounded-lg bg-emerald-950 px-4 py-2 text-sm font-semibold text-white">Tambah</a>@endcan</div>
-            @if($items->isEmpty())<div class="rounded-lg bg-slate-50 p-8 text-center text-slate-500">Belum ada data.</div>@else
-            <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-100 text-left"><tr><th class="p-3">Nama</th><th class="p-3">Kode/Info</th><th class="p-3">Status</th><th class="p-3">Aksi</th></tr></thead><tbody>
-            @foreach($items as $item)<tr class="border-t"><td class="p-3 font-medium">{{ $item->name ?? ($item->employee->name ?? '-') }}</td><td class="p-3">{{ $item->code ?? $item->employee_number ?? ($item->classroom->name ?? '-') }}</td><td class="p-3"><span class="rounded-full px-3 py-1 text-xs {{ $item->is_active ? 'bg-emerald-100 text-emerald-900' : 'bg-slate-200 text-slate-700' }}">{{ $item->is_active ? 'Aktif' : 'Nonaktif' }}</span></td><td class="p-3"><div class="flex gap-2">@can($key.'.update')<a class="text-emerald-800 underline" href="{{ route($key.'.edit', $item) }}">Edit</a>@endcan @can($key.'.delete')<form method="post" action="{{ route($key.'.destroy', $item) }}" onsubmit="return confirm('Nonaktifkan atau hapus data ini?')">@csrf @method('DELETE')<button class="text-red-700 underline">Hapus</button></form>@endcan</div></td></tr>@endforeach
-            </tbody></table></div><div class="mt-4">{{ $items->links() }}</div>@endif
-        </div>
-    </div>
+@php
+$columns = [
+ 'grade-levels'=>['Level','Kode','Nama','Status'], 'classrooms'=>['Nama','Kode','Tingkat','Tahun Ajaran','Wali Kelas','Ruang','Kapasitas','Jumlah Siswa','Status'],
+ 'subjects'=>['Kode','Nama','Kategori','KKM','Status'], 'employees'=>['Pegawai','Nomor','Gender','Jenis','Status Kepegawaian','Kontak','Status'],
+ 'teaching-assignments'=>['Guru','Mata Pelajaran','Kelas','Tahun Ajaran','Semester','Status'], 'schedules'=>['Hari','Jam','Kelas','Mata Pelajaran','Guru','Ruang'],
+][$key];
+@endphp
+<div class="space-y-6">
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h2 class="text-2xl font-black text-emerald-950">{{ $title }}</h2><p class="text-sm text-slate-500">Kelola data {{ strtolower($title) }} madrasah dengan filter, status, dan aksi terkontrol.</p></div>@can($key.'.create')<a href="{{ route($key.'.create') }}" class="btn btn-primary">Tambah {{ $title }}</a>@endcan</div>
+  <form class="card card-body grid gap-3 md:grid-cols-4" method="get"><input name="q" value="{{ request('q') }}" placeholder="Cari {{ strtolower($title) }}"><select name="status"><option value="">Semua status</option><option value="active" @selected(request('status')==='active')>Aktif</option><option value="inactive" @selected(request('status')==='inactive')>Nonaktif</option></select><select name="academic_year_id"><option value="">Semua tahun ajaran</option>@foreach($academicYears as $year)<option value="{{ $year->id }}" @selected(request('academic_year_id')==$year->id)>{{ $year->name }}</option>@endforeach</select><button class="btn btn-primary">Terapkan Filter</button></form>
+  @if($items->isEmpty())<div class="empty-state">Belum ada data {{ strtolower($title) }}. Gunakan tombol tambah untuk mulai mengisi.</div>@else
+  <div class="table-wrap"><table class="data-table"><thead><tr>@foreach($columns as $c)<th>{{ $c }}</th>@endforeach<th>Aksi</th></tr></thead><tbody>
+  @foreach($items as $item)<tr>
+    @if($key==='grade-levels')<td>{{ $item->level }}</td><td>{{ $item->code }}</td><td class="font-semibold">{{ $item->name }}</td><td><span @class(['badge',$item->is_active?'badge-success':'badge-muted'])>{{ $item->is_active?'Aktif':'Nonaktif' }}</span></td>
+    @elseif($key==='classrooms')<td class="font-semibold">{{ $item->name }}</td><td>{{ $item->code }}</td><td>{{ $item->gradeLevel?->name }}</td><td>{{ $item->academicYear?->name }}</td><td>{{ $item->homeroomTeacher?->name ?? '-' }}</td><td>{{ $item->room ?? '-' }}</td><td>{{ $item->capacity }}</td><td>{{ $item->studentEnrollments()->where('enrollment_status','active')->count() }}</td><td><span @class(['badge',$item->is_active?'badge-success':'badge-muted'])>{{ $item->is_active?'Aktif':'Nonaktif' }}</span></td>
+    @elseif($key==='subjects')<td>{{ $item->code }}</td><td class="font-semibold">{{ $item->name }}</td><td>{{ $item->category?->label() ?? $item->category }}</td><td>{{ $item->minimum_passing_grade }}</td><td><span @class(['badge',$item->is_active?'badge-success':'badge-muted'])>{{ $item->is_active?'Aktif':'Nonaktif' }}</span></td>
+    @elseif($key==='employees')<td><div class="flex items-center gap-3"><div class="grid h-10 w-10 place-items-center rounded-full bg-emerald-100 font-bold text-emerald-800">{{ str($item->name)->substr(0,2)->upper() }}</div><b>{{ $item->name }}</b></div></td><td>{{ $item->employee_number }}</td><td>{{ $item->gender?->label() }}</td><td>{{ $item->employment_type?->label() }}</td><td>{{ $item->employee_status?->label() }}</td><td>{{ $item->phone ?? $item->email ?? '-' }}</td><td><span @class(['badge',$item->is_active?'badge-success':'badge-muted'])>{{ $item->is_active?'Aktif':'Nonaktif' }}</span></td>
+    @elseif($key==='teaching-assignments')<td>{{ $item->employee?->name }}</td><td>{{ $item->subject?->name }}</td><td>{{ $item->classroom?->name }}</td><td>{{ $item->academicYear?->name }}</td><td>{{ $item->semester?->name }}</td><td><span @class(['badge',$item->is_active?'badge-success':'badge-muted'])>{{ $item->is_active?'Aktif':'Nonaktif' }}</span></td>
+    @else<td>{{ $item->day_of_week?->label() }}</td><td>{{ $item->starts_at }}–{{ $item->ends_at }}</td><td>{{ $item->classroom?->name }}</td><td>{{ $item->subject?->name }}</td><td>{{ $item->employee?->name }}</td><td>{{ $item->room ?? '-' }}</td>@endif
+    <td><div class="flex gap-2">@can($key.'.update')<a class="btn btn-secondary px-3 py-1.5" href="{{ route($key.'.edit', $item) }}">Edit</a>@endcan @can($key.'.delete')<form method="post" action="{{ route($key.'.destroy', $item) }}" onsubmit="return confirm('Nonaktifkan atau hapus data ini?')">@csrf @method('DELETE')<button class="btn btn-danger px-3 py-1.5">Hapus</button></form>@endcan</div></td>
+  </tr>@endforeach</tbody></table></div><div>{{ $items->links() }}</div>@endif
+</div>
 </x-app-layout>
