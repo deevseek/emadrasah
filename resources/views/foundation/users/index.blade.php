@@ -1,84 +1,9 @@
-<x-app-layout>
-    <x-slot:title>Pengguna</x-slot:title>
-
-    <section class="rounded-2xl border bg-white p-6 shadow-sm">
-        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-                <h2 class="text-lg font-semibold text-emerald-950">Daftar Pengguna</h2>
-                <p class="text-sm text-slate-500">Filter dan kelola akun backoffice madrasah.</p>
-            </div>
-            @can('users.create')
-                <a href="{{ route('users.create') }}" class="rounded-lg bg-emerald-950 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-900">
-                    Tambah Pengguna
-                </a>
-            @endcan
-        </div>
-
-        <form method="get" class="mt-6 grid gap-3 md:grid-cols-4">
-            <input name="q" value="{{ request('q') }}" placeholder="Cari nama atau email" class="rounded-lg border border-slate-300 px-3 py-2 md:col-span-2">
-            <select name="status" class="rounded-lg border border-slate-300 px-3 py-2">
-                <option value="">Semua Status</option>
-                <option value="1" @selected(request('status') === '1')>Aktif</option>
-                <option value="0" @selected(request('status') === '0')>Nonaktif</option>
-            </select>
-            <select name="role" class="rounded-lg border border-slate-300 px-3 py-2">
-                <option value="">Semua Role</option>
-                @foreach ($roles as $role)
-                    <option value="{{ $role->name }}" @selected(request('role') === $role->name)>{{ $role->display_name ?? Str::headline($role->name) }}</option>
-                @endforeach
-            </select>
-            <button class="rounded-lg border border-emerald-950 px-4 py-2 font-semibold text-emerald-950 md:col-span-4">
-                Terapkan Filter
-            </button>
-        </form>
-
-        <div class="mt-6 overflow-hidden rounded-xl border border-slate-200">
-            <table class="min-w-full divide-y divide-slate-200 text-sm">
-                <thead class="bg-slate-50 text-left text-slate-600">
-                    <tr>
-                        <th class="px-4 py-3">Nama</th>
-                        <th class="px-4 py-3">Email</th>
-                        <th class="px-4 py-3">Role</th>
-                        <th class="px-4 py-3">Status</th>
-                        <th class="px-4 py-3">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100 bg-white">
-                    @forelse ($users as $user)
-                        <tr>
-                            <td class="px-4 py-3 font-medium text-slate-900">{{ $user->name }}</td>
-                            <td class="px-4 py-3 text-slate-600">{{ $user->email }}</td>
-                            <td class="px-4 py-3 text-slate-600">{{ $user->roles->pluck('display_name')->filter()->join(', ') ?: '-' }}</td>
-                            <td class="px-4 py-3">
-                                <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $user->is_active ? 'bg-emerald-50 text-emerald-800' : 'bg-red-50 text-red-800' }}">
-                                    {{ $user->is_active ? 'Aktif' : 'Nonaktif' }}
-                                </span>
-                            </td>
-                            <td class="px-4 py-3">
-                                <div class="flex flex-wrap gap-2">
-                                    <a href="{{ route('users.show', $user) }}" class="text-emerald-800">Detail</a>
-                                    @can('users.update')
-                                        <a href="{{ route('users.edit', $user) }}" class="text-emerald-800">Ubah</a>
-                                    @endcan
-                                    @can('users.deactivate')
-                                        <form method="post" action="{{ route('users.toggle', $user) }}">
-                                            @csrf
-                                            @method('patch')
-                                            <button class="text-amber-700">{{ $user->is_active ? 'Nonaktifkan' : 'Aktifkan' }}</button>
-                                        </form>
-                                    @endcan
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="5" class="px-4 py-8 text-center text-slate-500">Belum ada pengguna sesuai filter.</td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-
-        <div class="mt-6">{{ $users->links() }}</div>
-    </section>
+<x-app-layout title="Pengguna">
+<div class="space-y-6">
+@php($allUsers=\App\Models\User::query())
+<div class="grid gap-4 sm:grid-cols-3"><div class="card card-body"><p class="text-sm text-slate-500">Total pengguna</p><b class="text-3xl text-emerald-950">{{ $allUsers->count() }}</b></div><div class="card card-body"><p class="text-sm text-slate-500">Aktif</p><b class="text-3xl text-emerald-950">{{ \App\Models\User::where('is_active',true)->count() }}</b></div><div class="card card-body"><p class="text-sm text-slate-500">Nonaktif</p><b class="text-3xl text-emerald-950">{{ \App\Models\User::where('is_active',false)->count() }}</b></div></div>
+<section class="card"><div class="card-body"><div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between"><div><h2 class="text-lg font-bold text-emerald-950">Daftar Pengguna</h2><p class="text-sm text-slate-500">Filter dan kelola akun backoffice madrasah.</p></div>@can('users.create')<a href="{{ route('users.create') }}" class="btn btn-primary">Tambah Pengguna</a>@endcan</div>
+<form method="get" class="mt-6 grid gap-3 md:grid-cols-4"><input name="q" value="{{ request('q') }}" placeholder="Cari nama atau email" class="md:col-span-2"><select name="status"><option value="">Semua Status</option><option value="1" @selected(request('status')==='1')>Aktif</option><option value="0" @selected(request('status')==='0')>Nonaktif</option></select><select name="role"><option value="">Semua Role</option>@foreach($roles as $role)<option value="{{ $role->name }}" @selected(request('role')===$role->name)>{{ $role->display_name ?? Str::headline($role->name) }}</option>@endforeach</select><button class="btn btn-secondary md:col-span-4">Terapkan Filter</button></form></div></section>
+@if($users->isEmpty())<div class="empty-state">Belum ada pengguna sesuai filter.</div>@else<div class="table-wrap"><table class="data-table"><thead><tr><th>Pengguna</th><th>Email</th><th>Role</th><th>Status</th><th>Login Terakhir</th><th>Aksi</th></tr></thead><tbody>@foreach($users as $user)<tr><td><div class="flex items-center gap-3"><div class="grid h-10 w-10 place-items-center rounded-full bg-emerald-100 font-bold text-emerald-800">{{ str($user->name)->substr(0,2)->upper() }}</div><b>{{ $user->name }}</b></div></td><td>{{ $user->email }}</td><td>{{ $user->roles->pluck('display_name')->filter()->join(', ') ?: '-' }}</td><td><span @class(['badge',$user->is_active?'badge-success':'badge-muted'])>{{ $user->is_active?'Aktif':'Nonaktif' }}</span></td><td>{{ $user->last_login_at?->diffForHumans() ?? '-' }}</td><td><div class="flex flex-wrap gap-2"><a href="{{ route('users.show',$user) }}" class="btn btn-secondary px-3 py-1.5">Detail</a>@can('users.update')<a href="{{ route('users.edit',$user) }}" class="btn btn-secondary px-3 py-1.5">Ubah</a>@endcan @can('users.deactivate')<form method="post" action="{{ route('users.toggle',$user) }}">@csrf @method('patch')<button class="btn btn-secondary px-3 py-1.5">{{ $user->is_active?'Nonaktifkan':'Aktifkan' }}</button></form>@endcan</div></td></tr>@endforeach</tbody></table></div><div>{{ $users->links() }}</div>@endif
+</div>
 </x-app-layout>

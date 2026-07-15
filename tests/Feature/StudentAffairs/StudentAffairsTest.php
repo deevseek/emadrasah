@@ -75,10 +75,16 @@ class StudentAffairsTest extends TestCase
         $year = AcademicYear::firstOrCreate(['name' => '2026/2027'], ['starts_on' => '2026-07-01', 'ends_on' => '2027-06-30', 'is_active' => true]);
         $grade = GradeLevel::query()->where('level', 1)->firstOrFail();
 
-        return Classroom::firstOrCreate(
-            ['academic_year_id' => $year->id, 'code' => '1A'],
-            ['grade_level_id' => $grade->id, 'name' => '1A', 'capacity' => $capacity, 'is_active' => true]
-        );
+        $suffix = str_pad((string) $capacity, 2, '0', STR_PAD_LEFT).'-'.str()->random(6);
+
+        return Classroom::create([
+            'academic_year_id' => $year->id,
+            'grade_level_id' => $grade->id,
+            'name' => 'Uji '.$suffix,
+            'code' => 'UJI-'.$suffix,
+            'capacity' => $capacity,
+            'is_active' => true,
+        ]);
     }
 
     private function fakePng(string $name = 'foto.png'): UploadedFile

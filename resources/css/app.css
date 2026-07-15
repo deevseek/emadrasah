@@ -9,3 +9,38 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
+
+@layer base {
+  body { overflow-x: hidden; }
+  input, select, textarea { @apply w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100; }
+  label { @apply text-sm font-semibold text-slate-700; }
+}
+
+@layer components {
+  .app-shell { @apply min-h-screen bg-slate-100 text-slate-900; }
+  .app-sidebar { @apply fixed inset-y-0 left-0 z-40 flex w-80 -translate-x-full flex-col border-r border-emerald-900/40 bg-emerald-950 text-white shadow-2xl transition-transform duration-300 lg:translate-x-0; }
+  .mobile-sidebar-open .app-sidebar { @apply translate-x-0; }
+  .sidebar-collapsed .app-sidebar { @apply lg:w-24; }
+  .sidebar-collapsed .sidebar-label, .sidebar-collapsed .sidebar-section, .sidebar-collapsed .sidebar-user-detail { @apply lg:hidden; }
+  .app-main { @apply min-w-0 transition-all duration-300 lg:pl-80; }
+  .sidebar-collapsed .app-main { @apply lg:pl-24; }
+  .nav-link { @apply flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-emerald-50 transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-amber-300; }
+  .nav-link-active { @apply bg-white text-emerald-950 shadow-sm hover:bg-white; }
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition focus:outline-none focus:ring-4 disabled:cursor-not-allowed disabled:opacity-60; }
+  .btn-primary { @apply bg-emerald-700 text-white hover:bg-emerald-800 focus:ring-emerald-200; }
+  .btn-secondary { @apply border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 focus:ring-slate-200; }
+  .btn-danger { @apply bg-rose-600 text-white hover:bg-rose-700 focus:ring-rose-200; }
+  .card { @apply rounded-2xl border border-slate-200 bg-white shadow-sm; }
+  .card-body { @apply p-5 sm:p-6; }
+  .badge { @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold; }
+  .badge-success { @apply bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200; }
+  .badge-warning { @apply bg-amber-50 text-amber-700 ring-1 ring-amber-200; }
+  .badge-muted { @apply bg-slate-100 text-slate-600 ring-1 ring-slate-200; }
+  .table-wrap { @apply overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm; }
+  .data-table { @apply min-w-full divide-y divide-slate-200 text-sm; }
+  .data-table th { @apply bg-slate-50 px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500; }
+  .data-table td { @apply px-4 py-4 align-middle text-slate-700; }
+  .empty-state { @apply rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-slate-500; }
+  .progress { @apply h-2 overflow-hidden rounded-full bg-slate-100; }
+  .progress > span { @apply block h-full rounded-full bg-emerald-600; }
+}
