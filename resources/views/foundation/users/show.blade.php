@@ -1,0 +1,1 @@
+<x-app-layout><h1>{{ $user->name }}</h1><a href="{{ route('users.edit',$user) }}">Edit</a><form method="post" action="{{ route('users.toggle',$user) }}">@csrf @method('patch')<button>{{ $user->is_active ? 'Nonaktifkan' : 'Aktifkan' }}</button></form>@foreach($histories as $h)<div>{{ $h->attempted_at }} {{ $h->ip_address }}</div>@endforeach</x-app-layout>

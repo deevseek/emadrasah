@@ -1,0 +1,1 @@
+<x-app-layout><x-slot:title>Pengguna</x-slot:title><a href="{{ route('users.create') }}">Tambah Pengguna</a>@foreach($users as $user)<div><a href="{{ route('users.show',$user) }}">{{ $user->name }}</a> {{ $user->email }}</div>@endforeach{{ $users->links() }}</x-app-layout>

@@ -1,29 +1,5 @@
-# Permission Matrix
+# Permissions
 
-Permission memakai format `domain.action` dan diperiksa oleh middleware/policy, bukan nama role langsung.
+Role awal: Super Admin, Admin Madrasah, Kepala Madrasah, Bendahara, Tata Usaha, Operator, Guru Kelas, Guru Mata Pelajaran, Guru BTAQ/Murobi, Guru Full Day, Wali Murid.
 
-## Role Awal
-
-- Super Admin: seluruh permission.
-- Admin Madrasah: administrasi operasional mayoritas.
-- Kepala Madrasah: dashboard, approval, laporan, audit terbatas.
-- Bendahara: tagihan, pembayaran, keuangan, payroll.
-- Tata Usaha: data master, surat, arsip.
-- Operator: input akademik dan laporan operasional.
-- Guru Kelas: kelas, siswa kelas, absensi siswa, jurnal, nilai.
-- Guru Mata Pelajaran: jadwal, jurnal, nilai mapel.
-- Guru BTAQ atau Murobi: BTAQ, hafalan, jurnal BTAQ.
-- Guru Full Day: absensi dan jurnal sesuai penugasan.
-- Wali Murid: portal wali untuk anak terkait.
-
-## Permission Fondasi
-
-- `dashboard.view`
-- `school-profile.view`, `school-profile.update`
-- `academic-years.view`, `academic-years.create`, `academic-years.update`, `academic-years.activate`
-- `semesters.view`, `semesters.create`, `semesters.update`, `semesters.activate`
-- `settings.view`, `settings.update`
-- `users.view`, `users.create`, `users.update`, `users.deactivate`
-- `roles.view`, `roles.update`
-- `audit.view`
-- `backup.view`, `backup.run`
+Permission awal granular: dashboard.view, school-profile.view/update, academic-years view/create/update/activate, semesters view/create/update/activate, settings view/update, users view/create/update/deactivate, roles view/update, audit.view, backup view/run.
