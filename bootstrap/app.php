@@ -11,8 +11,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->alias([
+            'active' => \App\Http\Middleware\EnsureUserIsActive::class,
+            'permission' => \App\Http\Middleware\EnsureUserHasPermission::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $middleware->alias([
+            'active' => \App\Http\Middleware\EnsureUserIsActive::class,
+            'permission' => \App\Http\Middleware\EnsureUserHasPermission::class,
+        ]);
     })->create();
