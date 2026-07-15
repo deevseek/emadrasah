@@ -126,6 +126,22 @@ class FoundationTest extends TestCase
         $this->assertGreaterThan(0, Activity::count());
     }
 
+    public function test_activity_log_can_store_event_value(): void
+    {
+        $admin = $this->admin();
+
+        activity('foundation')
+            ->causedBy($admin)
+            ->event('foundation.test')
+            ->withProperties(['source' => 'automated-test'])
+            ->log('Pengujian penyimpanan event activity log.');
+
+        $this->assertDatabaseHas('activity_log', [
+            'event' => 'foundation.test',
+            'description' => 'Pengujian penyimpanan event activity log.',
+        ]);
+    }
+
     public function test_action_specific_user_permissions(): void
     {
         $this->seed();
