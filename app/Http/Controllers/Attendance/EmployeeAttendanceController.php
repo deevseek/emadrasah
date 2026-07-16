@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Attendance;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Attendance\EmployeeAttendanceVerifyRequest;
 use App\Http\Requests\Attendance\EmployeeCheckInRequest;
+use App\Http\Requests\Attendance\EmployeeCheckOutRequest;
 use App\Models\Employee;
 use App\Models\EmployeeAttendance;
 use App\Services\Attendance\EmployeeAttendanceService;
@@ -34,7 +35,7 @@ final class EmployeeAttendanceController extends Controller
         return back()->with('status', 'Check-in berhasil.');
     }
 
-    public function checkOut(EmployeeAttendanceService $service): RedirectResponse
+    public function checkOut(EmployeeCheckOutRequest $request, EmployeeAttendanceService $service): RedirectResponse
     {
         $service->checkOut(auth()->user()->employee);
 
