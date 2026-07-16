@@ -38,4 +38,14 @@ class BtaqGroup extends Model
     {
         return $this->hasMany(BtaqGroupStudent::class);
     }
+    public function employee(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class);
+    }
+
+    public function level(): BelongsTo
+    {
+        return $this->belongsTo(BtaqLevel::class, 'btaq_level_id');
+    }
+
 }

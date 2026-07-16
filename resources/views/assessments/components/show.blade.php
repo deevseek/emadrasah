@@ -1,14 +1,3 @@
-<x-module-page title="Detail Nilai Siswa" subtitle="Halaman operasional Detail Nilai Siswa.">
-    <div class="rounded-xl bg-white p-6 shadow">
-        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <p class="text-sm text-gray-600">Data nyata ditampilkan dari basis data sesuai permission pengguna.</p>
-            <a href="{{ url()->previous() }}" class="rounded border border-emerald-800 px-4 py-2 text-emerald-900">Kembali</a>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="min-w-full text-sm">
-                <thead class="bg-gray-50"><tr><th class="px-3 py-2 text-left">Informasi</th><th class="px-3 py-2 text-left">Status</th><th class="px-3 py-2 text-left">Aksi</th></tr></thead>
-                <tbody><tr class="border-t"><td class="px-3 py-3">Detail Nilai Siswa</td><td class="px-3 py-3"><span class="rounded-full bg-emerald-100 px-2 py-1 text-emerald-900">Aktif</span></td><td class="px-3 py-3"><span class="text-gray-500">Gunakan form dan tombol pada workflow terkait.</span></td></tr></tbody>
-            </table>
-        </div>
-    </div>
+<x-module-page title="Detail Nilai Siswa" subtitle="Lihat detail komponen, skor siswa, remedial, nilai akhir, dan status publish.">
+    <div class="space-y-6">@if (session('status'))<div class="rounded-lg bg-emerald-50 p-4 text-emerald-900">{{ session('status') }}</div>@endif<div class="rounded-xl bg-white p-6 shadow"><div class="flex flex-wrap justify-between gap-3"><div><h2 class="text-xl font-semibold text-emerald-950">{{ $component->name }}</h2><p class="text-sm text-slate-500">Bobot {{ $component->weight }}% · Skor maksimal {{ $component->maximum_score }} · Status {{ $component->status }}</p></div><div class="flex gap-2"><a href="{{ route('assessment-components.edit', $component) }}" class="rounded-lg border px-4 py-2">Edit</a><a href="{{ route('assessment-components.scores', $component) }}" class="rounded-lg bg-emerald-900 px-4 py-2 text-white">Input Nilai</a><form method="POST" action="{{ route('assessment-components.publish', $component) }}">@csrf @method('PATCH')<button onclick="return confirm('Publish nilai komponen ini?')" class="rounded-lg bg-emerald-900 px-4 py-2 text-white">Publish</button></form></div></div></div><div class="rounded-xl bg-white p-6 shadow"><div class="overflow-x-auto"><table class="min-w-full text-sm"><thead class="bg-gray-50"><tr><th class="px-3 py-2 text-left">Siswa</th><th class="px-3 py-2 text-left">Skor</th><th class="px-3 py-2 text-left">Remedial</th><th class="px-3 py-2 text-left">Nilai Akhir</th><th class="px-3 py-2 text-left">Predikat</th></tr></thead><tbody>@forelse($scores as $score)<tr class="border-t"><td class="px-3 py-3">{{ $score->student?->name ?? 'Siswa #'.$score->student_id }}</td><td class="px-3 py-3">{{ $score->score }}</td><td class="px-3 py-3">{{ $score->remedial_score ?? '-' }}</td><td class="px-3 py-3">{{ $score->final_score }}</td><td class="px-3 py-3">{{ $score->predicate ?? '-' }}</td></tr>@empty<tr><td colspan="5" class="px-3 py-8 text-center text-slate-500">Belum ada nilai siswa.</td></tr>@endforelse</tbody></table></div></div></div>
 </x-module-page>

@@ -38,4 +38,19 @@ class AssessmentComponent extends Model
     {
         return $this->hasMany(StudentScore::class);
     }
+    public function classroom(): BelongsTo
+    {
+        return $this->belongsTo(Classroom::class);
+    }
+
+    public function subject(): BelongsTo
+    {
+        return $this->belongsTo(Subject::class);
+    }
+
+    public function assignment(): BelongsTo
+    {
+        return $this->belongsTo(TeachingAssignment::class, 'teaching_assignment_id');
+    }
+
 }

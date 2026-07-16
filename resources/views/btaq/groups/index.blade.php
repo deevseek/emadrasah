@@ -1,14 +1,7 @@
-<x-module-page title="Kelompok BTAQ" subtitle="Halaman operasional Kelompok BTAQ.">
+<x-module-page title="Kelompok BTAQ" subtitle="Pantau kelompok, pembimbing, kapasitas, dan anggota aktif BTAQ.">
     <div class="rounded-xl bg-white p-6 shadow">
-        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <p class="text-sm text-gray-600">Data nyata ditampilkan dari basis data sesuai permission pengguna.</p>
-            <a href="{{ url()->previous() }}" class="rounded border border-emerald-800 px-4 py-2 text-emerald-900">Kembali</a>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="min-w-full text-sm">
-                <thead class="bg-gray-50"><tr><th class="px-3 py-2 text-left">Informasi</th><th class="px-3 py-2 text-left">Status</th><th class="px-3 py-2 text-left">Aksi</th></tr></thead>
-                <tbody><tr class="border-t"><td class="px-3 py-3">Kelompok BTAQ</td><td class="px-3 py-3"><span class="rounded-full bg-emerald-100 px-2 py-1 text-emerald-900">Aktif</span></td><td class="px-3 py-3"><span class="text-gray-500">Gunakan form dan tombol pada workflow terkait.</span></td></tr></tbody>
-            </table>
-        </div>
+        @if (session('status'))<div class="mb-4 rounded-lg bg-emerald-50 p-4 text-emerald-900">{{ session('status') }}</div>@endif
+        <div class="mb-4 flex justify-between gap-3"><p class="text-sm text-gray-600">Data kelompok aktif dan nonaktif dari basis data.</p><a href="{{ route('btaq-groups.create') }}" class="rounded-lg bg-emerald-900 px-4 py-2 text-white">Tambah Kelompok</a></div>
+        <div class="overflow-x-auto"><table class="min-w-full text-sm"><thead class="bg-gray-50"><tr><th class="px-3 py-2 text-left">Kode</th><th class="px-3 py-2 text-left">Kelompok</th><th class="px-3 py-2 text-left">Pembimbing</th><th class="px-3 py-2 text-left">Kapasitas</th><th class="px-3 py-2 text-left">Status</th><th class="px-3 py-2 text-left">Aksi</th></tr></thead><tbody>@forelse($groups as $group)<tr class="border-t"><td class="px-3 py-3">{{ $group->code }}</td><td class="px-3 py-3 font-semibold">{{ $group->name }}</td><td class="px-3 py-3">{{ $group->employee?->name ?? '-' }}</td><td class="px-3 py-3">{{ $group->capacity ?? 'Tidak dibatasi' }}</td><td class="px-3 py-3"><span class="rounded-full bg-emerald-100 px-2 py-1 text-emerald-900">{{ $group->is_active ? 'Aktif' : 'Nonaktif' }}</span></td><td class="px-3 py-3"><a class="text-emerald-800" href="{{ route('btaq-groups.show', $group) }}">Detail</a> <a class="ml-3 text-emerald-800" href="{{ route('btaq-groups.edit', $group) }}">Edit</a></td></tr>@empty<tr><td colspan="6" class="px-3 py-8 text-center text-slate-500">Belum ada kelompok BTAQ.</td></tr>@endforelse</tbody></table></div><div class="mt-4">{{ $groups->links() }}</div>
     </div>
 </x-module-page>

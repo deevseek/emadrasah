@@ -1,14 +1,8 @@
-<x-module-page title="Form Kelompok BTAQ" subtitle="Halaman operasional Form Kelompok BTAQ.">
-    <div class="rounded-xl bg-white p-6 shadow">
-        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <p class="text-sm text-gray-600">Data nyata ditampilkan dari basis data sesuai permission pengguna.</p>
-            <a href="{{ url()->previous() }}" class="rounded border border-emerald-800 px-4 py-2 text-emerald-900">Kembali</a>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="min-w-full text-sm">
-                <thead class="bg-gray-50"><tr><th class="px-3 py-2 text-left">Informasi</th><th class="px-3 py-2 text-left">Status</th><th class="px-3 py-2 text-left">Aksi</th></tr></thead>
-                <tbody><tr class="border-t"><td class="px-3 py-3">Form Kelompok BTAQ</td><td class="px-3 py-3"><span class="rounded-full bg-emerald-100 px-2 py-1 text-emerald-900">Aktif</span></td><td class="px-3 py-3"><span class="text-gray-500">Gunakan form dan tombol pada workflow terkait.</span></td></tr></tbody>
-            </table>
-        </div>
-    </div>
+<x-module-page title="{{ $group->exists ? 'Edit Kelompok BTAQ' : 'Tambah Kelompok BTAQ' }}" subtitle="Atur pembimbing, level, tahun ajaran, semester, dan kapasitas kelompok.">
+    <form method="POST" action="{{ $group->exists ? route('btaq-groups.update', $group) : route('btaq-groups.store') }}" class="space-y-4 rounded-xl bg-white p-6 shadow">
+        @csrf @if($group->exists) @method('PUT') @endif
+        <div class="grid gap-4 md:grid-cols-2"><label>Tahun Ajaran<select name="academic_year_id" class="mt-1 w-full rounded-lg border-slate-300">@foreach($years as $year)<option value="{{ $year->id }}" @selected((int) old('academic_year_id', $group->academic_year_id) === $year->id)>{{ $year->name }}</option>@endforeach</select></label><label>Semester<select name="semester_id" class="mt-1 w-full rounded-lg border-slate-300">@foreach($semesters as $semester)<option value="{{ $semester->id }}" @selected((int) old('semester_id', $group->semester_id) === $semester->id)>{{ $semester->name }}</option>@endforeach</select></label><label>Kode<input name="code" value="{{ old('code', $group->code) }}" class="mt-1 w-full rounded-lg border-slate-300" required>@error('code')<span class="text-sm text-red-700">{{ $message }}</span>@enderror</label><label>Nama<input name="name" value="{{ old('name', $group->name) }}" class="mt-1 w-full rounded-lg border-slate-300" required></label><label>Pembimbing<select name="employee_id" class="mt-1 w-full rounded-lg border-slate-300">@foreach($employees as $employee)<option value="{{ $employee->id }}" @selected((int) old('employee_id', $group->employee_id) === $employee->id)>{{ $employee->name }}</option>@endforeach</select></label><label>Level<select name="btaq_level_id" class="mt-1 w-full rounded-lg border-slate-300">@foreach($levels as $level)<option value="{{ $level->id }}" @selected((int) old('btaq_level_id', $group->btaq_level_id) === $level->id)>{{ $level->name }}</option>@endforeach</select></label><label>Kapasitas<input type="number" min="1" name="capacity" value="{{ old('capacity', $group->capacity) }}" class="mt-1 w-full rounded-lg border-slate-300"></label></div>
+        <label>Catatan<textarea name="notes" class="mt-1 w-full rounded-lg border-slate-300">{{ old('notes', $group->notes) }}</textarea></label><label class="flex gap-2"><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" @checked(old('is_active', $group->is_active ?? true))> Aktif</label>
+        <div class="flex gap-3"><a href="{{ route('btaq-groups.index') }}" class="rounded-lg border px-4 py-2">Kembali</a><button class="rounded-lg bg-emerald-900 px-4 py-2 text-white">Simpan Kelompok</button></div>
+    </form>
 </x-module-page>

@@ -33,4 +33,14 @@ class StudentScore extends Model
             'reopened_at' => 'datetime',
         ];
     }
+    public function student(): BelongsTo
+    {
+        return $this->belongsTo(Student::class);
+    }
+
+    public function component(): BelongsTo
+    {
+        return $this->belongsTo(AssessmentComponent::class, 'assessment_component_id');
+    }
+
 }

@@ -1,14 +1,9 @@
-<x-module-page title="Form Materi BTAQ" subtitle="Halaman operasional Form Materi BTAQ.">
-    <div class="rounded-xl bg-white p-6 shadow">
-        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <p class="text-sm text-gray-600">Data nyata ditampilkan dari basis data sesuai permission pengguna.</p>
-            <a href="{{ url()->previous() }}" class="rounded border border-emerald-800 px-4 py-2 text-emerald-900">Kembali</a>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="min-w-full text-sm">
-                <thead class="bg-gray-50"><tr><th class="px-3 py-2 text-left">Informasi</th><th class="px-3 py-2 text-left">Status</th><th class="px-3 py-2 text-left">Aksi</th></tr></thead>
-                <tbody><tr class="border-t"><td class="px-3 py-3">Form Materi BTAQ</td><td class="px-3 py-3"><span class="rounded-full bg-emerald-100 px-2 py-1 text-emerald-900">Aktif</span></td><td class="px-3 py-3"><span class="text-gray-500">Gunakan form dan tombol pada workflow terkait.</span></td></tr></tbody>
-            </table>
-        </div>
-    </div>
+<x-module-page title="{{ $material->exists ? 'Edit Materi BTAQ' : 'Tambah Materi BTAQ' }}" subtitle="Isi materi nyata yang akan dipakai pada jurnal BTAQ.">
+    <form method="POST" action="{{ $material->exists ? route('btaq-materials.update', $material) : route('btaq-materials.store') }}" class="space-y-4 rounded-xl bg-white p-6 shadow">
+        @csrf @if($material->exists) @method('PUT') @endif
+        <div class="grid gap-4 md:grid-cols-2"><label class="block text-sm font-medium text-slate-700">Level<select name="btaq_level_id" class="mt-1 w-full rounded-lg border-slate-300">@foreach($levels as $level)<option value="{{ $level->id }}" @selected((int) old('btaq_level_id', $material->btaq_level_id) === $level->id)>{{ $level->name }}</option>@endforeach</select>@error('btaq_level_id')<span class="text-sm text-red-700">{{ $message }}</span>@enderror</label><label class="block text-sm font-medium text-slate-700">Kategori<select name="category" class="mt-1 w-full rounded-lg border-slate-300">@foreach($categories as $category)<option value="{{ $category->value }}" @selected(old('category', is_object($material->category) ? $material->category->value : $material->category) === $category->value)>{{ method_exists($category, 'label') ? $category->label() : $category->value }}</option>@endforeach</select></label><label class="block text-sm font-medium text-slate-700">Nama Materi<input name="name" value="{{ old('name', $material->name) }}" class="mt-1 w-full rounded-lg border-slate-300" required>@error('name')<span class="text-sm text-red-700">{{ $message }}</span>@enderror</label><label class="block text-sm font-medium text-slate-700">Urutan<input type="number" name="sequence" value="{{ old('sequence', $material->sequence ?? 1) }}" class="mt-1 w-full rounded-lg border-slate-300"></label></div>
+        <label class="block text-sm font-medium text-slate-700">Deskripsi<textarea name="description" class="mt-1 w-full rounded-lg border-slate-300">{{ old('description', $material->description) }}</textarea></label>
+        <label class="flex items-center gap-2 text-sm"><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" @checked(old('is_active', $material->is_active ?? true))> Aktif</label>
+        <div class="flex gap-3"><a href="{{ route('btaq-materials.index') }}" class="rounded-lg border border-emerald-800 px-4 py-2 text-emerald-900">Kembali</a><button class="rounded-lg bg-emerald-900 px-4 py-2 text-white">Simpan Materi</button></div>
+    </form>
 </x-module-page>
