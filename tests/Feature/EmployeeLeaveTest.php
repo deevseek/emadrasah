@@ -20,7 +20,8 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
-final class EmployeeLeaveTest extends TestCase
+final 
+class EmployeeLeaveTest extends TestCase
 {
     use RefreshDatabase;
 

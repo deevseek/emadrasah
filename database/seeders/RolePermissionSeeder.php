@@ -39,6 +39,37 @@ class RolePermissionSeeder extends Seeder
             'employee-leaves.view-own','employee-leaves.create','employee-leaves.cancel','employee-leaves.view','employee-leaves.approve','employee-leaves.reject',
             'student-attendances.view','student-attendances.create','student-attendances.update','student-attendances.export',
             'teaching-journals.view-own','teaching-journals.create','teaching-journals.update','teaching-journals.submit','teaching-journals.view','teaching-journals.verify','teaching-journals.reject','teaching-journals.export',
+            'btaq-levels.view',
+            'btaq-levels.manage',
+            'btaq-materials.view',
+            'btaq-materials.manage',
+            'btaq-groups.view',
+            'btaq-groups.manage',
+            'btaq-journals.view-own',
+            'btaq-journals.create',
+            'btaq-journals.update',
+            'btaq-journals.submit',
+            'btaq-journals.view',
+            'btaq-journals.verify',
+            'btaq-journals.reject',
+            'btaq-reports.view',
+            'assessments.view-own',
+            'assessments.create',
+            'assessments.update',
+            'assessments.publish',
+            'assessments.unlock',
+            'assessments.view',
+            'assessment-reports.view',
+            'predicate-ranges.manage',
+            'report-cards.view-class',
+            'report-cards.generate',
+            'report-cards.update',
+            'report-cards.submit',
+            'report-cards.view',
+            'report-cards.approve',
+            'report-cards.lock',
+            'report-cards.reopen',
+            'report-cards.print',
         ])->mapWithKeys(fn (string $name): array => [
             $name => Permission::firstOrCreate([
                 'name' => $name,
@@ -75,6 +106,14 @@ class RolePermissionSeeder extends Seeder
         Role::findByName('guru-kelas')->syncPermissions($permissions->only(['dashboard.view', 'classrooms.view', 'subjects.view', 'teaching-assignments.view', 'schedules.view','students.view','guardians.view','student-guardians.view','student-enrollments.view','employee-attendances.view','employee-attendances.verify','employee-leaves.view','employee-leaves.approve','employee-leaves.reject','student-attendances.view','teaching-journals.view','teaching-journals.verify','teaching-journals.reject'])->values());
         Role::findByName('guru-mata-pelajaran')->syncPermissions($permissions->only(['dashboard.view', 'subjects.view', 'teaching-assignments.view', 'schedules.view','students.view','guardians.view','student-guardians.view','student-enrollments.view','employee-attendances.view','employee-attendances.verify','employee-leaves.view','employee-leaves.approve','employee-leaves.reject','student-attendances.view','teaching-journals.view','teaching-journals.verify','teaching-journals.reject'])->values());
         Role::findByName('wali-murid')->syncPermissions([$permissions['dashboard.view']]);
+
+
+        Role::findByName('kepala-madrasah')->givePermissionTo(['btaq-journals.view','btaq-journals.verify','btaq-journals.reject','btaq-reports.view','assessment-reports.view','report-cards.view','report-cards.approve','report-cards.lock','report-cards.reopen','report-cards.print']);
+        Role::findByName('guru-kelas')->givePermissionTo(['assessments.view-own','assessments.create','assessments.update','assessments.publish','assessment-reports.view','report-cards.view-class','report-cards.generate','report-cards.update','report-cards.submit','report-cards.view','report-cards.print']);
+        Role::findByName('guru-mata-pelajaran')->givePermissionTo(['assessments.view-own','assessments.create','assessments.update','assessments.publish','assessment-reports.view']);
+        Role::findByName('guru-btaq-murobi')->givePermissionTo(['btaq-groups.view','btaq-journals.view-own','btaq-journals.create','btaq-journals.update','btaq-journals.submit','btaq-reports.view']);
+        Role::findByName('operator')->givePermissionTo(['btaq-levels.view','btaq-levels.manage','btaq-materials.view','btaq-materials.manage','btaq-groups.view','btaq-groups.manage','predicate-ranges.manage','report-cards.view']);
+        Role::findByName('tata-usaha')->givePermissionTo(['report-cards.view','report-cards.print','btaq-reports.view','assessment-reports.view']);
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }

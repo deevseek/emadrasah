@@ -22,7 +22,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
-final class TeachingJournalTest extends TestCase
+final 
+class TeachingJournalTest extends TestCase
 {
     use RefreshDatabase;
 

@@ -1,0 +1,6 @@
+<x-module-page title="{{ $level->exists ? 'Edit Level BTAQ' : 'Tambah Level BTAQ' }}">
+    <form method="POST" action="{{ $level->exists ? route('btaq-levels.update',$level) : route('btaq-levels.store') }}" class="rounded-xl bg-white p-6 shadow">
+        @csrf @if($level->exists) @method('PUT') @endif
+        <div class="grid gap-4 md:grid-cols-2"><label>Kode<input name="code" value="{{ old('code',$level->code) }}" class="mt-1 w-full rounded border-gray-300"></label><label>Nama<input name="name" value="{{ old('name',$level->name) }}" class="mt-1 w-full rounded border-gray-300"></label><label>Urutan<input type="number" name="sequence" value="{{ old('sequence',$level->sequence) }}" class="mt-1 w-full rounded border-gray-300"></label><label class="flex items-center gap-2"><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" @checked(old('is_active',$level->is_active ?? true))> Aktif</label></div><label class="mt-4 block">Deskripsi<textarea name="description" class="mt-1 w-full rounded border-gray-300">{{ old('description',$level->description) }}</textarea></label><button class="mt-4 rounded bg-emerald-900 px-4 py-2 text-white">Simpan</button>
+    </form>
+</x-module-page>

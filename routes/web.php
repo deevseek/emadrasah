@@ -18,6 +18,12 @@ use App\Http\Controllers\Attendance\TeachingJournalController;
 use App\Http\Controllers\StudentAffairs\EnrollmentController;
 use App\Http\Controllers\StudentAffairs\GuardianController;
 use App\Http\Controllers\StudentAffairs\StudentController;
+use App\Http\Controllers\Btaq\BtaqGroupController;
+use App\Http\Controllers\Btaq\BtaqJournalController;
+use App\Http\Controllers\Btaq\BtaqLevelController;
+use App\Http\Controllers\Btaq\BtaqMaterialController;
+use App\Http\Controllers\Assessment\AssessmentController;
+use App\Http\Controllers\ReportCard\ReportCardController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/dashboard');
@@ -158,5 +164,42 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         Route::delete('/schedules/{schedule}', [AcademicResourceController::class, 'destroySchedule'])->middleware('permission:schedules.delete')->name('schedules.destroy');
     });
 
+
+    Route::get('/btaq/dashboard', [BtaqJournalController::class, 'dashboard'])->middleware('permission:btaq-reports.view')->name('btaq.dashboard');
+    Route::resource('btaq-levels', BtaqLevelController::class)->middleware('permission:btaq-levels.view');
+    Route::patch('/btaq-levels/{btaqLevel}/toggle', [BtaqLevelController::class, 'toggle'])->middleware('permission:btaq-levels.manage')->name('btaq-levels.toggle');
+    Route::resource('btaq-materials', BtaqMaterialController::class)->middleware('permission:btaq-materials.view');
+    Route::resource('btaq-groups', BtaqGroupController::class)->middleware('permission:btaq-groups.view');
+    Route::post('/btaq-groups/{btaqGroup}/members', [BtaqGroupController::class, 'addMembers'])->middleware('permission:btaq-groups.manage')->name('btaq-groups.members.store');
+    Route::patch('/btaq-members/{member}/complete', [BtaqGroupController::class, 'complete'])->middleware('permission:btaq-groups.manage')->name('btaq-members.complete');
+    Route::patch('/btaq-members/{member}/transfer', [BtaqGroupController::class, 'transfer'])->middleware('permission:btaq-groups.manage')->name('btaq-members.transfer');
+    Route::get('/btaq/progress', [BtaqJournalController::class, 'progress'])->middleware('permission:btaq-reports.view')->name('btaq.progress');
+    Route::get('/btaq/recap', [BtaqJournalController::class, 'recap'])->middleware('permission:btaq-reports.view')->name('btaq.recap');
+    Route::resource('btaq-journals', BtaqJournalController::class)->middleware('permission:btaq-journals.view-own');
+    Route::patch('/btaq-journals/{btaqJournal}/submit', [BtaqJournalController::class, 'submit'])->middleware('permission:btaq-journals.submit')->name('btaq-journals.submit');
+    Route::patch('/btaq-journals/{btaqJournal}/verify', [BtaqJournalController::class, 'verify'])->middleware('permission:btaq-journals.verify')->name('btaq-journals.verify');
+    Route::patch('/btaq-journals/{btaqJournal}/reject', [BtaqJournalController::class, 'reject'])->middleware('permission:btaq-journals.reject')->name('btaq-journals.reject');
+
+    Route::get('/assessments/dashboard', [AssessmentController::class, 'dashboard'])->middleware('permission:assessment-reports.view')->name('assessments.dashboard');
+    Route::resource('assessment-components', AssessmentController::class)->parameters(['assessment-components' => 'assessmentComponent'])->middleware('permission:assessments.view-own');
+    Route::get('/assessment-components/{assessmentComponent}/scores', [AssessmentController::class, 'scores'])->middleware('permission:assessments.update')->name('assessment-components.scores');
+    Route::post('/assessment-components/{assessmentComponent}/scores', [AssessmentController::class, 'storeScores'])->middleware('permission:assessments.update')->name('assessment-components.scores.store');
+    Route::patch('/assessment-components/{assessmentComponent}/publish', [AssessmentController::class, 'publish'])->middleware('permission:assessments.publish')->name('assessment-components.publish');
+    Route::get('/assessment-recap', [AssessmentController::class, 'recap'])->middleware('permission:assessment-reports.view')->name('assessments.recap');
+    Route::get('/predicate-ranges', [AssessmentController::class, 'predicates'])->middleware('permission:predicate-ranges.manage')->name('predicate-ranges.index');
+    Route::put('/predicate-ranges', [AssessmentController::class, 'savePredicates'])->middleware('permission:predicate-ranges.manage')->name('predicate-ranges.update');
+
+    Route::get('/report-cards/dashboard', [ReportCardController::class, 'dashboard'])->middleware('permission:report-cards.view-class')->name('report-cards.dashboard');
+    Route::get('/report-cards/classes', [ReportCardController::class, 'classes'])->middleware('permission:report-cards.view-class')->name('report-cards.classes');
+    Route::get('/report-cards/classes/{classroom}/students', [ReportCardController::class, 'students'])->middleware('permission:report-cards.view-class')->name('report-cards.students');
+    Route::post('/report-cards/enrollments/{enrollment}/generate', [ReportCardController::class, 'generate'])->middleware('permission:report-cards.generate')->name('report-cards.generate');
+    Route::get('/report-cards/verification', [ReportCardController::class, 'verification'])->middleware('permission:report-cards.approve')->name('report-cards.verification');
+    Route::get('/report-cards/{reportCard}', [ReportCardController::class, 'show'])->middleware('permission:report-cards.view')->name('report-cards.show');
+    Route::put('/report-cards/{reportCard}', [ReportCardController::class, 'update'])->middleware('permission:report-cards.update')->name('report-cards.update');
+    Route::patch('/report-cards/{reportCard}/submit', [ReportCardController::class, 'submit'])->middleware('permission:report-cards.submit')->name('report-cards.submit');
+    Route::patch('/report-cards/{reportCard}/approve', [ReportCardController::class, 'approve'])->middleware('permission:report-cards.approve')->name('report-cards.approve');
+    Route::patch('/report-cards/{reportCard}/lock', [ReportCardController::class, 'lock'])->middleware('permission:report-cards.lock')->name('report-cards.lock');
+    Route::patch('/report-cards/{reportCard}/reopen', [ReportCardController::class, 'reopen'])->middleware('permission:report-cards.reopen')->name('report-cards.reopen');
+    Route::get('/report-cards/{reportCard}/print', [ReportCardController::class, 'print'])->middleware('permission:report-cards.print')->name('report-cards.print');
     Route::patch('/users/{user}/toggle', [UserManagementController::class, 'toggle'])->middleware('permission:users.deactivate')->name('users.toggle');
 });
