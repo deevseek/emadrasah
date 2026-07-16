@@ -10,11 +10,13 @@ final class PayrollReopenRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can('payrolls.reopen') ?? false;
     }
 
     public function rules(): array
     {
-        return [];
+        return [
+            'reason' => ['required', 'string', 'max:2000'],
+        ];
     }
 }
