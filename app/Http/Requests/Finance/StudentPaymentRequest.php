@@ -18,11 +18,25 @@ final class StudentPaymentRequest extends FormRequest
         return $this->user()?->can('student-payments.create') ?? false;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'cash_account_id' => $this->filled('cash_account_id')
+                ? $this->input('cash_account_id')
+                : null,
+        ]);
+    }
+
     public function rules(): array
     {
         return [
             'payment_date' => ['required', 'date', 'before_or_equal:today'],
             'student_id' => ['required', 'integer', 'exists:students,id'],
+            'cash_account_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('cash_accounts', 'id')->where('is_active', true),
+            ],
             'payment_method' => ['required', Rule::enum(PaymentMethod::class)],
             'reference_number' => ['nullable', 'string', 'max:255'],
             'total_amount' => ['required', 'numeric', 'gt:0'],
@@ -43,7 +57,10 @@ final class StudentPaymentRequest extends FormRequest
         return [
             function (Validator $validator): void {
                 $allocations = collect($this->input('allocations', []));
-                $invoiceIds = $allocations->pluck('student_invoice_id')->filter()->all();
+                $invoiceIds = $allocations
+                    ->pluck('student_invoice_id')
+                    ->filter()
+                    ->all();
                 $invoices = StudentInvoice::query()
                     ->whereIn('id', $invoiceIds)
                     ->get()
@@ -67,10 +84,13 @@ final class StudentPaymentRequest extends FormRequest
                         );
                     }
 
-                    if ($invoice->status === InvoiceStatus::Cancelled->value) {
+                    if (in_array($invoice->status, [
+                        InvoiceStatus::Cancelled->value,
+                        InvoiceStatus::Paid->value,
+                    ], true)) {
                         $validator->errors()->add(
                             "allocations.{$index}.student_invoice_id",
-                            'Tagihan yang dibatalkan tidak dapat dibayar.',
+                            'Tagihan ini tidak dapat dibayar.',
                         );
                     }
 
