@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Enums\AttendanceStatus;
 use App\Models\BtaqGroup;
 use App\Models\BtaqGroupStudent;
 use App\Models\BtaqJournal;
@@ -100,6 +101,6 @@ class BtaqService
     {
         return StudentAttendance::where('student_id', $studentId)
             ->whereDate('attendance_date', $date)
-            ->value('status') ?? 'present';
+            ->value('status') ?? AttendanceStatus::Present->value;
     }
 }
