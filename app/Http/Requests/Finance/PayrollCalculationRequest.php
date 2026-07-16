@@ -10,7 +10,7 @@ final class PayrollCalculationRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can('payrolls.calculate') ?? false;
     }
 
     public function rules(): array
