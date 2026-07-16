@@ -20,6 +20,28 @@
         ['label' => 'Verifikasi Jurnal', 'route' => 'teaching-journals.index', 'permission' => 'teaching-journals.verify'],
         ['label' => 'Rekap Jurnal', 'route' => 'teaching-journals.index', 'permission' => 'teaching-journals.export'],
 
+        ['label' => 'BTAQ', 'heading' => true],
+        ['label' => 'Dashboard BTAQ', 'route' => 'btaq.dashboard', 'permission' => 'btaq-reports.view'],
+        ['label' => 'Level BTAQ', 'route' => 'btaq-levels.index', 'permission' => 'btaq-levels.view'],
+        ['label' => 'Materi BTAQ', 'route' => 'btaq-materials.index', 'permission' => 'btaq-materials.view'],
+        ['label' => 'Kelompok BTAQ', 'route' => 'btaq-groups.index', 'permission' => 'btaq-groups.view'],
+        ['label' => 'Jurnal BTAQ', 'route' => 'btaq-journals.index', 'permission' => 'btaq-journals.view-own'],
+        ['label' => 'Verifikasi Jurnal BTAQ', 'route' => 'btaq-journals.index', 'permission' => 'btaq-journals.verify'],
+        ['label' => 'Perkembangan Siswa', 'route' => 'btaq.progress', 'permission' => 'btaq-reports.view'],
+        ['label' => 'Rekap BTAQ', 'route' => 'btaq.recap', 'permission' => 'btaq-reports.view'],
+        ['label' => 'PENILAIAN', 'heading' => true],
+        ['label' => 'Dashboard Penilaian', 'route' => 'assessments.dashboard', 'permission' => 'assessment-reports.view'],
+        ['label' => 'Komponen Penilaian', 'route' => 'assessment-components.index', 'permission' => 'assessments.view-own'],
+        ['label' => 'Input Nilai', 'route' => 'assessment-components.index', 'permission' => 'assessments.update'],
+        ['label' => 'Remedial', 'route' => 'assessment-components.index', 'permission' => 'assessments.update'],
+        ['label' => 'Rekap Nilai', 'route' => 'assessments.recap', 'permission' => 'assessment-reports.view'],
+        ['label' => 'Rentang Predikat', 'route' => 'predicate-ranges.index', 'permission' => 'predicate-ranges.manage'],
+        ['label' => 'RAPOR', 'heading' => true],
+        ['label' => 'Dashboard Rapor', 'route' => 'report-cards.dashboard', 'permission' => 'report-cards.view-class'],
+        ['label' => 'Penyusunan Rapor', 'route' => 'report-cards.classes', 'permission' => 'report-cards.view-class'],
+        ['label' => 'Verifikasi Rapor', 'route' => 'report-cards.verification', 'permission' => 'report-cards.approve'],
+        ['label' => 'Cetak Rapor', 'route' => 'report-cards.classes', 'permission' => 'report-cards.print'],
+
     ];
 @endphp
 
@@ -50,8 +72,8 @@
                             href="{{ route($item['route']) }}"
                             @class([
                                 'block rounded-lg px-4 py-3 text-sm font-medium transition',
-                                'bg-white text-emerald-950 shadow' => request()->routeIs($item['route']),
-                                'text-emerald-50 hover:bg-emerald-900' => ! request()->routeIs($item['route']),
+                                'bg-white text-emerald-950 shadow' => request()->routeIs($item['route']) || request()->routeIs($item['route'].'.*'),
+                                'text-emerald-50 hover:bg-emerald-900' => ! request()->routeIs($item['route']) || request()->routeIs($item['route'].'.*'),
                             ])
                         >
                             {{ $item['label'] }}

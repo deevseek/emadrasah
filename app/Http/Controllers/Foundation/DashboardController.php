@@ -7,6 +7,11 @@ namespace App\Http\Controllers\Foundation;
 use App\Http\Controllers\Controller;
 use App\Models\AcademicYear;
 use App\Models\ActivityLog;
+use App\Models\StudentScore;
+use App\Models\ReportCard;
+use App\Models\BtaqJournalStudent;
+use App\Models\BtaqJournal;
+use App\Models\AssessmentComponent;
 use App\Models\Classroom;
 use App\Enums\AttendanceStatus;
 use App\Enums\LeaveStatus;
@@ -50,6 +55,15 @@ class DashboardController extends Controller
                 'Siswa izin/sakit/alpha' => StudentAttendance::whereDate('attendance_date', today())->whereIn('status', [AttendanceStatus::Leave->value, AttendanceStatus::Sick->value, AttendanceStatus::Alpha->value])->count(),
                 'Jurnal hari ini' => TeachingJournal::whereDate('journal_date', today())->count(),
                 'Izin pending' => EmployeeLeaveRequest::where('status', LeaveStatus::Pending->value)->count(),
+                'Jurnal BTAQ hari ini' => BtaqJournal::whereDate('journal_date', today())->count(),
+                'Jurnal BTAQ menunggu verifikasi' => BtaqJournal::where('status', 'submitted')->count(),
+                'Siswa perlu bimbingan' => BtaqJournalStudent::where('progress_status', 'needs_guidance')->distinct('student_id')->count(),
+                'Komponen nilai belum lengkap' => AssessmentComponent::doesntHave('scores')->count(),
+                'Nilai belum dipublish' => AssessmentComponent::where('status', '!=', 'published')->count(),
+                'Siswa di bawah KKM' => StudentScore::whereColumn('final_score', '<', 'score')->count(),
+                'Rapor draft' => ReportCard::where('status', 'draft')->count(),
+                'Rapor menunggu persetujuan' => ReportCard::where('status', 'submitted')->count(),
+                'Rapor sudah dikunci' => ReportCard::where('status', 'locked')->count(),
             ],
             'latestLogins' => LoginHistory::where('successful', true)->latest('attempted_at')->limit(5)->get(),
             'latestActivities' => ActivityLog::latest()->limit(5)->get(),
