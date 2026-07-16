@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Enums\AttendanceStatus;
 use App\Models\AssessmentComponent;
 use App\Models\BtaqJournalStudent;
 use App\Models\ReportCard;
@@ -169,10 +170,10 @@ class ReportCardService
             ->where('academic_year_id', $enrollment->academic_year_id);
 
         return [
-            'sick_count' => (clone $query)->where('status', 'sick')->count(),
-            'permission_count' => (clone $query)->where('status', 'permission')->count(),
-            'alpha_count' => (clone $query)->where('status', 'alpha')->count(),
-            'late_count' => (clone $query)->where('status', 'late')->count(),
+            'sick_count' => (clone $query)->where('status', AttendanceStatus::Sick->value)->count(),
+            'permission_count' => (clone $query)->where('status', AttendanceStatus::Leave->value)->count(),
+            'alpha_count' => (clone $query)->where('status', AttendanceStatus::Alpha->value)->count(),
+            'late_count' => (clone $query)->where('status', AttendanceStatus::Late->value)->count(),
         ];
     }
 }
