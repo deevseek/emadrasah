@@ -1,0 +1,101 @@
+name: Quality Gates
+
+on:
+  push:
+    branches:
+      - main
+      - codex/stabilize-existing-crud-workflows
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-gates-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Tests, Pint, and Vite
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: emadrasah_test
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --host=127.0.0.1 --user=root --password=root --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      APP_ENV: testing
+      APP_DEBUG: "false"
+      APP_KEY: base64:FsymAyv5LqvSsJKJIBwFYmpRyLSIOI29cd+haZabK1I=
+      APP_URL: http://localhost
+      BCRYPT_ROUNDS: "4"
+      BROADCAST_CONNECTION: "null"
+      CACHE_STORE: array
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: "3306"
+      DB_DATABASE: emadrasah_test
+      DB_USERNAME: root
+      DB_PASSWORD: root
+      MAIL_MAILER: array
+      QUEUE_CONNECTION: sync
+      SESSION_DRIVER: array
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, pdo_mysql, intl, bcmath
+          coverage: none
+          tools: composer:v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Validate Composer files
+        run: composer validate --strict --no-check-publish
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Check Laravel Pint
+        run: vendor/bin/pint --test
+
+      - name: Reset application caches
+        run: php artisan optimize:clear
+
+      - name: Run MySQL migrations and seeders
+        run: php artisan migrate:fresh --seed --force
+
+      - name: Cache Blade views
+        run: php artisan view:cache
+
+      - name: Run test suite on MySQL
+        run: php artisan test
+
+      - name: Build frontend assets
+        run: npm run build
