@@ -1,0 +1,3 @@
+@component('finance._page', ['title' => 'Detail Jenis Tagihan'])
+<dl class="grid gap-3 md:grid-cols-2"><dt>Kode</dt><dd>{{ $feeType->code }}</dd><dt>Nama</dt><dd>{{ $feeType->name }}</dd><dt>Kategori</dt><dd>{{ $feeType->category }}</dd><dt>Status</dt><dd>{{ $feeType->is_active ? 'Aktif' : 'Nonaktif' }}</dd></dl><form method="POST" action="{{ route('finance.fee-types.toggle', $feeType) }}" class="mt-4">@csrf @method('PATCH')<x-ui.button>{{ $feeType->is_active ? 'Nonaktifkan' : 'Aktifkan' }}</x-ui.button></form>
+@endcomponent

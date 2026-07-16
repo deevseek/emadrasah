@@ -1,0 +1,3 @@
+@component('finance._page', ['title' => 'Tambah Tagihan'])
+<form method="POST" action="{{ route('finance.student-invoices.store') }}" class="grid gap-4 md:grid-cols-2">@csrf <x-ui.input name="student_id" label="ID Siswa"/><x-ui.input name="academic_year_id" label="ID Tahun Ajaran"/><x-ui.input name="fee_type_id" label="ID Jenis Tagihan"/><x-ui.input name="original_amount" label="Nominal" type="number"/><x-ui.input name="discount_amount" label="Potongan" type="number"/><x-ui.input name="penalty_amount" label="Denda" type="number"/><x-ui.button>Simpan</x-ui.button></form>
+@endcomponent

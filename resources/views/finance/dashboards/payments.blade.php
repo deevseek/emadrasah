@@ -1,0 +1,1 @@
+@component('finance._page', ['title' => 'Dashboard Pembayaran'])<div class="grid gap-4 md:grid-cols-2"><x-ui.stat-card title="Pembayaran Hari Ini" :value="'Rp '.number_format((float) $todayPayments, 0, ',', '.')"/><x-ui.stat-card title="Tunggakan Aktif" :value="'Rp '.number_format((float) $arrears, 0, ',', '.')"/></div>@endcomponent

@@ -1,0 +1,3 @@
+@component('finance._page', ['title' => 'Riwayat Pembayaran'])
+<table class="min-w-full text-sm"><tbody>@forelse($payments as $payment)<tr><td>{{ $payment->payment_number }}</td><td>{{ $payment->student->name }}</td><td>{{ $payment->status }}</td><td><a href="{{ route('finance.student-payments.receipt', $payment) }}">Cetak</a></td></tr>@empty<tr><td>Belum ada pembayaran.</td></tr>@endforelse</tbody></table>{{ $payments->links() }}
+@endcomponent

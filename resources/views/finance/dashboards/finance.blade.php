@@ -1,0 +1,1 @@
+@component('finance._page', ['title' => 'Dashboard Keuangan'])<div class="grid gap-4 md:grid-cols-2"><x-ui.stat-card title="Saldo Kas dan Bank" :value="'Rp '.number_format((float) $cashBalance, 0, ',', '.')"/><x-ui.stat-card title="Transaksi Belum Diposting" :value="$draftTransactions"/></div>@endcomponent

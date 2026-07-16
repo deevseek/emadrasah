@@ -1,0 +1,1 @@
+@component('finance._page', ['title' => 'Dashboard Penggajian'])<div class="grid gap-4 md:grid-cols-2"><x-ui.stat-card title="Menunggu Approval" :value="$pendingPayrolls"/><x-ui.stat-card title="Gaji Belum Dibayar" :value="'Rp '.number_format((float) $unpaidSalary, 0, ',', '.')"/></div>@endcomponent

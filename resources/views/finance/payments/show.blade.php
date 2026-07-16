@@ -1,0 +1,3 @@
+@component('finance._page', ['title' => 'Detail Pembayaran'])
+<p>{{ $payment->payment_number }} - {{ $payment->student->name }} - {{ $payment->status }}</p><a href="{{ route('finance.student-payments.receipt', $payment) }}">Cetak kuitansi</a><form method="POST" action="{{ route('finance.student-payments.cancel', $payment) }}" class="mt-4">@csrf @method('PATCH')<x-ui.input name="reason" label="Alasan Pembatalan"/><x-ui.button>Batalkan</x-ui.button></form>
+@endcomponent

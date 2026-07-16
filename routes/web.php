@@ -203,3 +203,5 @@ Route::middleware(['auth', 'active'])->group(function (): void {
     Route::get('/report-cards/{reportCard}/print', [ReportCardController::class, 'print'])->middleware('permission:report-cards.print')->name('report-cards.print');
     Route::patch('/users/{user}/toggle', [UserManagementController::class, 'toggle'])->middleware('permission:users.deactivate')->name('users.toggle');
 });
+
+require __DIR__.'/finance.php';
