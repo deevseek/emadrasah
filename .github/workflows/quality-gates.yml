@@ -12,14 +12,10 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: quality-gates-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   laravel:
     name: MySQL migration, tests, and Pint
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
 
     services:
@@ -30,23 +26,18 @@ jobs:
           MYSQL_ROOT_PASSWORD: root
         ports:
           - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=12
 
     env:
       APP_ENV: testing
       APP_DEBUG: "false"
       APP_KEY: base64:FsymAyv5LqvSsJKJIBwFYmpRyLSIOI29cd+haZabK1I=
       APP_URL: http://localhost
-      BCRYPT_ROUNDS: 4
+      BCRYPT_ROUNDS: "4"
       BROADCAST_CONNECTION: "null"
       CACHE_STORE: array
       DB_CONNECTION: mysql
       DB_HOST: 127.0.0.1
-      DB_PORT: 3306
+      DB_PORT: "3306"
       DB_DATABASE: emadrasah_test
       DB_USERNAME: root
       DB_PASSWORD: root
@@ -56,7 +47,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
 
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
@@ -65,6 +56,17 @@ jobs:
           extensions: mbstring, pdo_mysql, intl, bcmath
           coverage: none
           tools: composer:v2
+
+      - name: Wait for MySQL
+        run: |
+          for attempt in {1..30}; do
+            if mysqladmin ping --host=127.0.0.1 --port=3306 --user=root --password=root --silent; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "MySQL did not become ready in time."
+          exit 1
 
       - name: Validate Composer files
         run: composer validate --strict --no-check-publish
