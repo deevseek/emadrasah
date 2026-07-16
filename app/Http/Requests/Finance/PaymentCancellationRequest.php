@@ -10,11 +10,13 @@ final class PaymentCancellationRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can('student-payments.cancel') ?? false;
     }
 
     public function rules(): array
     {
-        return [];
+        return [
+            'reason' => ['required', 'string', 'max:2000'],
+        ];
     }
 }
