@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Enums\AttendanceStatus;
 use App\Models\AssessmentComponent;
 use App\Models\BtaqJournalStudent;
 use App\Models\ReportCard;
@@ -54,7 +55,16 @@ class ReportCardService
                     ]);
                 }
             }
-            $lastBtaq = BtaqJournalStudent::query()->where('student_id', $enrollment->student_id)->latest()->first();
+            $lastBtaq = BtaqJournalStudent::query()
+                ->select('btaq_journal_students.*')
+                ->join('btaq_journals', 'btaq_journals.id', '=', 'btaq_journal_students.btaq_journal_id')
+                ->join('btaq_groups', 'btaq_groups.id', '=', 'btaq_journals.btaq_group_id')
+                ->where('btaq_journal_students.student_id', $enrollment->student_id)
+                ->where('btaq_groups.academic_year_id', $enrollment->academic_year_id)
+                ->where('btaq_groups.semester_id', $semesterId)
+                ->orderByDesc('btaq_journals.journal_date')
+                ->orderByDesc('btaq_journal_students.id')
+                ->first();
             ReportCardBtaq::updateOrCreate(['report_card_id' => $card->id], [
                 'final_score' => $lastBtaq?->reading_score,
                 'predicate' => $this->assessmentService->predicate($lastBtaq?->reading_score ? (float) $lastBtaq->reading_score : null),
@@ -86,7 +96,15 @@ class ReportCardService
 
     private function attendanceSnapshot(StudentEnrollment $enrollment, int $semesterId): array
     {
-        $q = StudentAttendance::where('student_id', $enrollment->student_id)->where('academic_year_id', $enrollment->academic_year_id);
-        return ['sick_count'=>(clone $q)->where('status','sick')->count(), 'permission_count'=>(clone $q)->where('status','permission')->count(), 'alpha_count'=>(clone $q)->where('status','alpha')->count(), 'late_count'=>(clone $q)->where('status','late')->count()];
+        $query = StudentAttendance::query()
+            ->where('student_id', $enrollment->student_id)
+            ->where('academic_year_id', $enrollment->academic_year_id);
+
+        return [
+            'sick_count' => (clone $query)->where('status', AttendanceStatus::Sick->value)->count(),
+            'permission_count' => (clone $query)->where('status', AttendanceStatus::Leave->value)->count(),
+            'alpha_count' => (clone $query)->where('status', AttendanceStatus::Alpha->value)->count(),
+            'late_count' => (clone $query)->where('status', AttendanceStatus::Late->value)->count(),
+        ];
     }
 }
