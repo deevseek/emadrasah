@@ -166,68 +166,49 @@ Route::middleware(['auth', 'active'])->group(function (): void {
 
 
     Route::get('/btaq/dashboard', [BtaqJournalController::class, 'dashboard'])->middleware('permission:btaq-reports.view')->name('btaq.dashboard');
-    Route::resource('btaq-levels', BtaqLevelController::class)
-        ->except('destroy')
-        ->middleware([
-            'index' => 'permission:btaq-levels.view',
-            'show' => 'permission:btaq-levels.view',
-            'create' => 'permission:btaq-levels.manage',
-            'store' => 'permission:btaq-levels.manage',
-            'edit' => 'permission:btaq-levels.manage',
-            'update' => 'permission:btaq-levels.manage',
-        ]);
+    Route::get('/btaq-levels', [BtaqLevelController::class, 'index'])->middleware('permission:btaq-levels.view')->name('btaq-levels.index');
+    Route::get('/btaq-levels/create', [BtaqLevelController::class, 'create'])->middleware('permission:btaq-levels.manage')->name('btaq-levels.create');
+    Route::post('/btaq-levels', [BtaqLevelController::class, 'store'])->middleware('permission:btaq-levels.manage')->name('btaq-levels.store');
+    Route::get('/btaq-levels/{btaqLevel}', [BtaqLevelController::class, 'show'])->middleware('permission:btaq-levels.view')->name('btaq-levels.show');
+    Route::get('/btaq-levels/{btaqLevel}/edit', [BtaqLevelController::class, 'edit'])->middleware('permission:btaq-levels.manage')->name('btaq-levels.edit');
+    Route::put('/btaq-levels/{btaqLevel}', [BtaqLevelController::class, 'update'])->middleware('permission:btaq-levels.manage')->name('btaq-levels.update');
     Route::patch('/btaq-levels/{btaqLevel}/toggle', [BtaqLevelController::class, 'toggle'])->middleware('permission:btaq-levels.manage')->name('btaq-levels.toggle');
-    Route::resource('btaq-materials', BtaqMaterialController::class)
-        ->except('destroy')
-        ->middleware([
-            'index' => 'permission:btaq-materials.view',
-            'show' => 'permission:btaq-materials.view',
-            'create' => 'permission:btaq-materials.manage',
-            'store' => 'permission:btaq-materials.manage',
-            'edit' => 'permission:btaq-materials.manage',
-            'update' => 'permission:btaq-materials.manage',
-        ]);
-    Route::resource('btaq-groups', BtaqGroupController::class)
-        ->except('destroy')
-        ->middleware([
-            'index' => 'permission:btaq-groups.view',
-            'show' => 'permission:btaq-groups.view',
-            'create' => 'permission:btaq-groups.manage',
-            'store' => 'permission:btaq-groups.manage',
-            'edit' => 'permission:btaq-groups.manage',
-            'update' => 'permission:btaq-groups.manage',
-        ]);
+
+    Route::get('/btaq-materials', [BtaqMaterialController::class, 'index'])->middleware('permission:btaq-materials.view')->name('btaq-materials.index');
+    Route::get('/btaq-materials/create', [BtaqMaterialController::class, 'create'])->middleware('permission:btaq-materials.manage')->name('btaq-materials.create');
+    Route::post('/btaq-materials', [BtaqMaterialController::class, 'store'])->middleware('permission:btaq-materials.manage')->name('btaq-materials.store');
+    Route::get('/btaq-materials/{btaqMaterial}', [BtaqMaterialController::class, 'show'])->middleware('permission:btaq-materials.view')->name('btaq-materials.show');
+    Route::get('/btaq-materials/{btaqMaterial}/edit', [BtaqMaterialController::class, 'edit'])->middleware('permission:btaq-materials.manage')->name('btaq-materials.edit');
+    Route::put('/btaq-materials/{btaqMaterial}', [BtaqMaterialController::class, 'update'])->middleware('permission:btaq-materials.manage')->name('btaq-materials.update');
+
+    Route::get('/btaq-groups', [BtaqGroupController::class, 'index'])->middleware('permission:btaq-groups.view')->name('btaq-groups.index');
+    Route::get('/btaq-groups/create', [BtaqGroupController::class, 'create'])->middleware('permission:btaq-groups.manage')->name('btaq-groups.create');
+    Route::post('/btaq-groups', [BtaqGroupController::class, 'store'])->middleware('permission:btaq-groups.manage')->name('btaq-groups.store');
+    Route::get('/btaq-groups/{btaqGroup}', [BtaqGroupController::class, 'show'])->middleware('permission:btaq-groups.view')->name('btaq-groups.show');
+    Route::get('/btaq-groups/{btaqGroup}/edit', [BtaqGroupController::class, 'edit'])->middleware('permission:btaq-groups.manage')->name('btaq-groups.edit');
+    Route::put('/btaq-groups/{btaqGroup}', [BtaqGroupController::class, 'update'])->middleware('permission:btaq-groups.manage')->name('btaq-groups.update');
     Route::post('/btaq-groups/{btaqGroup}/members', [BtaqGroupController::class, 'addMembers'])->middleware('permission:btaq-groups.manage')->name('btaq-groups.members.store');
     Route::patch('/btaq-members/{member}/complete', [BtaqGroupController::class, 'complete'])->middleware('permission:btaq-groups.manage')->name('btaq-members.complete');
     Route::patch('/btaq-members/{member}/transfer', [BtaqGroupController::class, 'transfer'])->middleware('permission:btaq-groups.manage')->name('btaq-members.transfer');
     Route::get('/btaq/progress', [BtaqJournalController::class, 'progress'])->middleware('permission:btaq-reports.view')->name('btaq.progress');
     Route::get('/btaq/recap', [BtaqJournalController::class, 'recap'])->middleware('permission:btaq-reports.view')->name('btaq.recap');
-    Route::resource('btaq-journals', BtaqJournalController::class)
-        ->except('destroy')
-        ->middleware([
-            'index' => 'permission:btaq-journals.view-own',
-            'show' => 'permission:btaq-journals.view-own',
-            'create' => 'permission:btaq-journals.create',
-            'store' => 'permission:btaq-journals.create',
-            'edit' => 'permission:btaq-journals.update',
-            'update' => 'permission:btaq-journals.update',
-        ]);
+    Route::get('/btaq-journals', [BtaqJournalController::class, 'index'])->middleware('permission:btaq-journals.view-own')->name('btaq-journals.index');
+    Route::get('/btaq-journals/create', [BtaqJournalController::class, 'create'])->middleware('permission:btaq-journals.create')->name('btaq-journals.create');
+    Route::post('/btaq-journals', [BtaqJournalController::class, 'store'])->middleware('permission:btaq-journals.create')->name('btaq-journals.store');
+    Route::get('/btaq-journals/{btaqJournal}', [BtaqJournalController::class, 'show'])->middleware('permission:btaq-journals.view-own')->name('btaq-journals.show');
+    Route::get('/btaq-journals/{btaqJournal}/edit', [BtaqJournalController::class, 'edit'])->middleware('permission:btaq-journals.update')->name('btaq-journals.edit');
+    Route::put('/btaq-journals/{btaqJournal}', [BtaqJournalController::class, 'update'])->middleware('permission:btaq-journals.update')->name('btaq-journals.update');
     Route::patch('/btaq-journals/{btaqJournal}/submit', [BtaqJournalController::class, 'submit'])->middleware('permission:btaq-journals.submit')->name('btaq-journals.submit');
     Route::patch('/btaq-journals/{btaqJournal}/verify', [BtaqJournalController::class, 'verify'])->middleware('permission:btaq-journals.verify')->name('btaq-journals.verify');
     Route::patch('/btaq-journals/{btaqJournal}/reject', [BtaqJournalController::class, 'reject'])->middleware('permission:btaq-journals.reject')->name('btaq-journals.reject');
 
     Route::get('/assessments/dashboard', [AssessmentController::class, 'dashboard'])->middleware('permission:assessment-reports.view')->name('assessments.dashboard');
-    Route::resource('assessment-components', AssessmentController::class)
-        ->parameters(['assessment-components' => 'assessmentComponent'])
-        ->except('destroy')
-        ->middleware([
-            'index' => 'permission:assessments.view-own',
-            'show' => 'permission:assessments.view-own',
-            'create' => 'permission:assessments.create',
-            'store' => 'permission:assessments.create',
-            'edit' => 'permission:assessments.update',
-            'update' => 'permission:assessments.update',
-        ]);
+    Route::get('/assessment-components', [AssessmentController::class, 'index'])->middleware('permission:assessments.view-own')->name('assessment-components.index');
+    Route::get('/assessment-components/create', [AssessmentController::class, 'create'])->middleware('permission:assessments.create')->name('assessment-components.create');
+    Route::post('/assessment-components', [AssessmentController::class, 'store'])->middleware('permission:assessments.create')->name('assessment-components.store');
+    Route::get('/assessment-components/{assessmentComponent}', [AssessmentController::class, 'show'])->middleware('permission:assessments.view-own')->name('assessment-components.show');
+    Route::get('/assessment-components/{assessmentComponent}/edit', [AssessmentController::class, 'edit'])->middleware('permission:assessments.update')->name('assessment-components.edit');
+    Route::put('/assessment-components/{assessmentComponent}', [AssessmentController::class, 'update'])->middleware('permission:assessments.update')->name('assessment-components.update');
     Route::get('/assessment-components/{assessmentComponent}/scores', [AssessmentController::class, 'scores'])->middleware('permission:assessments.update')->name('assessment-components.scores');
     Route::post('/assessment-components/{assessmentComponent}/scores', [AssessmentController::class, 'storeScores'])->middleware('permission:assessments.update')->name('assessment-components.scores.store');
     Route::patch('/assessment-components/{assessmentComponent}/publish', [AssessmentController::class, 'publish'])->middleware('permission:assessments.publish')->name('assessment-components.publish');
