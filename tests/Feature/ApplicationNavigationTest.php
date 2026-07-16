@@ -4,8 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Enums\EmployeeStatus;
+use App\Enums\EmploymentType;
+use App\Enums\Gender;
+use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class ApplicationNavigationTest extends TestCase
@@ -50,19 +55,65 @@ class ApplicationNavigationTest extends TestCase
 
     public function test_core_module_routes_render_without_view_or_component_errors(): void
     {
-        $routes = [
+        $employeeUser = $this->createEmployeeUser();
+
+        $employeeRoutes = [
             'employee-attendances.mine',
             'employee-leaves.index',
-            'student-attendances.index',
             'teaching-journals.index',
+        ];
+
+        foreach ($employeeRoutes as $routeName) {
+            $response = $this->actingAs($employeeUser)->get(route($routeName));
+
+            $this->assertSame(
+                200,
+                $response->getStatusCode(),
+                "Route {$routeName} gagal dirender."
+            );
+        }
+
+        $adminRoutes = [
+            'student-attendances.index',
             'btaq.dashboard',
             'assessments.dashboard',
             'report-cards.dashboard',
         ];
 
-        foreach ($routes as $route) {
-            $this->actingAs($this->admin)->get(route($route))->assertOk();
+        foreach ($adminRoutes as $routeName) {
+            $response = $this->actingAs($this->admin)->get(route($routeName));
+
+            $this->assertSame(
+                200,
+                $response->getStatusCode(),
+                "Route {$routeName} gagal dirender."
+            );
         }
+    }
+
+    private function createEmployeeUser(): User
+    {
+        $user = User::factory()->create([
+            'is_active' => true,
+        ]);
+
+        Employee::query()->create([
+            'user_id' => $user->id,
+            'employee_number' => 'NAV-'.Str::upper(Str::random(8)),
+            'name' => 'Guru Navigasi Pengujian',
+            'gender' => Gender::Male,
+            'employment_type' => EmploymentType::ClassTeacher,
+            'employee_status' => EmployeeStatus::Permanent,
+            'is_active' => true,
+        ]);
+
+        $user->givePermissionTo([
+            'employee-attendances.view-own',
+            'employee-leaves.view-own',
+            'teaching-journals.view-own',
+        ]);
+
+        return $user->fresh('employee');
     }
 
     public function test_layout_renders_single_primary_sidebar(): void
