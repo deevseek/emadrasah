@@ -62,6 +62,9 @@ Route::middleware(['auth', 'active'])->group(function (): void {
     Route::get('/teaching-journals', [TeachingJournalController::class, 'index'])->middleware('permission:teaching-journals.view-own')->name('teaching-journals.index');
     Route::get('/teaching-journals/create', [TeachingJournalController::class, 'create'])->middleware('permission:teaching-journals.create')->name('teaching-journals.create');
     Route::post('/teaching-journals', [TeachingJournalController::class, 'store'])->middleware('permission:teaching-journals.create')->name('teaching-journals.store');
+    Route::get('/teaching-journals/{teachingJournal}/edit', [TeachingJournalController::class, 'edit'])->middleware('permission:teaching-journals.update')->name('teaching-journals.edit');
+    Route::put('/teaching-journals/{teachingJournal}', [TeachingJournalController::class, 'update'])->middleware('permission:teaching-journals.update')->name('teaching-journals.update');
+    Route::get('/teaching-journals/{teachingJournal}/print', [TeachingJournalController::class, 'print'])->middleware('permission:teaching-journals.view-own')->name('teaching-journals.print');
     Route::get('/teaching-journals/{teachingJournal}', [TeachingJournalController::class, 'show'])->middleware('permission:teaching-journals.view-own')->name('teaching-journals.show');
     Route::patch('/teaching-journals/{teachingJournal}/submit', [TeachingJournalController::class, 'submit'])->middleware('permission:teaching-journals.submit')->name('teaching-journals.submit');
     Route::patch('/teaching-journals/{teachingJournal}/verify', [TeachingJournalController::class, 'verify'])->middleware('permission:teaching-journals.verify')->name('teaching-journals.verify');

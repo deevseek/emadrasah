@@ -1,2 +1,41 @@
-<?php declare(strict_types=1); namespace App\Http\Requests\Attendance; use Illuminate\Foundation\Http\FormRequest; use Illuminate\Validation\Rule;
-class TeachingJournalStoreRequest extends FormRequest{public function authorize():bool{return true;} public function rules():array{return match(class_basename($this)){ 'EmployeeCheckInRequest'=>['latitude'=>['nullable','numeric'],'longitude'=>['nullable','numeric'],'accuracy'=>['nullable','integer'],'location_text'=>['nullable','string','max:255'],'selfie'=>['nullable','image','max:2048'],'work_schedule_type'=>['nullable',Rule::in(['regular','manajerial','btaq','full_day'])],'notes'=>['nullable','string']], 'EmployeeAttendanceVerifyRequest'=>['status'=>['required',Rule::in(['hadir','terlambat','izin','sakit','dinas','alpha'])],'correction_reason'=>['required','string','max:1000'],'notes'=>['nullable','string']], 'LeaveRequestStoreRequest'=>['starts_at'=>['required','date'],'ends_at'=>['required','date','after_or_equal:starts_at'],'type'=>['required',Rule::in(['izin_pribadi','sakit','dinas','cuti','lainnya'])],'reason'=>['required','string'],'attachment'=>['nullable','file','mimes:pdf,jpg,jpeg,png','max:4096']], 'StudentAttendanceBulkRequest'=>['attendance_date'=>['required','date'],'students'=>['required','array'],'students.*.status'=>['required',Rule::in(['hadir','izin','sakit','alpha','terlambat'])],'students.*.notes'=>['nullable','string']], default=>['teaching_assignment_id'=>['required','exists:teaching_assignments,id'],'lesson_schedule_id'=>['nullable','exists:lesson_schedules,id'],'journal_date'=>['required','date'],'starts_at'=>['required','date_format:H:i'],'ends_at'=>['required','date_format:H:i','after:starts_at'],'lesson_hours'=>['required','integer','min:1'],'material'=>['required','string'],'learning_objectives'=>['nullable','string'],'method'=>['nullable','string'],'media'=>['nullable','string'],'assignment'=>['nullable','string'],'assessment'=>['nullable','string'],'teacher_notes'=>['nullable','string'],'status'=>['required',Rule::in(['draft','submitted'])],'students'=>['nullable','array'],'students.*.status'=>['required_with:students',Rule::in(['hadir','izin','sakit','alpha','terlambat'])]]};}}
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Requests\Attendance;
+
+use App\Enums\AttendanceStatus;
+use App\Enums\TeachingJournalStatus;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
+final class TeachingJournalStoreRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return $this->user()?->can('teaching-journals.create') || $this->user()?->can('teaching-journals.update');
+    }
+
+    public function rules(): array
+    {
+        return [
+            'teaching_assignment_id' => ['required', 'exists:teaching_assignments,id'],
+            'lesson_schedule_id' => ['nullable', 'exists:lesson_schedules,id'],
+            'journal_date' => ['required', 'date'],
+            'starts_at' => ['required', 'date_format:H:i'],
+            'ends_at' => ['required', 'date_format:H:i', 'after:starts_at'],
+            'lesson_hours' => ['required', 'integer', 'min:1', 'max:12'],
+            'material' => ['required', 'string', 'max:5000'],
+            'learning_objectives' => ['nullable', 'string', 'max:5000'],
+            'method' => ['nullable', 'string', 'max:255'],
+            'media' => ['nullable', 'string', 'max:255'],
+            'assignment' => ['nullable', 'string', 'max:5000'],
+            'assessment' => ['nullable', 'string', 'max:5000'],
+            'teacher_notes' => ['nullable', 'string', 'max:5000'],
+            'status' => ['required', Rule::in([TeachingJournalStatus::Draft->value, TeachingJournalStatus::Submitted->value])],
+            'students' => ['nullable', 'array'],
+            'students.*.status' => ['required_with:students', Rule::enum(AttendanceStatus::class)],
+            'students.*.notes' => ['nullable', 'string', 'max:1000'],
+        ];
+    }
+}
