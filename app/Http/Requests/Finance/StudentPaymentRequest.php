@@ -20,10 +20,17 @@ final class StudentPaymentRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $allocations = collect($this->input('allocations', []))
+            ->filter(static fn (array $allocation): bool => filled($allocation['student_invoice_id'] ?? null)
+                || (float) ($allocation['amount'] ?? 0) > 0)
+            ->values()
+            ->all();
+
         $this->merge([
             'cash_account_id' => $this->filled('cash_account_id')
                 ? $this->input('cash_account_id')
                 : null,
+            'allocations' => $allocations,
         ]);
     }
 
