@@ -70,6 +70,18 @@ class RolePermissionSeeder extends Seeder
             'report-cards.lock',
             'report-cards.reopen',
             'report-cards.print',
+
+            'fee-types.view', 'fee-types.manage',
+            'student-invoices.view', 'student-invoices.create', 'student-invoices.generate', 'student-invoices.update', 'student-invoices.cancel', 'student-invoices.export',
+            'student-payments.view', 'student-payments.create', 'student-payments.cancel', 'student-payments.print', 'student-payments.export',
+            'student-discounts.view', 'student-discounts.manage', 'student-discounts.approve',
+            'finance-accounts.view', 'finance-accounts.manage',
+            'finance-transactions.view', 'finance-transactions.create', 'finance-transactions.update', 'finance-transactions.post', 'finance-transactions.cancel', 'finance-transactions.approve',
+            'finance-reports.view', 'finance-reports.export',
+            'salary-components.view', 'salary-components.manage',
+            'employee-salaries.view', 'employee-salaries.manage',
+            'payroll-periods.view', 'payroll-periods.create',
+            'payrolls.calculate', 'payrolls.review', 'payrolls.approve', 'payrolls.mark-paid', 'payrolls.close', 'payrolls.reopen', 'payrolls.view', 'payrolls.print', 'payrolls.export',
         ])->mapWithKeys(fn (string $name): array => [
             $name => Permission::firstOrCreate([
                 'name' => $name,
@@ -106,6 +118,13 @@ class RolePermissionSeeder extends Seeder
         Role::findByName('guru-kelas')->syncPermissions($permissions->only(['dashboard.view', 'classrooms.view', 'subjects.view', 'teaching-assignments.view', 'schedules.view','students.view','guardians.view','student-guardians.view','student-enrollments.view','employee-attendances.view','employee-attendances.verify','employee-leaves.view','employee-leaves.approve','employee-leaves.reject','student-attendances.view','teaching-journals.view','teaching-journals.verify','teaching-journals.reject'])->values());
         Role::findByName('guru-mata-pelajaran')->syncPermissions($permissions->only(['dashboard.view', 'subjects.view', 'teaching-assignments.view', 'schedules.view','students.view','guardians.view','student-guardians.view','student-enrollments.view','employee-attendances.view','employee-attendances.verify','employee-leaves.view','employee-leaves.approve','employee-leaves.reject','student-attendances.view','teaching-journals.view','teaching-journals.verify','teaching-journals.reject'])->values());
         Role::findByName('wali-murid')->syncPermissions([$permissions['dashboard.view']]);
+
+        $financePermissions = $permissions->only([
+            'fee-types.view', 'fee-types.manage', 'student-invoices.view', 'student-invoices.create', 'student-invoices.generate', 'student-invoices.update', 'student-invoices.cancel', 'student-invoices.export', 'student-payments.view', 'student-payments.create', 'student-payments.cancel', 'student-payments.print', 'student-payments.export', 'student-discounts.view', 'student-discounts.manage', 'student-discounts.approve', 'finance-accounts.view', 'finance-accounts.manage', 'finance-transactions.view', 'finance-transactions.create', 'finance-transactions.update', 'finance-transactions.post', 'finance-transactions.cancel', 'finance-transactions.approve', 'finance-reports.view', 'finance-reports.export', 'salary-components.view', 'salary-components.manage', 'employee-salaries.view', 'employee-salaries.manage', 'payroll-periods.view', 'payroll-periods.create', 'payrolls.calculate', 'payrolls.review', 'payrolls.approve', 'payrolls.mark-paid', 'payrolls.close', 'payrolls.reopen', 'payrolls.view', 'payrolls.print', 'payrolls.export',
+        ])->values();
+        Role::findByName('bendahara')->syncPermissions($financePermissions->merge([$permissions['dashboard.view']]));
+        Role::findByName('kepala-madrasah')->givePermissionTo(['student-invoices.view', 'student-payments.view', 'finance-reports.view', 'payrolls.view', 'payrolls.approve']);
+        Role::findByName('tata-usaha')->givePermissionTo(['fee-types.view', 'student-invoices.view', 'student-payments.view']);
 
 
         Role::findByName('kepala-madrasah')->givePermissionTo(['btaq-journals.view','btaq-journals.verify','btaq-journals.reject','btaq-reports.view','assessment-reports.view','report-cards.view','report-cards.approve','report-cards.lock','report-cards.reopen','report-cards.print']);

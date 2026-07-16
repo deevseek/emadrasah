@@ -1,0 +1,3 @@
+@component('finance._page', ['title' => 'Daftar Tagihan'])
+<table class="min-w-full text-sm"><tbody>@forelse($invoices as $invoice)<tr><td>{{ $invoice->invoice_number }}</td><td>{{ $invoice->student->name }}</td><td>{{ $invoice->feeType->name }}</td><td>Rp {{ number_format((float) $invoice->outstanding_amount, 0, ',', '.') }}</td><td>{{ $invoice->status }}</td></tr>@empty<tr><td>Belum ada tagihan.</td></tr>@endforelse</tbody></table>{{ $invoices->links() }}
+@endcomponent
