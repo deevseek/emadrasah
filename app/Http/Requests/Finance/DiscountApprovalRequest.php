@@ -10,7 +10,7 @@ final class DiscountApprovalRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can('student-discounts.approve') ?? false;
     }
 
     public function rules(): array
