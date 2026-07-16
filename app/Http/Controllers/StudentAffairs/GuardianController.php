@@ -59,7 +59,13 @@ class GuardianController extends Controller
         return view('student-affairs.guardians.form', [
             'guardian' => $guardian,
             'genders' => Gender::cases(),
-            'users' => User::whereDoesntHave('guardian')->orWhereKey($guardian->user_id)->get(),
+            'users' => User::query()
+                ->whereDoesntHave('guardian')
+                ->when(
+                    $guardian->user_id,
+                    fn ($query, $userId) => $query->orWhere('id', $userId),
+                )
+                ->get(),
         ]);
     }
 

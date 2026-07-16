@@ -91,7 +91,7 @@
                                 <td>{{ $enrollment->academicYear?->name }}</td>
                                 <td>{{ $enrollment->classroom?->name }}</td>
                                 <td>{{ $enrollment->enrolled_at?->format('d/m/Y') }}</td>
-                                <td><span class="badge badge-success">{{ str($enrollment->enrollment_status)->headline() }}</span></td>
+                                <td><span class="badge badge-success">{{ $enrollment->enrollment_status?->label() ?? '-' }}</span></td>
                                 <td class="flex gap-2">
                                     @can('student-enrollments.transfer')
                                         <button class="btn btn-secondary px-3 py-1.5">Transfer</button>

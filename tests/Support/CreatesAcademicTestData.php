@@ -60,7 +60,7 @@ trait CreatesAcademicTestData
         return GradeLevel::query()->create([
             'name' => 'Tingkat '.$suffix,
             'code' => 'GL-'.$suffix,
-            'level' => random_int(1000, 9999),
+            'level' => ((int) GradeLevel::query()->max('level')) + 1,
             'is_active' => true,
         ]);
     }

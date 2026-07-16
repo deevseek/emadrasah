@@ -62,7 +62,7 @@ final class StudentAffairsCrudTest extends TestCase
         $student = Student::where('student_number', 'NIS-CRUD-1')->firstOrFail();
         $this->get(route('students.show', $student))->assertOk();
         $this->get(route('students.edit', $student))->assertOk();
-        $this->put(route('students.update', $student), $studentPayload + ['name' => 'Siswa CRUD Update'])->assertRedirect();
+        $this->put(route('students.update', $student), array_replace($studentPayload, ['name' => 'Siswa CRUD Update']))->assertRedirect();
         $this->assertDatabaseHas('students', ['id' => $student->id, 'name' => 'Siswa CRUD Update']);
         $this->post(route('students.store'), [])->assertSessionHasErrors('name');
 
@@ -73,7 +73,7 @@ final class StudentAffairsCrudTest extends TestCase
         $guardian = Guardian::where('email', 'wali@example.test')->firstOrFail();
         $this->get(route('guardians.show', $guardian))->assertOk();
         $this->get(route('guardians.edit', $guardian))->assertOk();
-        $this->put(route('guardians.update', $guardian), $guardianPayload + ['phone' => '08999999999'])->assertRedirect();
+        $this->put(route('guardians.update', $guardian), array_replace($guardianPayload, ['phone' => '08999999999']))->assertRedirect();
         $this->assertDatabaseHas('guardians', ['id' => $guardian->id, 'phone' => '08999999999']);
         $this->post(route('guardians.store'), ['name' => 'Email Salah', 'email' => 'invalid'])->assertSessionHasErrors('email');
 
@@ -92,8 +92,8 @@ final class StudentAffairsCrudTest extends TestCase
         $this->post(route('student-enrollments.transfer', $enrollment), ['classroom_id' => $targetClassroom->id])->assertRedirect();
         $this->delete(route('student-enrollments.destroy', $enrollment->fresh()))->assertRedirect();
 
-        $this->post(route('students.status.store', $student), ['student_status' => StudentStatus::Transferred->value, 'effective_date' => '2026-07-16', 'reason' => 'Pindah'])->assertRedirect();
-        $this->assertDatabaseHas('student_status_histories', ['student_id' => $student->id, 'student_status' => StudentStatus::Transferred->value]);
+        $this->post(route('students.status.store', $student), ['new_status' => StudentStatus::Transferred->value, 'effective_date' => '2026-07-16', 'reason' => 'Pindah'])->assertRedirect();
+        $this->assertDatabaseHas('student_status_histories', ['student_id' => $student->id, 'new_status' => StudentStatus::Transferred->value]);
 
         $file = UploadedFile::fake()->create('dokumen.pdf', 100, 'application/pdf');
         $this->post(route('students.documents.store', $student), ['document_type' => StudentDocumentType::BirthCertificate->value, 'file' => $file])->assertRedirect();

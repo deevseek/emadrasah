@@ -9,6 +9,7 @@ use App\Models\LessonSchedule;
 use App\Models\TeachingAssignment;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Support\CreatesAcademicTestData;
 use Tests\TestCase;
 
@@ -57,9 +58,7 @@ final class AcademicCrudTest extends TestCase
         $this->records = compact('grade', 'classroom', 'subject', 'employee', 'assignment', 'schedule');
     }
 
-    /**
-     * @dataProvider academicCreateRoutes
-     */
+    #[DataProvider('academicCreateRoutes')]
     public function test_academic_create_forms_render(string $routeName, string $storeRouteName): void
     {
         $response = $this->actingAs($this->admin)->get(route($routeName));
@@ -70,9 +69,7 @@ final class AcademicCrudTest extends TestCase
             ->assertSee(route($storeRouteName), false);
     }
 
-    /**
-     * @dataProvider academicEditRoutes
-     */
+    #[DataProvider('academicEditRoutes')]
     public function test_academic_edit_forms_render(string $routeName, string $updateRouteName, string $recordKey, string $existingValue): void
     {
         $record = $this->records[$recordKey];

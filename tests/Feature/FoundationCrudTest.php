@@ -7,6 +7,7 @@ namespace Tests\Feature;
 use App\Models\SchoolSetting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 final class FoundationCrudTest extends TestCase
@@ -22,9 +23,7 @@ final class FoundationCrudTest extends TestCase
         $this->admin = User::where('email', 'admin@example.test')->firstOrFail();
     }
 
-    /**
-     * @dataProvider foundationFormRoutes
-     */
+    #[DataProvider('foundationFormRoutes')]
     public function test_foundation_forms_render(string $routeName, string $actionRouteName, string $field, ?string $recordKey = null): void
     {
         $record = match ($recordKey) {

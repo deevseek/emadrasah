@@ -72,7 +72,14 @@ class StudentController extends Controller
 
     public function show(Student $student): View
     {
-        $student->load(['user', 'guardians', 'enrollments.classroom.academicYear', 'statusHistories.changedBy', 'documents.uploader']);
+        $student->load([
+            'user',
+            'guardians',
+            'activeEnrollment.classroom',
+            'enrollments.classroom.academicYear',
+            'statusHistories.changedBy',
+            'documents.uploader',
+        ]);
 
         return view('student-affairs.students.show', [
             'student' => $student,
