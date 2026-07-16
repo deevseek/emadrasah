@@ -10,11 +10,29 @@ final class CashAccountRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can('finance-accounts.manage') ?? false;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'is_active' => $this->boolean('is_active'),
+        ]);
     }
 
     public function rules(): array
     {
-        return [];
+        return [
+            'chart_account_id' => [
+                'required',
+                'integer',
+                'exists:chart_accounts,id',
+            ],
+            'name' => ['required', 'string', 'max:255'],
+            'account_number' => ['nullable', 'string', 'max:100'],
+            'bank_name' => ['nullable', 'string', 'max:255'],
+            'opening_balance' => ['required', 'numeric', 'min:0'],
+            'is_active' => ['required', 'boolean'],
+        ];
     }
 }
