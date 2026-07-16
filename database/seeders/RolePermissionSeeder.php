@@ -24,7 +24,18 @@ class RolePermissionSeeder extends Seeder
             'users.view',
             'users.create',
             'users.update',
-            'users.deactivate',
+            'users.activate',
+            'users.reset-password',
+            'roles.view',
+            'roles.manage',
+            'academic-years.view',
+            'academic-years.create',
+            'academic-years.update',
+            'academic-years.activate',
+            'semesters.view',
+            'semesters.create',
+            'semesters.update',
+            'semesters.activate',
             'grade-levels.view', 'grade-levels.create', 'grade-levels.update', 'grade-levels.delete',
             'classrooms.view', 'classrooms.create', 'classrooms.update', 'classrooms.delete',
             'subjects.view', 'subjects.create', 'subjects.update', 'subjects.delete',
@@ -111,13 +122,19 @@ class RolePermissionSeeder extends Seeder
         }
 
         Role::findByName('super-admin')->syncPermissions($permissions->values());
-        Role::findByName('admin-madrasah')->syncPermissions($permissions->except(['users.deactivate'])->values());
+        Role::findByName('admin-madrasah')->syncPermissions($permissions->except(['users.activate', 'users.reset-password', 'roles.manage'])->values());
         Role::findByName('kepala-madrasah')->syncPermissions($permissions->only(['dashboard.view', 'grade-levels.view', 'classrooms.view', 'subjects.view', 'employees.view', 'teaching-assignments.view', 'schedules.view','students.view','guardians.view','student-guardians.view','student-enrollments.view','employee-attendances.view','employee-attendances.verify','employee-leaves.view','employee-leaves.approve','employee-leaves.reject','student-attendances.view','teaching-journals.view','teaching-journals.verify','teaching-journals.reject'])->values());
         Role::findByName('tata-usaha')->syncPermissions($permissions->only(['dashboard.view', 'grade-levels.view', 'classrooms.view', 'subjects.view', 'employees.view', 'employees.create', 'employees.update','students.view','students.create','students.update','students.change-status','students.manage-documents','guardians.view','guardians.create','guardians.update','student-guardians.view','student-guardians.create','student-guardians.update','student-enrollments.view','student-enrollments.create','student-enrollments.update','student-enrollments.transfer','employee-attendances.view','employee-attendances.update','employee-attendances.verify','employee-leaves.view','employee-leaves.approve','employee-leaves.reject','student-attendances.view','student-attendances.create','student-attendances.update','teaching-journals.view','teaching-journals.verify','teaching-journals.reject'])->values());
         Role::findByName('operator')->syncPermissions($permissions->only(['dashboard.view', 'grade-levels.view', 'grade-levels.create', 'grade-levels.update', 'classrooms.view', 'classrooms.create', 'classrooms.update', 'subjects.view', 'subjects.create', 'subjects.update', 'employees.view', 'teaching-assignments.view', 'teaching-assignments.create', 'teaching-assignments.update', 'schedules.view', 'schedules.create', 'schedules.update','students.view','students.create','students.update','guardians.view','guardians.create','guardians.update','student-guardians.view','student-guardians.create','student-guardians.update','student-enrollments.view','student-enrollments.create','student-enrollments.update','student-enrollments.transfer','employee-attendances.view','employee-attendances.update','employee-attendances.verify','employee-leaves.view','employee-leaves.approve','employee-leaves.reject','student-attendances.view','student-attendances.create','student-attendances.update','teaching-journals.view','teaching-journals.verify','teaching-journals.reject'])->values());
         Role::findByName('guru-kelas')->syncPermissions($permissions->only(['dashboard.view', 'classrooms.view', 'subjects.view', 'teaching-assignments.view', 'schedules.view','students.view','guardians.view','student-guardians.view','student-enrollments.view','employee-attendances.view','employee-attendances.verify','employee-leaves.view','employee-leaves.approve','employee-leaves.reject','student-attendances.view','teaching-journals.view','teaching-journals.verify','teaching-journals.reject'])->values());
         Role::findByName('guru-mata-pelajaran')->syncPermissions($permissions->only(['dashboard.view', 'subjects.view', 'teaching-assignments.view', 'schedules.view','students.view','guardians.view','student-guardians.view','student-enrollments.view','employee-attendances.view','employee-attendances.verify','employee-leaves.view','employee-leaves.approve','employee-leaves.reject','student-attendances.view','teaching-journals.view','teaching-journals.verify','teaching-journals.reject'])->values());
         Role::findByName('wali-murid')->syncPermissions([$permissions['dashboard.view']]);
+
+        $foundationTechnical = ['dashboard.view','school-profile.view','school-profile.update','academic-years.view','academic-years.create','academic-years.update','academic-years.activate','semesters.view','semesters.create','semesters.update','semesters.activate','users.view','users.create','users.update','users.activate','users.reset-password','roles.view','roles.manage'];
+        Role::findByName('super-admin')->givePermissionTo($foundationTechnical);
+        Role::findByName('admin-madrasah')->givePermissionTo(['dashboard.view','school-profile.view','school-profile.update','academic-years.view','academic-years.create','academic-years.update','academic-years.activate','semesters.view','semesters.create','semesters.update','semesters.activate','users.view','users.create','users.update','users.reset-password','roles.view']);
+        Role::findByName('operator')->givePermissionTo(['dashboard.view','school-profile.view','school-profile.update','academic-years.view','academic-years.create','academic-years.update','academic-years.activate','semesters.view','semesters.create','semesters.update','semesters.activate','users.view']);
+        Role::findByName('kepala-madrasah')->givePermissionTo(['dashboard.view','school-profile.view','academic-years.view','semesters.view','users.view','roles.view']);
 
         $financePermissions = $permissions->only([
             'fee-types.view', 'fee-types.manage', 'student-invoices.view', 'student-invoices.create', 'student-invoices.generate', 'student-invoices.update', 'student-invoices.cancel', 'student-invoices.export', 'student-payments.view', 'student-payments.create', 'student-payments.cancel', 'student-payments.print', 'student-payments.export', 'student-discounts.view', 'student-discounts.manage', 'student-discounts.approve', 'finance-accounts.view', 'finance-accounts.manage', 'finance-transactions.view', 'finance-transactions.create', 'finance-transactions.update', 'finance-transactions.post', 'finance-transactions.cancel', 'finance-transactions.approve', 'finance-reports.view', 'finance-reports.export', 'salary-components.view', 'salary-components.manage', 'employee-salaries.view', 'employee-salaries.manage', 'payroll-periods.view', 'payroll-periods.create', 'payrolls.calculate', 'payrolls.review', 'payrolls.approve', 'payrolls.mark-paid', 'payrolls.close', 'payrolls.reopen', 'payrolls.view', 'payrolls.print', 'payrolls.export',

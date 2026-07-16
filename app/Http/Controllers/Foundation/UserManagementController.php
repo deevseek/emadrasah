@@ -12,6 +12,8 @@ use App\Services\ActivityLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Spatie\Permission\Models\Role;
@@ -97,9 +99,31 @@ class UserManagementController extends Controller
         return redirect()->route('users.show', $user)->with('status', 'Pengguna berhasil diperbarui.');
     }
 
+    public function resetPassword(Request $request, User $user, ActivityLogger $logger): RedirectResponse
+    {
+        abort_unless($request->user()?->can('users.reset-password'), 403);
+
+        $data = $request->validate([
+            'password' => ['required', 'confirmed', Password::defaults()],
+        ], [
+            'password.required' => 'Password baru wajib diisi.',
+            'password.confirmed' => 'Konfirmasi password tidak sesuai.',
+        ]);
+
+        $old = $user->toArray();
+        $user->update(['password' => Hash::make($data['password'])]);
+        $logger->log('user.password_reset', $user, $old, $user->fresh()->toArray());
+
+        return back()->with('status', 'Password pengguna berhasil direset.');
+    }
+
     public function toggle(User $user, ActivityLogger $logger): RedirectResponse
     {
         DB::transaction(function () use ($user, $logger): void {
+            if ($user->is(auth()->user()) && $user->is_active) {
+                throw ValidationException::withMessages(['user' => 'Anda tidak dapat menonaktifkan akun sendiri.']);
+            }
+
             if ($user->is_active) {
                 $this->guardLastActiveSuperAdmin($user);
             }
