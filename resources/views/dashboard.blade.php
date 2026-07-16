@@ -10,6 +10,9 @@
     <div class="card"><div class="card-body"><p class="text-sm text-slate-500">Tahun ajaran aktif</p><p class="mt-2 text-xl font-bold text-emerald-950">{{ $activeYear?->name ?? 'Belum ditetapkan' }}</p></div></div>
     <div class="card"><div class="card-body"><p class="text-sm text-slate-500">Semester aktif</p><p class="mt-2 text-xl font-bold text-emerald-950">{{ $activeSemester?->name ?? 'Belum ditetapkan' }}</p></div></div>
     <div class="card"><div class="card-body"><p class="text-sm text-slate-500">Pengguna aktif</p><p class="mt-2 text-xl font-bold text-emerald-950">{{ number_format($activeUsers) }}</p></div></div>
+    <div class="card"><div class="card-body"><p class="text-sm text-slate-500">Pegawai aktif</p><p class="mt-2 text-xl font-bold text-emerald-950">{{ number_format($activeEmployees) }}</p><a class="mt-3 inline-block text-sm font-semibold text-emerald-700" href="{{ route('employees.index') }}">Buka Guru & Pegawai</a></div></div>
+    <div class="card"><div class="card-body"><p class="text-sm text-slate-500">Pegawai tanpa akun</p><p class="mt-2 text-xl font-bold text-emerald-950">{{ number_format($employeesWithoutAccount) }}</p></div></div>
+    <div class="card"><div class="card-body"><p class="text-sm text-slate-500">Data pegawai belum lengkap</p><p class="mt-2 text-xl font-bold text-emerald-950">{{ number_format($incompleteEmployees) }}</p></div></div>
   </section>
 
   <section class="card"><div class="card-body"><h2 class="text-lg font-bold text-emerald-950">Tindakan yang perlu diperhatikan</h2><div class="mt-4 grid gap-3">

@@ -10,14 +10,26 @@ enum EmploymentType: string
     case ClassTeacher = 'guru_kelas';
     case SubjectTeacher = 'guru_mata_pelajaran';
     case BtaqTeacher = 'guru_btaq';
-    case FullDayTeacher = 'guru_full_day';
     case Administration = 'tata_usaha';
-    case Treasurer = 'bendahara';
     case Operator = 'operator';
+    case Treasurer = 'bendahara';
+    case EducationStaff = 'tenaga_kependidikan';
+    case FullDayTeacher = 'guru_full_day';
     case Other = 'lainnya';
 
     public function label(): string
     {
-        return str($this->value)->replace('_', ' ')->title()->toString();
+        return match ($this) {
+            self::Principal => 'Kepala Madrasah',
+            self::ClassTeacher => 'Guru Kelas',
+            self::SubjectTeacher => 'Guru Mata Pelajaran',
+            self::BtaqTeacher => 'Guru BTAQ',
+            self::Administration => 'Tata Usaha',
+            self::Operator => 'Operator',
+            self::Treasurer => 'Bendahara',
+            self::EducationStaff => 'Tenaga Kependidikan',
+            self::FullDayTeacher => 'Guru Full Day',
+            self::Other => 'Pegawai Lainnya',
+        };
     }
 }

@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AcademicYear;
 use App\Models\Semester;
 use App\Models\User;
+use App\Models\Employee;
 use App\Services\Foundation\SchoolProfileService;
 use Illuminate\View\View;
 use Spatie\Activitylog\Models\Activity;
@@ -30,6 +31,11 @@ class DashboardController extends Controller
             'inactiveUsers' => $inactiveUsers,
             'profileComplete' => $profiles->isComplete($profile),
             'latestActivities' => Activity::query()->where('log_name', 'foundation')->latest()->limit(5)->get(),
+            'activeEmployees' => Employee::query()->where('is_active', true)->count(),
+            'employeesWithoutAccount' => Employee::query()->whereNull('user_id')->count(),
+            'incompleteEmployees' => Employee::query()->where(function ($query): void {
+                $query->whereNull('birth_date')->orWhereNull('whatsapp')->orWhereNull('position')->orWhereNull('employee_status');
+            })->count(),
         ]);
     }
 }

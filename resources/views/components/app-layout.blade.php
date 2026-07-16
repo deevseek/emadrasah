@@ -15,6 +15,7 @@
             ['label' => 'Profil Madrasah', 'route' => 'school-profile.edit', 'match' => 'school-profile.*', 'permission' => 'school-profile.view'],
             ['label' => 'Tahun Ajaran', 'route' => 'academic-years.index', 'match' => 'academic-years.*', 'permission' => 'academic-years.view'],
             ['label' => 'Semester', 'route' => 'semesters.index', 'match' => 'semesters.*', 'permission' => 'semesters.view'],
+            ['label' => 'Guru & Pegawai', 'route' => 'employees.index', 'match' => 'employees.*', 'permission' => 'employees.view'],
         ]],
         ['label' => 'Akun & Akses', 'items' => [
             ['label' => 'Pengguna', 'route' => 'users.index', 'match' => 'users.*', 'permission' => 'users.view'],
