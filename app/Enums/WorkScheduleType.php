@@ -1,0 +1,1 @@
+<?php declare(strict_types=1); namespace App\Enums; enum WorkScheduleType:string{case Regular='regular';case Managerial='manajerial';case Btaq='btaq';case FullDay='full_day'; public function checkoutTime():string{return match($this){self::Btaq=>'10:30',self::FullDay=>'15:00',default=>'13:30'};}}

@@ -1,0 +1,1 @@
+<?php declare(strict_types=1); namespace App\Enums; enum LeaveType:string{case Personal='izin_pribadi';case Sick='sakit';case Duty='dinas';case Vacation='cuti';case Other='lainnya'; public function attendanceStatus():AttendanceStatus{return match($this){self::Sick=>AttendanceStatus::Sick,self::Duty=>AttendanceStatus::Duty,default=>AttendanceStatus::Leave};}}

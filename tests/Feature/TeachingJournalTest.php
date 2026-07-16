@@ -1,0 +1,2 @@
+<?php declare(strict_types=1); use App\Enums\TeachingJournalStatus; use App\Models\TeachingJournal;
+it('defines teaching journal draft submit verify reject workflow fields', function (): void { expect(TeachingJournalStatus::Submitted->value)->toBe('submitted'); expect((new TeachingJournal)->getFillable())->toContain('teaching_assignment_id','lesson_schedule_id','material','submitted_at','verified_by','rejection_reason'); });
