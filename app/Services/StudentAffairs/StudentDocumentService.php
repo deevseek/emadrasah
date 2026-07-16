@@ -18,13 +18,14 @@ class StudentDocumentService
 
     public function upload(Student $student, array $data, UploadedFile $file): StudentDocument
     {
-        $path = $file->store('student-documents', 'public');
+        $path = $file->store('student-documents', 'local');
 
         try {
             return DB::transaction(function () use ($student, $data, $path): StudentDocument {
                 $document = $student->documents()->create($data + [
                     'file_path' => $path,
                     'uploaded_by' => Auth::id(),
+                    'uploaded_at' => now(),
                 ]);
 
                 $this->logger->log('student.document.uploaded', $document, [], $document->getAttributes(), 'Dokumen siswa diunggah.');
@@ -32,7 +33,7 @@ class StudentDocumentService
                 return $document;
             });
         } catch (\Throwable $exception) {
-            Storage::disk('public')->delete($path);
+            Storage::disk('local')->delete($path);
             throw $exception;
         }
     }
@@ -47,6 +48,6 @@ class StudentDocumentService
             $this->logger->log('student.document.deleted', $document, $old, [], 'Dokumen siswa dihapus.');
         });
 
-        Storage::disk('public')->delete($path);
+        Storage::disk('local')->delete($path);
     }
 }

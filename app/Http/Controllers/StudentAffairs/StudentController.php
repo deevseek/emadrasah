@@ -27,6 +27,7 @@ use App\Services\StudentAffairs\StudentStatusService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Spatie\Activitylog\Models\Activity;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -39,9 +40,13 @@ class StudentController extends Controller
                 ->where('name', 'like', "%{$search}%")
                 ->orWhere('student_number', 'like', "%{$search}%")
                 ->orWhere('national_student_number', 'like', "%{$search}%")
-                ->orWhere('national_identity_number', 'like', "%{$search}%")))
+                ->orWhere('national_identity_number', 'like', "%{$search}%")
+                ->orWhere('family_card_number', 'like', "%{$search}%")
+                ->orWhereHas('guardians', fn ($guardian) => $guardian->where('name', 'like', "%{$search}%")->orWhere('whatsapp', 'like', "%{$search}%"))))
             ->when($request->status, fn ($query, $status) => $query->where('student_status', $status))
             ->when($request->gender, fn ($query, $gender) => $query->where('gender', $gender))
+            ->when(! $request->filled('status'), fn ($query) => $query->where('student_status', StudentStatus::Active->value))
+            ->when($request->year_in, fn ($query, $year) => $query->whereYear('admission_date', $year))
             ->when($request->academic_year_id, fn ($query, $academicYearId) => $query->whereHas('enrollments', fn ($enrollment) => $enrollment
                 ->where('academic_year_id', $academicYearId)
                 ->where('enrollment_status', 'active')))
@@ -51,6 +56,7 @@ class StudentController extends Controller
 
         return view('student-affairs.students.index', [
             'students' => $query->latest()->paginate(15)->withQueryString(),
+            'totalStudents' => (clone $query)->count(),
             'statuses' => StudentStatus::cases(),
             'genders' => Gender::cases(),
             'academicYears' => AcademicYear::all(),
@@ -80,6 +86,7 @@ class StudentController extends Controller
             'relationships' => GuardianRelationship::cases(),
             'documentTypes' => StudentDocumentType::cases(),
             'statuses' => StudentStatus::cases(),
+            'activities' => Activity::query()->where('subject_type', Student::class)->where('subject_id', $student->id)->latest()->limit(10)->get(),
         ]);
     }
 
@@ -139,7 +146,9 @@ class StudentController extends Controller
 
     public function downloadDocument(StudentDocument $document): StreamedResponse
     {
-        return Storage::disk('public')->download($document->file_path);
+        abort_unless(request()->user()?->can('students.manage-documents'), 403);
+
+        return Storage::disk('local')->download($document->file_path, $document->document_type->label().'.'.pathinfo($document->file_path, PATHINFO_EXTENSION));
     }
 
     public function deleteDocument(StudentDocument $document, StudentDocumentService $service): RedirectResponse
@@ -147,6 +156,30 @@ class StudentController extends Controller
         $service->delete($document);
 
         return back()->with('status', 'Dokumen siswa berhasil dihapus.');
+    }
+
+
+    public function export(Request $request): StreamedResponse
+    {
+        $fileName = 'data-siswa-'.now()->format('Ymd-His').'.csv';
+
+        return response()->streamDownload(function () use ($request): void {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['Nama', 'NIS', 'NISN', 'Jenis Kelamin', 'Status', 'Tanggal Masuk', 'Kontak Utama', 'WhatsApp Wali']);
+            Student::with('guardians')
+                ->when(! $request->filled('status'), fn ($query) => $query->where('student_status', StudentStatus::Active->value))
+                ->when($request->status, fn ($query, $status) => $query->where('student_status', $status))
+                ->when($request->gender, fn ($query, $gender) => $query->where('gender', $gender))
+                ->when($request->search, fn ($query, $search) => $query->where(fn ($where) => $where->where('name', 'like', "%{$search}%")->orWhere('student_number', 'like', "%{$search}%")->orWhere('national_student_number', 'like', "%{$search}%")))
+                ->orderBy('name')
+                ->chunk(200, function ($students) use ($handle): void {
+                    foreach ($students as $student) {
+                        $primary = $student->guardians->first(fn ($guardian) => (bool) $guardian->pivot->is_primary) ?? $student->guardians->first();
+                        fputcsv($handle, [$student->name, $student->student_number, $student->national_student_number, $student->gender?->label(), $student->student_status?->label(), $student->admission_date?->format('Y-m-d'), $primary?->name, $primary?->whatsapp]);
+                    }
+                });
+            fclose($handle);
+        }, $fileName, ['Content-Type' => 'text/csv']);
     }
 
     private function refs(): array

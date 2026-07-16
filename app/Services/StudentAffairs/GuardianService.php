@@ -14,6 +14,12 @@ class GuardianService
 
     public function save(array $data, ?Guardian $guardian = null): Guardian
     {
+        foreach (['phone', 'whatsapp'] as $phoneField) {
+            if (! empty($data[$phoneField])) {
+                $data[$phoneField] = preg_replace('/[^0-9+]/', '', (string) $data[$phoneField]);
+            }
+        }
+
         return DB::transaction(function () use ($data, $guardian): Guardian {
             $guardian ??= new Guardian;
             $old = $guardian->exists ? $guardian->getOriginal() : [];
@@ -36,6 +42,10 @@ class GuardianService
     public function delete(Guardian $guardian): void
     {
         DB::transaction(function () use ($guardian): void {
+            if ($guardian->students()->exists()) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['guardian' => 'Data wali masih terhubung dengan siswa dan tidak dapat dihapus permanen.']);
+            }
+
             $old = $guardian->getOriginal();
             $guardian->forceFill(['is_active' => false])->save();
             $guardian->delete();

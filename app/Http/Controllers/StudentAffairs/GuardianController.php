@@ -13,6 +13,7 @@ use App\Services\StudentAffairs\GuardianService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class GuardianController extends Controller
 {
@@ -22,13 +23,33 @@ class GuardianController extends Controller
             ->when($request->search, fn ($query, $search) => $query->where(fn ($where) => $where
                 ->where('name', 'like', "%{$search}%")
                 ->orWhere('national_identity_number', 'like', "%{$search}%")
-                ->orWhere('phone', 'like', "%{$search}%")))
+                ->orWhere('phone', 'like', "%{$search}%")
+                ->orWhere('whatsapp', 'like', "%{$search}%")))
+            ->when($request->relationship, fn ($query, $relationship) => $query->whereHas('students', fn ($student) => $student->where('guardian_student.relationship', $relationship)))
             ->when($request->filled('is_active'), fn ($query) => $query->where('is_active', $request->boolean('is_active')))
             ->latest()
             ->paginate(15)
             ->withQueryString();
 
         return view('student-affairs.guardians.index', compact('guardians'));
+    }
+
+
+    public function export(Request $request): StreamedResponse
+    {
+        return response()->streamDownload(function () use ($request): void {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['Nama', 'WhatsApp', 'Pekerjaan', 'Jumlah Anak', 'Status']);
+            Guardian::withCount('students')
+                ->when($request->search, fn ($query, $search) => $query->where('name', 'like', "%{$search}%")->orWhere('whatsapp', 'like', "%{$search}%"))
+                ->orderBy('name')
+                ->chunk(200, function ($guardians) use ($handle): void {
+                    foreach ($guardians as $guardian) {
+                        fputcsv($handle, [$guardian->name, $guardian->whatsapp, $guardian->occupation, $guardian->students_count, $guardian->is_active ? 'Aktif' : 'Nonaktif']);
+                    }
+                });
+            fclose($handle);
+        }, 'data-wali-'.now()->format('Ymd-His').'.csv', ['Content-Type' => 'text/csv']);
     }
 
     public function create(): View

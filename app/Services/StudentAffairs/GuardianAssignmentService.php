@@ -24,6 +24,10 @@ class GuardianAssignmentService
                 $this->resetPrimaryGuardians($student, (int) $data['guardian_id']);
             }
 
+            if (! empty($data['is_financial_responsible'])) {
+                $this->resetFinancialGuardians($student, (int) $data['guardian_id']);
+            }
+
             $student->guardians()->attach($data['guardian_id'], collect($data)->except('guardian_id')->all());
             $this->logger->log('student.guardian.attached', $student, [], $data, 'Wali siswa ditautkan.');
         });
@@ -40,6 +44,10 @@ class GuardianAssignmentService
                 $this->resetPrimaryGuardians($student, $guardianId);
             }
 
+            if (! empty($data['is_financial_responsible'])) {
+                $this->resetFinancialGuardians($student, $guardianId);
+            }
+
             $student->guardians()->updateExistingPivot($guardianId, $data + ['updated_at' => now()]);
             $this->logger->log('student.guardian.updated', $student, [], ['guardian_id' => $guardianId] + $data, 'Relasi wali siswa diperbarui.');
         });
@@ -54,6 +62,19 @@ class GuardianAssignmentService
             ->lockForUpdate()
             ->update([
                 'is_primary' => false,
+                'updated_at' => now(),
+            ]);
+    }
+
+    private function resetFinancialGuardians(Student $student, int $exceptGuardianId): void
+    {
+        DB::table('guardian_student')
+            ->where('student_id', $student->id)
+            ->where('guardian_id', '!=', $exceptGuardianId)
+            ->where('is_financial_responsible', true)
+            ->lockForUpdate()
+            ->update([
+                'is_financial_responsible' => false,
                 'updated_at' => now(),
             ]);
     }

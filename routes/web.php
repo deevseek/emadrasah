@@ -137,6 +137,7 @@ Route::middleware(['auth', 'active'])->group(function (): void {
     Route::put('/users/{user}', [UserManagementController::class, 'update'])->middleware('permission:users.update')->name('users.update');
     Route::patch('/users/{user}/reset-password', [UserManagementController::class, 'resetPassword'])->middleware('permission:users.reset-password')->name('users.reset-password');
 
+    Route::get('/students/export', [StudentController::class, 'export'])->middleware('permission:students.export')->name('students.export');
     Route::get('/students', [StudentController::class, 'index'])->middleware('permission:students.view')->name('students.index');
     Route::get('/students/create', [StudentController::class, 'create'])->middleware('permission:students.create')->name('students.create');
     Route::post('/students', [StudentController::class, 'store'])->middleware('permission:students.create')->name('students.store');
@@ -144,13 +145,14 @@ Route::middleware(['auth', 'active'])->group(function (): void {
     Route::get('/students/{student}/edit', [StudentController::class, 'edit'])->middleware('permission:students.update')->name('students.edit');
     Route::put('/students/{student}', [StudentController::class, 'update'])->middleware('permission:students.update')->name('students.update');
     Route::delete('/students/{student}', [StudentController::class, 'destroy'])->middleware('permission:students.delete')->name('students.destroy');
-    Route::post('/students/{student}/guardians', [StudentController::class, 'attachGuardian'])->middleware('permission:student-guardians.create')->name('students.guardians.store');
-    Route::put('/students/{student}/guardians/{guardian}', [StudentController::class, 'updateGuardian'])->middleware('permission:student-guardians.update')->name('students.guardians.update');
-    Route::delete('/students/{student}/guardians/{guardian}', [StudentController::class, 'detachGuardian'])->middleware('permission:student-guardians.delete')->name('students.guardians.destroy');
+    Route::post('/students/{student}/guardians', [StudentController::class, 'attachGuardian'])->middleware('permission:guardians.link-student')->name('students.guardians.store');
+    Route::put('/students/{student}/guardians/{guardian}', [StudentController::class, 'updateGuardian'])->middleware('permission:guardians.link-student')->name('students.guardians.update');
+    Route::delete('/students/{student}/guardians/{guardian}', [StudentController::class, 'detachGuardian'])->middleware('permission:guardians.unlink-student')->name('students.guardians.destroy');
     Route::post('/students/{student}/status', [StudentController::class, 'changeStatus'])->middleware('permission:students.change-status')->name('students.status.store');
     Route::post('/students/{student}/documents', [StudentController::class, 'uploadDocument'])->middleware('permission:students.manage-documents')->name('students.documents.store');
     Route::get('/student-documents/{document}/download', [StudentController::class, 'downloadDocument'])->middleware('permission:students.manage-documents')->name('student-documents.download');
     Route::delete('/student-documents/{document}', [StudentController::class, 'deleteDocument'])->middleware('permission:students.manage-documents')->name('student-documents.destroy');
+    Route::get('/guardians/export', [GuardianController::class, 'export'])->middleware('permission:guardians.export')->name('guardians.export');
     Route::get('/guardians', [GuardianController::class, 'index'])->middleware('permission:guardians.view')->name('guardians.index');
     Route::get('/guardians/create', [GuardianController::class, 'create'])->middleware('permission:guardians.create')->name('guardians.create');
     Route::post('/guardians', [GuardianController::class, 'store'])->middleware('permission:guardians.create')->name('guardians.store');

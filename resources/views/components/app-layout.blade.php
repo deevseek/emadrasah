@@ -16,6 +16,8 @@
             ['label' => 'Tahun Ajaran', 'route' => 'academic-years.index', 'match' => 'academic-years.*', 'permission' => 'academic-years.view'],
             ['label' => 'Semester', 'route' => 'semesters.index', 'match' => 'semesters.*', 'permission' => 'semesters.view'],
             ['label' => 'Guru & Pegawai', 'route' => 'employees.index', 'match' => 'employees.*', 'permission' => 'employees.view'],
+            ['label' => 'Data Siswa', 'route' => 'students.index', 'match' => 'students.*', 'permission' => 'students.view'],
+            ['label' => 'Orang Tua/Wali', 'route' => 'guardians.index', 'match' => 'guardians.*', 'permission' => 'guardians.view'],
         ]],
         ['label' => 'Akun & Akses', 'items' => [
             ['label' => 'Pengguna', 'route' => 'users.index', 'match' => 'users.*', 'permission' => 'users.view'],

@@ -25,6 +25,11 @@ class StudentService
         }
 
         unset($data['photo']);
+        foreach (['phone'] as $phoneField) {
+            if (! empty($data[$phoneField])) {
+                $data[$phoneField] = preg_replace('/[^0-9+]/', '', (string) $data[$phoneField]);
+            }
+        }
 
         try {
             $student = DB::transaction(function () use ($data, $student, &$oldPhotoPath): Student {
