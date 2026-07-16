@@ -16,7 +16,7 @@ class Employee extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['user_id', 'employee_number', 'national_identity_number', 'name', 'gender', 'birth_place', 'birth_date', 'address', 'phone', 'email', 'employment_type', 'employee_status', 'joined_at', 'left_at', 'photo_path', 'is_active'];
+    protected $fillable = ['user_id', 'front_title', 'employee_number', 'nip', 'nuptk', 'national_identity_number', 'name', 'back_title', 'gender', 'birth_place', 'birth_date', 'religion', 'address', 'village', 'district', 'city', 'province', 'postal_code', 'phone', 'whatsapp', 'email', 'employment_type', 'employee_status', 'position', 'joined_at', 'left_at', 'notes', 'last_education', 'major', 'education_institution', 'graduation_year', 'photo_path', 'is_active'];
 
     protected function casts(): array
     {
@@ -53,8 +53,23 @@ class Employee extends Model
         return $this->hasMany(EmployeeLeaveRequest::class);
     }
 
+    public function documents(): HasMany
+    {
+        return $this->hasMany(EmployeeDocument::class);
+    }
+
     public function salaryComponents(): HasMany
     {
         return $this->hasMany(\App\Models\Finance\EmployeeSalaryComponent::class);
+    }
+
+    public function fullName(): string
+    {
+        return trim(collect([$this->front_title, $this->name, $this->back_title])->filter()->join(' '));
+    }
+
+    public function mainNumber(): string
+    {
+        return $this->nip ?: ($this->nuptk ?: ($this->employee_number ?: '-'));
     }
 }

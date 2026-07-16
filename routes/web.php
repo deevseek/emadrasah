@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Academic\AcademicResourceController;
+use App\Http\Controllers\Employee\EmployeeController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
@@ -62,6 +63,24 @@ Route::middleware(['auth', 'active'])->group(function (): void {
     Route::patch('/employee-leaves/{employeeLeave}/approve', [EmployeeLeaveController::class, 'approve'])->middleware('permission:employee-leaves.approve')->name('employee-leaves.approve');
     Route::patch('/employee-leaves/{employeeLeave}/reject', [EmployeeLeaveController::class, 'reject'])->middleware('permission:employee-leaves.reject')->name('employee-leaves.reject');
     Route::get('/employee-leaves/{employeeLeave}/download', [EmployeeLeaveController::class, 'download'])->middleware('permission:employee-leaves.view-own|employee-leaves.view')->name('employee-leaves.download');
+
+
+    Route::get('/employees/mine', [EmployeeController::class, 'mine'])->middleware('permission:employees.view-own')->name('employees.mine');
+    Route::get('/employees/export', [EmployeeController::class, 'export'])->middleware('permission:employees.export')->name('employees.export');
+    Route::get('/employees', [EmployeeController::class, 'index'])->middleware('permission:employees.view')->name('employees.index');
+    Route::get('/employees/create', [EmployeeController::class, 'create'])->middleware('permission:employees.create')->name('employees.create');
+    Route::post('/employees', [EmployeeController::class, 'store'])->middleware('permission:employees.create')->name('employees.store');
+    Route::get('/employees/{employee}', [EmployeeController::class, 'show'])->middleware('permission:employees.view|employees.view-own')->name('employees.show');
+    Route::get('/employees/{employee}/edit', [EmployeeController::class, 'edit'])->middleware('permission:employees.update')->name('employees.edit');
+    Route::put('/employees/{employee}', [EmployeeController::class, 'update'])->middleware('permission:employees.update')->name('employees.update');
+    Route::patch('/employees/{employee}/activate', [EmployeeController::class, 'activate'])->middleware('permission:employees.activate')->name('employees.activate');
+    Route::patch('/employees/{employee}/deactivate', [EmployeeController::class, 'deactivate'])->middleware('permission:employees.activate')->name('employees.deactivate');
+    Route::post('/employees/{employee}/documents', [EmployeeController::class, 'storeDocument'])->middleware('permission:employees.manage-documents')->name('employees.documents.store');
+    Route::post('/employees/{employee}/link-account', [EmployeeController::class, 'linkAccount'])->middleware('permission:employees.link-account')->name('employees.link-account');
+    Route::post('/employees/{employee}/create-account', [EmployeeController::class, 'createAccount'])->middleware('permission:employees.link-account')->name('employees.create-account');
+    Route::put('/employee-documents/{document}', [EmployeeController::class, 'updateDocument'])->middleware('permission:employees.manage-documents')->name('employee-documents.update');
+    Route::get('/employee-documents/{document}/download', [EmployeeController::class, 'downloadDocument'])->middleware('permission:employees.manage-documents|employees.view-own')->name('employee-documents.download');
+    Route::delete('/employee-documents/{document}', [EmployeeController::class, 'destroyDocument'])->middleware('permission:employees.manage-documents')->name('employee-documents.destroy');
 
     Route::get('/student-attendances', [StudentAttendanceController::class, 'index'])->middleware('permission:student-attendances.view')->name('student-attendances.index');
     Route::get('/student-attendances/create', [StudentAttendanceController::class, 'create'])->middleware('permission:student-attendances.create')->name('student-attendances.create');
@@ -165,12 +184,6 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         Route::get('/subjects/{subject}/edit', [AcademicResourceController::class, 'editSubject'])->middleware('permission:subjects.update')->name('subjects.edit');
         Route::put('/subjects/{subject}', [AcademicResourceController::class, 'updateSubject'])->middleware('permission:subjects.update')->name('subjects.update');
         Route::delete('/subjects/{subject}', [AcademicResourceController::class, 'destroySubject'])->middleware('permission:subjects.delete')->name('subjects.destroy');
-        Route::get('/employees', [AcademicResourceController::class, 'employees'])->middleware('permission:employees.view')->name('employees.index');
-        Route::get('/employees/create', [AcademicResourceController::class, 'createEmployee'])->middleware('permission:employees.create')->name('employees.create');
-        Route::post('/employees', [AcademicResourceController::class, 'storeEmployee'])->middleware('permission:employees.create')->name('employees.store');
-        Route::get('/employees/{employee}/edit', [AcademicResourceController::class, 'editEmployee'])->middleware('permission:employees.update')->name('employees.edit');
-        Route::put('/employees/{employee}', [AcademicResourceController::class, 'updateEmployee'])->middleware('permission:employees.update')->name('employees.update');
-        Route::delete('/employees/{employee}', [AcademicResourceController::class, 'destroyEmployee'])->middleware('permission:employees.delete')->name('employees.destroy');
         Route::get('/teaching-assignments', [AcademicResourceController::class, 'teachingAssignments'])->middleware('permission:teaching-assignments.view')->name('teaching-assignments.index');
         Route::get('/teaching-assignments/create', [AcademicResourceController::class, 'createTeachingAssignment'])->middleware('permission:teaching-assignments.create')->name('teaching-assignments.create');
         Route::post('/teaching-assignments', [AcademicResourceController::class, 'storeTeachingAssignment'])->middleware('permission:teaching-assignments.create')->name('teaching-assignments.store');
