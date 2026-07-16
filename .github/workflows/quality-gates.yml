@@ -13,6 +13,14 @@ permissions:
   contents: read
 
 jobs:
+  runner-smoke:
+    name: Runner availability
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Confirm hosted runner
+        run: php -v
+
   laravel:
     name: MySQL migration, tests, and Pint
     runs-on: ubuntu-24.04
