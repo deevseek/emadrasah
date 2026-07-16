@@ -7,13 +7,34 @@ namespace App\Http\Controllers\Assessment;
 use App\Http\Controllers\Controller;
 use App\Models\{AssessmentComponent,Classroom,PredicateRange,StudentEnrollment,StudentScore,TeachingAssignment};
 use App\Services\AssessmentService;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class AssessmentController extends Controller
 {
-    public function dashboard(): View { return view('assessments.reports.dashboard',['draft'=>AssessmentComponent::where('status','draft')->count(),'unpublished'=>AssessmentComponent::where('status','!=','published')->count(),'incomplete'=>AssessmentComponent::doesntHave('scores')->count()]); }
+    public function dashboard(): View
+    {
+        return view('assessments.reports.dashboard', [
+            'metrics' => [
+                'draft' => AssessmentComponent::where('status', 'draft')->count(),
+                'published' => AssessmentComponent::where('status', 'published')->count(),
+                'incompleteComponents' => AssessmentComponent::doesntHave('scores')->count(),
+                'unscoredStudents' => StudentEnrollment::where('enrollment_status', 'active')->whereNotIn('student_id', StudentScore::select('student_id'))->count(),
+                'belowKkm' => StudentScore::whereNotNull('final_score')->where('final_score', '<', 75)->count(),
+                'remedial' => StudentScore::whereNotNull('remedial_score')->count(),
+            ],
+            'classProgress' => Classroom::query()
+                ->leftJoin('student_enrollments', 'classrooms.id', '=', 'student_enrollments.classroom_id')
+                ->leftJoin('student_scores', 'student_enrollments.student_id', '=', 'student_scores.student_id')
+                ->select('classrooms.name', DB::raw('count(distinct student_enrollments.student_id) as students_count'), DB::raw('count(student_scores.id) as scores_count'))
+                ->groupBy('classrooms.id', 'classrooms.name')
+                ->orderBy('classrooms.name')
+                ->limit(6)
+                ->get(),
+        ]);
+    }
     public function index(): View { return view('assessments.components.index',['components'=>AssessmentComponent::latest()->paginate(15)]); }
     public function create(): View { return view('assessments.components.form',['component'=>new AssessmentComponent,'assignments'=>TeachingAssignment::where('is_active',true)->get()]); }
     public function store(Request $request): RedirectResponse { $data=$this->validateComponent($request); $assignment=TeachingAssignment::findOrFail($data['teaching_assignment_id']); $sum=AssessmentComponent::where('classroom_id',$assignment->classroom_id)->where('subject_id',$assignment->subject_id)->where('semester_id',$assignment->semester_id)->sum('weight'); abort_if($sum+$data['weight']>100,422,'Total bobot melebihi 100.'); AssessmentComponent::create($data+['academic_year_id'=>$assignment->academic_year_id,'semester_id'=>$assignment->semester_id,'classroom_id'=>$assignment->classroom_id,'subject_id'=>$assignment->subject_id,'employee_id'=>$assignment->employee_id,'created_by'=>auth()->id()]); return redirect()->route('assessment-components.index')->with('status','Komponen disimpan.'); }

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Btaq;
 
 use App\Http\Controllers\Controller;
-use App\Models\{BtaqGroup,BtaqGroupStudent,BtaqJournal,BtaqJournalStudent,BtaqMaterial};
+use App\Models\{BtaqGroup,BtaqGroupStudent,BtaqJournal,BtaqJournalStudent,BtaqMaterial,Student};
 use App\Services\BtaqService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -13,7 +13,20 @@ use Illuminate\View\View;
 
 class BtaqJournalController extends Controller
 {
-    public function dashboard(): View { return view('btaq.reports.dashboard',['today'=>BtaqJournal::whereDate('journal_date',now())->count(),'pending'=>BtaqJournal::where('status','submitted')->count(),'guidance'=>BtaqJournalStudent::where('progress_status','needs_guidance')->distinct('student_id')->count()]); }
+    public function dashboard(): View
+    {
+        return view('btaq.reports.dashboard', [
+            'metrics' => [
+                'today' => BtaqJournal::whereDate('journal_date', now())->count(),
+                'draft' => BtaqJournal::where('status', 'draft')->count(),
+                'pending' => BtaqJournal::where('status', 'submitted')->count(),
+                'activeGroups' => BtaqGroup::where('is_active', true)->count(),
+                'activeStudents' => Student::where('is_active', true)->count(),
+                'guidance' => BtaqJournalStudent::where('progress_status', 'needs_guidance')->distinct('student_id')->count('student_id'),
+            ],
+            'latestProgress' => BtaqJournalStudent::latest()->limit(5)->get(),
+        ]);
+    }
     public function index(): View { return view('btaq.journals.index',['journals'=>BtaqJournal::latest()->paginate(15)]); }
     public function create(): View { return view('btaq.journals.form',['journal'=>new BtaqJournal,'groups'=>BtaqGroup::where('is_active',true)->get(),'materials'=>BtaqMaterial::where('is_active',true)->get(),'members'=>collect()]); }
     public function store(Request $request, BtaqService $service): RedirectResponse { $data=$this->validated($request); $students=$request->input('students',[]); $journal=$service->saveJournal($data,$students,auth()->id()); return redirect()->route('btaq-journals.show',$journal)->with('status','Jurnal disimpan.'); }

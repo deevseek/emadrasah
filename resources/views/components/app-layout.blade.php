@@ -13,26 +13,63 @@
         'users' => User::count(),
     ];
     $navGroups = [
-        ['label'=>'Dashboard','items'=>[['label'=>'Dashboard','route'=>'dashboard','match'=>'dashboard','permission'=>'dashboard.view','icon'=>'M3 13h8V3H3v10Zm10 8h8V3h-8v18ZM3 21h8v-6H3v6Z']]],
-        ['label'=>'Data Akademik','items'=>[
-            ['label'=>'Tingkat Kelas','route'=>'grade-levels.index','match'=>'grade-levels.*','permission'=>'grade-levels.view','badge'=>$counts['grade-levels']],
-            ['label'=>'Kelas/Rombel','route'=>'classrooms.index','match'=>'classrooms.*','permission'=>'classrooms.view','badge'=>$counts['classrooms']],
-            ['label'=>'Mata Pelajaran','route'=>'subjects.index','match'=>'subjects.*','permission'=>'subjects.view','badge'=>$counts['subjects']],
-            ['label'=>'Data Pegawai/Guru','route'=>'employees.index','match'=>'employees.*','permission'=>'employees.view','badge'=>$counts['employees']],
-            ['label'=>'Penugasan Mengajar','route'=>'teaching-assignments.index','match'=>'teaching-assignments.*','permission'=>'teaching-assignments.view'],
-            ['label'=>'Jadwal Pelajaran','route'=>'schedules.index','match'=>'schedules.*','permission'=>'schedules.view'],
+        ['label' => 'Dashboard', 'items' => [
+            ['label' => 'Dashboard', 'route' => 'dashboard', 'match' => 'dashboard', 'permission' => 'dashboard.view', 'icon' => 'M3 13h8V3H3v10Zm10 8h8V3h-8v18ZM3 21h8v-6H3v6Z'],
         ]],
-        ['label'=>'Kesiswaan','items'=>[
-            ['label'=>'Data Siswa','route'=>'students.index','match'=>'students.*','permission'=>'students.view','badge'=>$counts['students']],
-            ['label'=>'Data Orang Tua/Wali','route'=>'guardians.index','match'=>'guardians.*','permission'=>'guardians.view','badge'=>$counts['guardians']],
-            ['label'=>'Penempatan Kelas','route'=>'student-enrollments.index','match'=>'student-enrollments.*','permission'=>'student-enrollments.view'],
+        ['label' => 'Data Akademik', 'items' => [
+            ['label' => 'Tingkat Kelas', 'route' => 'grade-levels.index', 'match' => 'grade-levels.*', 'permission' => 'grade-levels.view', 'badge' => $counts['grade-levels']],
+            ['label' => 'Kelas/Rombel', 'route' => 'classrooms.index', 'match' => 'classrooms.*', 'permission' => 'classrooms.view', 'badge' => $counts['classrooms']],
+            ['label' => 'Mata Pelajaran', 'route' => 'subjects.index', 'match' => 'subjects.*', 'permission' => 'subjects.view', 'badge' => $counts['subjects']],
+            ['label' => 'Data Pegawai/Guru', 'route' => 'employees.index', 'match' => 'employees.*', 'permission' => 'employees.view', 'badge' => $counts['employees']],
+            ['label' => 'Penugasan Mengajar', 'route' => 'teaching-assignments.index', 'match' => 'teaching-assignments.*', 'permission' => 'teaching-assignments.view'],
+            ['label' => 'Jadwal Pelajaran', 'route' => 'schedules.index', 'match' => 'schedules.*', 'permission' => 'schedules.view'],
         ]],
-        ['label'=>'Administrasi','items'=>[
-            ['label'=>'Profil Madrasah','route'=>'school-profile.edit','match'=>'school-profile.*','permission'=>'school-profile.view'],
-            ['label'=>'Pengaturan Sistem','route'=>'settings.index','match'=>'settings.*','permission'=>'settings.view'],
+        ['label' => 'Kesiswaan', 'items' => [
+            ['label' => 'Data Siswa', 'route' => 'students.index', 'match' => 'students.*', 'permission' => 'students.view', 'badge' => $counts['students']],
+            ['label' => 'Data Orang Tua/Wali', 'route' => 'guardians.index', 'match' => 'guardians.*', 'permission' => 'guardians.view', 'badge' => $counts['guardians']],
+            ['label' => 'Penempatan Kelas', 'route' => 'student-enrollments.index', 'match' => 'student-enrollments.*', 'permission' => 'student-enrollments.view'],
         ]],
-        ['label'=>'Manajemen Akses','items'=>[
-            ['label'=>'Pengguna','route'=>'users.index','match'=>'users.*','permission'=>'users.view','badge'=>$counts['users']],
+        ['label' => 'Kehadiran', 'items' => [
+            ['label' => 'Absensi Saya', 'route' => 'employee-attendances.mine', 'match' => 'employee-attendances.mine', 'permission' => 'employee-attendances.view-own'],
+            ['label' => 'Rekap Absensi Guru', 'route' => 'employee-attendances.index', 'match' => 'employee-attendances.index', 'permission' => 'employee-attendances.view'],
+            ['label' => 'Perizinan Guru', 'route' => 'employee-leaves.index', 'match' => 'employee-leaves.*', 'permission' => 'employee-leaves.view-own'],
+            ['label' => 'Absensi Siswa', 'route' => 'student-attendances.index', 'match' => 'student-attendances.*', 'permission' => 'student-attendances.view'],
+        ]],
+        ['label' => 'Pembelajaran', 'items' => [
+            ['label' => 'Jurnal Mengajar', 'route' => 'teaching-journals.index', 'match' => 'teaching-journals.index', 'permission' => 'teaching-journals.view-own'],
+            ['label' => 'Verifikasi Jurnal', 'route' => 'teaching-journals.index', 'match' => 'teaching-journals.*', 'permission' => 'teaching-journals.verify'],
+            ['label' => 'Rekap Jurnal', 'route' => 'teaching-journals.index', 'match' => 'teaching-journals.*', 'permission' => 'teaching-journals.export'],
+        ]],
+        ['label' => 'BTAQ', 'items' => [
+            ['label' => 'Dashboard BTAQ', 'route' => 'btaq.dashboard', 'match' => 'btaq.dashboard', 'permission' => 'btaq-reports.view'],
+            ['label' => 'Level BTAQ', 'route' => 'btaq-levels.index', 'match' => 'btaq-levels.*', 'permission' => 'btaq-levels.view'],
+            ['label' => 'Materi BTAQ', 'route' => 'btaq-materials.index', 'match' => 'btaq-materials.*', 'permission' => 'btaq-materials.view'],
+            ['label' => 'Kelompok BTAQ', 'route' => 'btaq-groups.index', 'match' => 'btaq-groups.*', 'permission' => 'btaq-groups.view'],
+            ['label' => 'Jurnal BTAQ', 'route' => 'btaq-journals.index', 'match' => 'btaq-journals.*', 'permission' => 'btaq-journals.view-own'],
+            ['label' => 'Verifikasi Jurnal BTAQ', 'route' => 'btaq-journals.index', 'match' => 'btaq-journals.*', 'permission' => 'btaq-journals.verify'],
+            ['label' => 'Perkembangan Siswa', 'route' => 'btaq.progress', 'match' => 'btaq.progress', 'permission' => 'btaq-reports.view'],
+            ['label' => 'Rekap BTAQ', 'route' => 'btaq.recap', 'match' => 'btaq.recap', 'permission' => 'btaq-reports.view'],
+        ]],
+        ['label' => 'Penilaian', 'items' => [
+            ['label' => 'Dashboard Penilaian', 'route' => 'assessments.dashboard', 'match' => 'assessments.dashboard', 'permission' => 'assessment-reports.view'],
+            ['label' => 'Komponen Penilaian', 'route' => 'assessment-components.index', 'match' => 'assessment-components.*', 'permission' => 'assessments.view-own'],
+            ['label' => 'Input Nilai', 'route' => 'assessment-components.index', 'match' => 'assessment-components.*', 'permission' => 'assessments.update'],
+            ['label' => 'Remedial', 'route' => 'assessment-components.index', 'match' => 'assessment-components.*', 'permission' => 'assessments.update'],
+            ['label' => 'Rekap Nilai', 'route' => 'assessments.recap', 'match' => 'assessments.recap', 'permission' => 'assessment-reports.view'],
+            ['label' => 'Rentang Predikat', 'route' => 'predicate-ranges.index', 'match' => 'predicate-ranges.*', 'permission' => 'predicate-ranges.manage'],
+        ]],
+        ['label' => 'Rapor', 'items' => [
+            ['label' => 'Dashboard Rapor', 'route' => 'report-cards.dashboard', 'match' => 'report-cards.dashboard', 'permission' => 'report-cards.view-class'],
+            ['label' => 'Penyusunan Rapor', 'route' => 'report-cards.classes', 'match' => 'report-cards.classes', 'permission' => 'report-cards.view-class'],
+            ['label' => 'Verifikasi Rapor', 'route' => 'report-cards.verification', 'match' => 'report-cards.verification', 'permission' => 'report-cards.approve'],
+            ['label' => 'Cetak Rapor', 'route' => 'report-cards.classes', 'match' => 'report-cards.classes', 'permission' => 'report-cards.print'],
+        ]],
+        ['label' => 'Administrasi', 'items' => [
+            ['label' => 'Profil Madrasah', 'route' => 'school-profile.edit', 'match' => 'school-profile.*', 'permission' => 'school-profile.view'],
+            ['label' => 'Pengaturan Sistem', 'route' => 'settings.index', 'match' => 'settings.*', 'permission' => 'settings.view'],
+        ]],
+        ['label' => 'Manajemen Akses', 'items' => [
+            ['label' => 'Pengguna', 'route' => 'users.index', 'match' => 'users.*', 'permission' => 'users.view', 'badge' => $counts['users']],
         ]],
     ];
     $crumbs = collect(explode('.', Route::currentRouteName() ?? 'dashboard'))->map(fn($p)=>str($p)->replace('-',' ')->headline());

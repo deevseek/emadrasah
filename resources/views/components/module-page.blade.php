@@ -1,18 +1,13 @@
-@props(['title','subtitle'=>null])
-<x-layouts.app :title="$title">
+@props(['title', 'subtitle' => null])
+
+<x-app-layout :title="$title">
     <div class="space-y-6">
-        <div class="rounded-2xl bg-emerald-950 px-6 py-5 text-white shadow">
-            <p class="text-sm text-emerald-100">eMadrasah</p>
-            <h1 class="text-2xl font-semibold">{{ $title }}</h1>
-            @if ($subtitle)
-                <p class="mt-1 text-sm text-emerald-100">{{ $subtitle }}</p>
-            @endif
-        </div>
-        @if (session('status'))
-            <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-                {{ session('status') }}
+        @if ($subtitle)
+            <div class="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm">
+                <p class="text-sm leading-6 text-slate-600">{{ $subtitle }}</p>
             </div>
         @endif
+
         {{ $slot }}
     </div>
-</x-layouts.app>
+</x-app-layout>

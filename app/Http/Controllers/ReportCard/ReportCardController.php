@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\ReportCard;
 
 use App\Http\Controllers\Controller;
-use App\Models\{Classroom,ReportCard,ReportCardStatusHistory,StudentAchievement,StudentAttitudeNote,StudentEnrollment,StudentExtracurricular};
+use App\Models\{Classroom,ReportCard,ReportCardStatusHistory,ReportCardSubject,StudentAchievement,StudentAttitudeNote,StudentEnrollment,StudentExtracurricular};
 use App\Services\ReportCardService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -13,7 +13,20 @@ use Illuminate\View\View;
 
 class ReportCardController extends Controller
 {
-    public function dashboard(): View { return view('report-cards.dashboard',['draft'=>ReportCard::where('status','draft')->count(),'submitted'=>ReportCard::where('status','submitted')->count(),'locked'=>ReportCard::where('status','locked')->count()]); }
+    public function dashboard(): View
+    {
+        return view('report-cards.dashboard', [
+            'metrics' => [
+                'draft' => ReportCard::where('status', 'draft')->count(),
+                'submitted' => ReportCard::where('status', 'submitted')->count(),
+                'approved' => ReportCard::where('status', 'approved')->count(),
+                'locked' => ReportCard::where('status', 'locked')->count(),
+                'gradeCompleteness' => ReportCardSubject::count(),
+                'classesWithoutReports' => Classroom::whereNotIn('id', ReportCard::select('classroom_id'))->count(),
+            ],
+            'latestCards' => ReportCard::with(['student', 'classroom'])->latest()->limit(5)->get(),
+        ]);
+    }
     public function classes(): View { return view('report-cards.classes',['classes'=>Classroom::withCount('studentEnrollments')->paginate(15)]); }
     public function students(Classroom $classroom): View { return view('report-cards.students',['classroom'=>$classroom,'enrollments'=>StudentEnrollment::where('classroom_id',$classroom->id)->where('enrollment_status','active')->with('student')->paginate(30)]); }
     public function generate(Request $request, StudentEnrollment $enrollment, ReportCardService $service): RedirectResponse { $card=$service->generate($enrollment,(int)$request->validate(['semester_id'=>'required|exists:semesters,id'])['semester_id']); return redirect()->route('report-cards.show',$card)->with('status','Draft rapor digenerate.'); }
