@@ -64,6 +64,29 @@
             ['label' => 'Verifikasi Rapor', 'route' => 'report-cards.verification', 'match' => 'report-cards.verification', 'permission' => 'report-cards.approve'],
             ['label' => 'Cetak Rapor', 'route' => 'report-cards.classes', 'match' => 'report-cards.classes', 'permission' => 'report-cards.print'],
         ]],
+
+        ['label' => 'Keuangan Siswa', 'items' => [
+            ['label' => 'Dashboard Pembayaran', 'route' => 'finance.dashboard.payments', 'match' => 'finance.dashboard.payments', 'permission' => 'student-payments.view'],
+            ['label' => 'Jenis Tagihan', 'route' => 'finance.fee-types.index', 'match' => 'finance.fee-types.*', 'permission' => 'fee-types.view'],
+            ['label' => 'Periode Tagihan', 'route' => 'finance.billing-periods.index', 'match' => 'finance.billing-periods.*', 'permission' => 'billing-periods.view'],
+            ['label' => 'Daftar Tagihan', 'route' => 'finance.student-invoices.index', 'match' => 'finance.student-invoices.*', 'permission' => 'student-invoices.view'],
+            ['label' => 'Pembayaran Siswa', 'route' => 'finance.student-payments.index', 'match' => 'finance.student-payments.*', 'permission' => 'student-payments.view'],
+            ['label' => 'Potongan/Beasiswa', 'route' => 'finance.student-discounts.index', 'match' => 'finance.student-discounts.*', 'permission' => 'student-discounts.view'],
+        ]],
+        ['label' => 'Keuangan Bendahara', 'items' => [
+            ['label' => 'Dashboard Keuangan', 'route' => 'finance.dashboard.finance', 'match' => 'finance.dashboard.finance', 'permission' => 'finance-reports.view'],
+            ['label' => 'Bagan Akun', 'route' => 'finance.chart-accounts.index', 'match' => 'finance.chart-accounts.*', 'permission' => 'finance-accounts.view'],
+            ['label' => 'Kas dan Rekening', 'route' => 'finance.cash-accounts.index', 'match' => 'finance.cash-accounts.*', 'permission' => 'cash-accounts.view'],
+            ['label' => 'Jurnal Transaksi', 'route' => 'finance.transactions.index', 'match' => 'finance.transactions.*', 'permission' => 'finance-transactions.view'],
+            ['label' => 'Laporan Keuangan', 'route' => 'finance.reports.index', 'match' => 'finance.reports.*', 'permission' => 'finance-reports.view'],
+        ]],
+        ['label' => 'Penggajian', 'items' => [
+            ['label' => 'Dashboard Penggajian', 'route' => 'finance.dashboard.payroll', 'match' => 'finance.dashboard.payroll', 'permission' => 'payrolls.view'],
+            ['label' => 'Komponen Gaji', 'route' => 'finance.salary-components.index', 'match' => 'finance.salary-components.*', 'permission' => 'salary-components.view'],
+            ['label' => 'Struktur Gaji Pegawai', 'route' => 'finance.employee-salaries.index', 'match' => 'finance.employee-salaries.*', 'permission' => 'employee-salaries.view'],
+            ['label' => 'Periode Penggajian', 'route' => 'finance.payroll-periods.index', 'match' => 'finance.payroll-periods.*', 'permission' => 'payroll-periods.view'],
+            ['label' => 'Proses Penggajian', 'route' => 'finance.payrolls.index', 'match' => 'finance.payrolls.*', 'permission' => 'payrolls.view'],
+        ]],
         ['label' => 'Administrasi', 'items' => [
             ['label' => 'Profil Madrasah', 'route' => 'school-profile.edit', 'match' => 'school-profile.*', 'permission' => 'school-profile.view'],
             ['label' => 'Pengaturan Sistem', 'route' => 'settings.index', 'match' => 'settings.*', 'permission' => 'settings.view'],
