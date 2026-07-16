@@ -9,6 +9,7 @@ use App\Models\Classroom;
 use App\Models\StudentAttendance;
 use App\Models\StudentEnrollment;
 use App\Services\ActivityLogger;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -18,7 +19,9 @@ final class StudentAttendanceService
 
     public function bulk(Classroom $classroom, string $date, array $rows): void
     {
-        DB::transaction(function () use ($classroom, $date, $rows): void {
+        $attendanceDate = CarbonImmutable::parse($date)->toDateString();
+
+        DB::transaction(function () use ($classroom, $attendanceDate, $rows): void {
             $activeEnrollments = StudentEnrollment::query()
                 ->where('classroom_id', $classroom->id)
                 ->where('enrollment_status', EnrollmentStatus::Active->value)
@@ -33,18 +36,32 @@ final class StudentAttendanceService
                     throw ValidationException::withMessages(['students' => 'Siswa dari kelas lain tidak boleh dimasukkan.']);
                 }
 
-                $attendance = StudentAttendance::query()->updateOrCreate(
-                    ['student_id' => $studentId, 'attendance_date' => $date],
-                    [
-                        'classroom_id' => $classroom->id,
-                        'academic_year_id' => $activeEnrollments[(int) $studentId],
-                        'status' => $row['status'],
-                        'notes' => $row['notes'] ?? null,
-                        'recorded_by' => auth()->id(),
-                    ]
-                );
+                $attendance = StudentAttendance::query()
+                    ->where('student_id', $studentId)
+                    ->whereDate('attendance_date', $attendanceDate)
+                    ->lockForUpdate()
+                    ->first();
 
-                $this->logger->log('student-attendance.saved', $attendance, [], $attendance->toArray());
+                $old = [];
+                $attributes = [
+                    'classroom_id' => $classroom->id,
+                    'academic_year_id' => $activeEnrollments[(int) $studentId],
+                    'status' => $row['status'],
+                    'notes' => $row['notes'] ?? null,
+                    'recorded_by' => auth()->id(),
+                ];
+
+                if ($attendance instanceof StudentAttendance) {
+                    $old = $attendance->getOriginal();
+                    $attendance->update($attributes);
+                } else {
+                    $attendance = StudentAttendance::query()->create($attributes + [
+                        'student_id' => $studentId,
+                        'attendance_date' => $attendanceDate,
+                    ]);
+                }
+
+                $this->logger->log('student-attendance.saved', $attendance, $old, $attendance->fresh()->toArray());
             }
         });
     }
