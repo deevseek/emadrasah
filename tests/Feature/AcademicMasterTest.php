@@ -23,7 +23,6 @@ use Illuminate\Support\Facades\Hash;
 use Spatie\Activitylog\Models\Activity;
 use Tests\TestCase;
 
-
 class AcademicMasterTest extends TestCase
 {
     use RefreshDatabase;

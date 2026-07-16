@@ -3,27 +3,27 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Academic\AcademicResourceController;
-use App\Http\Controllers\Auth\AuthenticatedSessionController;
-use App\Http\Controllers\Auth\NewPasswordController;
-use App\Http\Controllers\Auth\PasswordResetLinkController;
-use App\Http\Controllers\Auth\PasswordUpdateController;
-use App\Http\Controllers\Foundation\DashboardController;
-use App\Http\Controllers\Foundation\SchoolProfileController;
-use App\Http\Controllers\Foundation\SettingController;
-use App\Http\Controllers\Foundation\UserManagementController;
+use App\Http\Controllers\Assessment\AssessmentController;
 use App\Http\Controllers\Attendance\EmployeeAttendanceController;
 use App\Http\Controllers\Attendance\EmployeeLeaveController;
 use App\Http\Controllers\Attendance\StudentAttendanceController;
 use App\Http\Controllers\Attendance\TeachingJournalController;
-use App\Http\Controllers\StudentAffairs\EnrollmentController;
-use App\Http\Controllers\StudentAffairs\GuardianController;
-use App\Http\Controllers\StudentAffairs\StudentController;
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Auth\NewPasswordController;
+use App\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\Auth\PasswordUpdateController;
 use App\Http\Controllers\Btaq\BtaqGroupController;
 use App\Http\Controllers\Btaq\BtaqJournalController;
 use App\Http\Controllers\Btaq\BtaqLevelController;
 use App\Http\Controllers\Btaq\BtaqMaterialController;
-use App\Http\Controllers\Assessment\AssessmentController;
+use App\Http\Controllers\Foundation\DashboardController;
+use App\Http\Controllers\Foundation\SchoolProfileController;
+use App\Http\Controllers\Foundation\SettingController;
+use App\Http\Controllers\Foundation\UserManagementController;
 use App\Http\Controllers\ReportCard\ReportCardController;
+use App\Http\Controllers\StudentAffairs\EnrollmentController;
+use App\Http\Controllers\StudentAffairs\GuardianController;
+use App\Http\Controllers\StudentAffairs\StudentController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/dashboard');
@@ -43,7 +43,6 @@ Route::middleware(['auth', 'active'])->group(function (): void {
     Route::get('/dashboard', DashboardController::class)->middleware('permission:dashboard.view')->name('dashboard');
     Route::get('/password/change', [PasswordUpdateController::class, 'edit'])->name('password.change');
     Route::put('/password/change', [PasswordUpdateController::class, 'update'])->name('password.change.update');
-
 
     Route::get('/employee-attendances/mine', [EmployeeAttendanceController::class, 'mine'])->middleware('permission:employee-attendances.view-own')->name('employee-attendances.mine');
     Route::post('/employee-attendances/check-in', [EmployeeAttendanceController::class, 'checkIn'])->middleware('permission:employee-attendances.check-in')->name('employee-attendances.check-in');
@@ -163,7 +162,6 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         Route::put('/schedules/{schedule}', [AcademicResourceController::class, 'updateSchedule'])->middleware('permission:schedules.update')->name('schedules.update');
         Route::delete('/schedules/{schedule}', [AcademicResourceController::class, 'destroySchedule'])->middleware('permission:schedules.delete')->name('schedules.destroy');
     });
-
 
     Route::get('/btaq/dashboard', [BtaqJournalController::class, 'dashboard'])->middleware('permission:btaq-reports.view')->name('btaq.dashboard');
     Route::resource('btaq-levels', BtaqLevelController::class)->middleware('permission:btaq-levels.view');

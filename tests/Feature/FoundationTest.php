@@ -18,7 +18,6 @@ use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
-
 class FoundationTest extends TestCase
 {
     use RefreshDatabase;
