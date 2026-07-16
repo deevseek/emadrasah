@@ -33,4 +33,14 @@ class BtaqGroupStudent extends Model
             'reopened_at' => 'datetime',
         ];
     }
+    public function student(): BelongsTo
+    {
+        return $this->belongsTo(Student::class);
+    }
+
+    public function group(): BelongsTo
+    {
+        return $this->belongsTo(BtaqGroup::class, 'btaq_group_id');
+    }
+
 }

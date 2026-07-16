@@ -1,14 +1,8 @@
-<x-module-page title="Anggota Kelompok BTAQ" subtitle="Halaman operasional Anggota Kelompok BTAQ.">
+<x-module-page title="Anggota Kelompok BTAQ" subtitle="Kelola anggota aktif, penyelesaian, dan transfer kelompok BTAQ.">
     <div class="rounded-xl bg-white p-6 shadow">
-        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <p class="text-sm text-gray-600">Data nyata ditampilkan dari basis data sesuai permission pengguna.</p>
-            <a href="{{ url()->previous() }}" class="rounded border border-emerald-800 px-4 py-2 text-emerald-900">Kembali</a>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="min-w-full text-sm">
-                <thead class="bg-gray-50"><tr><th class="px-3 py-2 text-left">Informasi</th><th class="px-3 py-2 text-left">Status</th><th class="px-3 py-2 text-left">Aksi</th></tr></thead>
-                <tbody><tr class="border-t"><td class="px-3 py-3">Anggota Kelompok BTAQ</td><td class="px-3 py-3"><span class="rounded-full bg-emerald-100 px-2 py-1 text-emerald-900">Aktif</span></td><td class="px-3 py-3"><span class="text-gray-500">Gunakan form dan tombol pada workflow terkait.</span></td></tr></tbody>
-            </table>
-        </div>
+        @if (session('status'))<div class="mb-4 rounded-lg bg-emerald-50 p-4 text-emerald-900">{{ session('status') }}</div>@endif
+        <div class="mb-6 flex flex-wrap justify-between gap-3"><div><h2 class="text-xl font-semibold text-emerald-950">{{ $group->name }}</h2><p class="text-sm text-slate-500">Pembimbing: {{ $group->employee?->name ?? '-' }} · Kapasitas: {{ $group->capacity ?? 'Tidak dibatasi' }}</p></div><a class="rounded-lg border px-4 py-2" href="{{ route('btaq-groups.edit', $group) }}">Edit Kelompok</a></div>
+        <form method="POST" action="{{ route('btaq-groups.members.store', $group) }}" class="mb-6 grid gap-3 md:grid-cols-[1fr_auto]">@csrf<select name="student_ids[]" multiple class="rounded-lg border-slate-300">@foreach($students as $student)<option value="{{ $student->id }}">{{ $student->name }}</option>@endforeach</select><button onclick="return confirm('Tambahkan anggota ke kelompok ini?')" class="rounded-lg bg-emerald-900 px-4 py-2 text-white">Tambah Anggota</button>@error('student_ids')<span class="text-sm text-red-700">{{ $message }}</span>@enderror</form>
+        <div class="overflow-x-auto"><table class="min-w-full text-sm"><thead class="bg-gray-50"><tr><th class="px-3 py-2 text-left">Siswa</th><th class="px-3 py-2 text-left">Status</th><th class="px-3 py-2 text-left">Tanggal Selesai</th><th class="px-3 py-2 text-left">Aksi</th></tr></thead><tbody>@forelse($members as $member)<tr class="border-t"><td class="px-3 py-3">{{ $member->student?->name ?? 'Siswa #'.$member->student_id }}</td><td class="px-3 py-3">{{ $member->status }}</td><td class="px-3 py-3">{{ $member->completed_at ?? '-' }}</td><td class="px-3 py-3"><form class="inline" method="POST" action="{{ route('btaq-members.complete', $member) }}">@csrf @method('PATCH')<button onclick="return confirm('Tandai anggota selesai?')" class="text-emerald-800">Selesai</button></form><form class="mt-2 flex gap-2" method="POST" action="{{ route('btaq-members.transfer', $member) }}">@csrf @method('PATCH')<select name="target_group_id" class="rounded border-slate-300 text-xs">@foreach($groups as $target)<option value="{{ $target->id }}">{{ $target->name }}</option>@endforeach</select><button onclick="return confirm('Transfer anggota ke kelompok tujuan?')" class="text-emerald-800">Transfer</button></form></td></tr>@empty<tr><td colspan="4" class="px-3 py-8 text-center text-slate-500">Belum ada anggota aktif.</td></tr>@endforelse</tbody></table></div><div class="mt-4">{{ $members->links() }}</div>
     </div>
 </x-module-page>

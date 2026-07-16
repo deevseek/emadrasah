@@ -14,10 +14,10 @@ use Illuminate\View\View;
 
 class BtaqGroupController extends Controller
 {
-    public function index(): View { $groups = BtaqGroup::latest()->paginate(15); return view('btaq.groups.index', compact('groups')); }
+    public function index(): View { $groups = BtaqGroup::with(['employee','level'])->latest()->paginate(15); return view('btaq.groups.index', compact('groups')); }
     public function create(): View { return view('btaq.groups.form', $this->options() + ['group'=>new BtaqGroup]); }
     public function store(Request $request): RedirectResponse { BtaqGroup::create($this->validateGroup($request)); return redirect()->route('btaq-groups.index')->with('status','Kelompok BTAQ disimpan.'); }
-    public function show(BtaqGroup $btaqGroup): View { return view('btaq.groups.show',['group'=>$btaqGroup,'members'=>BtaqGroupStudent::where('btaq_group_id',$btaqGroup->id)->paginate(20),'students'=>Student::where('is_active',true)->orderBy('name')->get(),'groups'=>BtaqGroup::where('semester_id',$btaqGroup->semester_id)->whereKeyNot($btaqGroup->id)->get()]); }
+    public function show(BtaqGroup $btaqGroup): View { return view('btaq.groups.show',['group'=>$btaqGroup,'members'=>BtaqGroupStudent::with('student')->where('btaq_group_id',$btaqGroup->id)->paginate(20),'students'=>Student::where('is_active',true)->orderBy('name')->get(),'groups'=>BtaqGroup::where('semester_id',$btaqGroup->semester_id)->whereKeyNot($btaqGroup->id)->get()]); }
     public function edit(BtaqGroup $btaqGroup): View { return view('btaq.groups.form', $this->options() + ['group'=>$btaqGroup]); }
     public function update(Request $request, BtaqGroup $btaqGroup): RedirectResponse { $btaqGroup->update($this->validateGroup($request, $btaqGroup->id)); return redirect()->route('btaq-groups.show',$btaqGroup)->with('status','Kelompok diperbarui.'); }
     public function addMembers(Request $request, BtaqGroup $btaqGroup, BtaqService $service): RedirectResponse { $service->addMembers($btaqGroup, $request->validate(['student_ids'=>'required|array','student_ids.*'=>'exists:students,id'])['student_ids'], auth()->id()); return back()->with('status','Anggota ditambahkan.'); }

@@ -1,14 +1,3 @@
-<x-module-page title="Verifikasi Rapor" subtitle="Halaman operasional Verifikasi Rapor.">
-    <div class="rounded-xl bg-white p-6 shadow">
-        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <p class="text-sm text-gray-600">Data nyata ditampilkan dari basis data sesuai permission pengguna.</p>
-            <a href="{{ url()->previous() }}" class="rounded border border-emerald-800 px-4 py-2 text-emerald-900">Kembali</a>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="min-w-full text-sm">
-                <thead class="bg-gray-50"><tr><th class="px-3 py-2 text-left">Informasi</th><th class="px-3 py-2 text-left">Status</th><th class="px-3 py-2 text-left">Aksi</th></tr></thead>
-                <tbody><tr class="border-t"><td class="px-3 py-3">Verifikasi Rapor</td><td class="px-3 py-3"><span class="rounded-full bg-emerald-100 px-2 py-1 text-emerald-900">Aktif</span></td><td class="px-3 py-3"><span class="text-gray-500">Gunakan form dan tombol pada workflow terkait.</span></td></tr></tbody>
-            </table>
-        </div>
-    </div>
+<x-module-page title="Verifikasi Rapor" subtitle="Setujui rapor yang sudah diajukan wali kelas sebelum dikunci atau dicetak.">
+    <div class="rounded-xl bg-white p-6 shadow">@if (session('status'))<div class="mb-4 rounded-lg bg-emerald-50 p-4 text-emerald-900">{{ session('status') }}</div>@endif<div class="overflow-x-auto"><table class="min-w-full text-sm"><thead class="bg-gray-50"><tr><th class="px-3 py-2 text-left">Siswa</th><th class="px-3 py-2 text-left">Kelas</th><th class="px-3 py-2 text-left">Status</th><th class="px-3 py-2 text-left">Aksi</th></tr></thead><tbody>@forelse($cards as $card)<tr class="border-t"><td class="px-3 py-3">{{ $card->student?->name ?? 'Siswa #'.$card->student_id }}</td><td class="px-3 py-3">{{ $card->classroom?->name ?? '-' }}</td><td class="px-3 py-3"><span class="rounded-full bg-emerald-100 px-2 py-1 text-emerald-900">{{ $card->status }}</span></td><td class="px-3 py-3"><a class="text-emerald-800" href="{{ route('report-cards.show', $card) }}">Detail</a><form class="inline" method="POST" action="{{ route('report-cards.approve', $card) }}">@csrf @method('PATCH')<button onclick="return confirm('Setujui rapor ini?')" class="ml-3 text-emerald-800">Approve</button></form></td></tr>@empty<tr><td colspan="4" class="px-3 py-8 text-center text-slate-500">Tidak ada rapor menunggu verifikasi.</td></tr>@endforelse</tbody></table></div><div class="mt-4">{{ $cards->links() }}</div></div>
 </x-module-page>
