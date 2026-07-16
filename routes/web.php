@@ -55,11 +55,11 @@ Route::middleware(['auth', 'active'])->group(function (): void {
     Route::get('/employee-leaves', [EmployeeLeaveController::class, 'index'])->middleware('permission:employee-leaves.view-own')->name('employee-leaves.index');
     Route::get('/employee-leaves/create', [EmployeeLeaveController::class, 'create'])->middleware('permission:employee-leaves.create')->name('employee-leaves.create');
     Route::post('/employee-leaves', [EmployeeLeaveController::class, 'store'])->middleware('permission:employee-leaves.create')->name('employee-leaves.store');
-    Route::get('/employee-leaves/{employeeLeave}', [EmployeeLeaveController::class, 'show'])->middleware('permission:employee-leaves.view-own')->name('employee-leaves.show');
+    Route::get('/employee-leaves/{employeeLeave}', [EmployeeLeaveController::class, 'show'])->middleware('permission:employee-leaves.view-own|employee-leaves.view')->name('employee-leaves.show');
     Route::patch('/employee-leaves/{employeeLeave}/cancel', [EmployeeLeaveController::class, 'cancel'])->middleware('permission:employee-leaves.cancel')->name('employee-leaves.cancel');
     Route::patch('/employee-leaves/{employeeLeave}/approve', [EmployeeLeaveController::class, 'approve'])->middleware('permission:employee-leaves.approve')->name('employee-leaves.approve');
     Route::patch('/employee-leaves/{employeeLeave}/reject', [EmployeeLeaveController::class, 'reject'])->middleware('permission:employee-leaves.reject')->name('employee-leaves.reject');
-    Route::get('/employee-leaves/{employeeLeave}/download', [EmployeeLeaveController::class, 'download'])->middleware('permission:employee-leaves.view-own')->name('employee-leaves.download');
+    Route::get('/employee-leaves/{employeeLeave}/download', [EmployeeLeaveController::class, 'download'])->middleware('permission:employee-leaves.view-own|employee-leaves.view')->name('employee-leaves.download');
 
     Route::get('/student-attendances', [StudentAttendanceController::class, 'index'])->middleware('permission:student-attendances.view')->name('student-attendances.index');
     Route::get('/student-attendances/create', [StudentAttendanceController::class, 'create'])->middleware('permission:student-attendances.create')->name('student-attendances.create');
