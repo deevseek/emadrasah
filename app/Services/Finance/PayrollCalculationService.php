@@ -21,20 +21,20 @@ final class PayrollCalculationService
 {
     public function calculate(PayrollPeriod $period): void
     {
-        $period = PayrollPeriod::query()
-            ->lockForUpdate()
-            ->findOrFail($period->getKey());
-
-        if (! in_array($period->status, [
-            PayrollStatus::Draft->value,
-            PayrollStatus::Calculated->value,
-        ], true)) {
-            throw ValidationException::withMessages([
-                'period' => 'Payroll hanya dapat dihitung dari status draft atau calculated.',
-            ]);
-        }
-
         DB::transaction(function () use ($period): void {
+            $period = PayrollPeriod::query()
+                ->lockForUpdate()
+                ->findOrFail($period->getKey());
+
+            if (! in_array($period->status, [
+                PayrollStatus::Draft->value,
+                PayrollStatus::Calculated->value,
+            ], true)) {
+                throw ValidationException::withMessages([
+                    'period' => 'Payroll hanya dapat dihitung dari status draft atau calculated.',
+                ]);
+            }
+
             Employee::query()
                 ->where('is_active', true)
                 ->orderBy('id')
