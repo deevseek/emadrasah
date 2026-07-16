@@ -21,12 +21,14 @@ class BtaqJournalTest extends TestCase
 
     public function test_mass_journal_submit_verify_and_reject(): void
     {
-        foreach (['btaq-journals.view-own', 'btaq-journals.submit', 'btaq-journals.verify', 'btaq-journals.reject'] as $permission) {
+        foreach (['btaq-journals.view-own', 'btaq-journals.create', 'btaq-journals.update', 'btaq-journals.submit', 'btaq-journals.verify', 'btaq-journals.reject'] as $permission) {
             Permission::findOrCreate($permission);
         }
 
         $user = User::factory()->create();
-        $user->givePermissionTo(['btaq-journals.view-own', 'btaq-journals.submit', 'btaq-journals.verify', 'btaq-journals.reject']);
+        $user->givePermissionTo(['btaq-journals.view-own', 'btaq-journals.create', 'btaq-journals.update', 'btaq-journals.submit']);
+        $verifier = User::factory()->create();
+        $verifier->givePermissionTo(['btaq-journals.verify', 'btaq-journals.reject']);
         [$year, $semester] = $this->createActiveAcademicPeriod();
         $employee = $this->createTeacher($user, EmploymentType::BtaqTeacher);
         $level = BtaqLevel::query()->create(['code' => $this->uniqueSuffix('BTQ'), 'name' => 'Level BTAQ', 'sequence' => 1, 'is_active' => true]);
@@ -44,14 +46,14 @@ class BtaqJournalTest extends TestCase
         $response->assertRedirect(route('btaq-journals.show', $journal));
         $this->assertDatabaseHas('btaq_journal_students', ['btaq_journal_id' => $journal->id, 'student_id' => $student->id]);
         $this->patch(route('btaq-journals.submit', $journal))->assertRedirect();
-        $this->patch(route('btaq-journals.verify', $journal))->assertRedirect();
+        $this->actingAs($verifier)->patch(route('btaq-journals.verify', $journal))->assertRedirect();
 
         $rejectResponse = $this->actingAs($user)->post(route('btaq-journals.store'), ['btaq_group_id' => $group->id, 'journal_date' => '2026-07-17', 'session_number' => 1] + $students);
         $rejectJournal = BtaqJournal::query()->where('btaq_group_id', $group->id)->whereDate('journal_date', '2026-07-17')->firstOrFail();
         $rejectResponse->assertRedirect(route('btaq-journals.show', $rejectJournal));
         $this->patch(route('btaq-journals.submit', $rejectJournal))->assertRedirect();
-        $this->patch(route('btaq-journals.reject', $rejectJournal))->assertSessionHasErrors('rejection_reason');
-        $this->patch(route('btaq-journals.reject', $rejectJournal), ['rejection_reason' => 'Perbaiki catatan.'])->assertRedirect();
+        $this->actingAs($verifier)->patch(route('btaq-journals.reject', $rejectJournal))->assertSessionHasErrors('rejection_reason');
+        $this->actingAs($verifier)->patch(route('btaq-journals.reject', $rejectJournal), ['rejection_reason' => 'Perbaiki catatan.'])->assertRedirect();
         $this->assertDatabaseHas('activity_log', ['event' => 'btaq.journal.saved']);
     }
 }
