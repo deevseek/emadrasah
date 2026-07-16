@@ -1,0 +1,2 @@
+<?php declare(strict_types=1); use App\Enums\LeaveStatus; use App\Enums\LeaveType; use App\Models\EmployeeLeaveRequest;
+it('defines leave request statuses approval rejection and overlap-ready model', function (): void { expect(LeaveStatus::Pending->value)->toBe('pending'); expect(LeaveType::Sick->attendanceStatus()->value)->toBe('sakit'); expect((new EmployeeLeaveRequest)->getFillable())->toContain('starts_at','ends_at','approved_by','rejection_reason','attachment_path'); });

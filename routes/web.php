@@ -11,6 +11,10 @@ use App\Http\Controllers\Foundation\DashboardController;
 use App\Http\Controllers\Foundation\SchoolProfileController;
 use App\Http\Controllers\Foundation\SettingController;
 use App\Http\Controllers\Foundation\UserManagementController;
+use App\Http\Controllers\Attendance\EmployeeAttendanceController;
+use App\Http\Controllers\Attendance\EmployeeLeaveController;
+use App\Http\Controllers\Attendance\StudentAttendanceController;
+use App\Http\Controllers\Attendance\TeachingJournalController;
 use App\Http\Controllers\StudentAffairs\EnrollmentController;
 use App\Http\Controllers\StudentAffairs\GuardianController;
 use App\Http\Controllers\StudentAffairs\StudentController;
@@ -33,6 +37,35 @@ Route::middleware(['auth', 'active'])->group(function (): void {
     Route::get('/dashboard', DashboardController::class)->middleware('permission:dashboard.view')->name('dashboard');
     Route::get('/password/change', [PasswordUpdateController::class, 'edit'])->name('password.change');
     Route::put('/password/change', [PasswordUpdateController::class, 'update'])->name('password.change.update');
+
+
+    Route::get('/employee-attendances/mine', [EmployeeAttendanceController::class, 'mine'])->middleware('permission:employee-attendances.view-own')->name('employee-attendances.mine');
+    Route::post('/employee-attendances/check-in', [EmployeeAttendanceController::class, 'checkIn'])->middleware('permission:employee-attendances.check-in')->name('employee-attendances.check-in');
+    Route::post('/employee-attendances/check-out', [EmployeeAttendanceController::class, 'checkOut'])->middleware('permission:employee-attendances.check-out')->name('employee-attendances.check-out');
+    Route::get('/employee-attendances', [EmployeeAttendanceController::class, 'index'])->middleware('permission:employee-attendances.view')->name('employee-attendances.index');
+    Route::get('/employee-attendances/{employeeAttendance}', [EmployeeAttendanceController::class, 'show'])->middleware('permission:employee-attendances.view')->name('employee-attendances.show');
+    Route::patch('/employee-attendances/{employeeAttendance}/verify', [EmployeeAttendanceController::class, 'verify'])->middleware('permission:employee-attendances.verify')->name('employee-attendances.verify');
+
+    Route::get('/employee-leaves', [EmployeeLeaveController::class, 'index'])->middleware('permission:employee-leaves.view-own')->name('employee-leaves.index');
+    Route::get('/employee-leaves/create', [EmployeeLeaveController::class, 'create'])->middleware('permission:employee-leaves.create')->name('employee-leaves.create');
+    Route::post('/employee-leaves', [EmployeeLeaveController::class, 'store'])->middleware('permission:employee-leaves.create')->name('employee-leaves.store');
+    Route::get('/employee-leaves/{employeeLeave}', [EmployeeLeaveController::class, 'show'])->middleware('permission:employee-leaves.view-own')->name('employee-leaves.show');
+    Route::patch('/employee-leaves/{employeeLeave}/cancel', [EmployeeLeaveController::class, 'cancel'])->middleware('permission:employee-leaves.cancel')->name('employee-leaves.cancel');
+    Route::patch('/employee-leaves/{employeeLeave}/approve', [EmployeeLeaveController::class, 'approve'])->middleware('permission:employee-leaves.approve')->name('employee-leaves.approve');
+    Route::patch('/employee-leaves/{employeeLeave}/reject', [EmployeeLeaveController::class, 'reject'])->middleware('permission:employee-leaves.reject')->name('employee-leaves.reject');
+    Route::get('/employee-leaves/{employeeLeave}/download', [EmployeeLeaveController::class, 'download'])->middleware('permission:employee-leaves.view-own')->name('employee-leaves.download');
+
+    Route::get('/student-attendances', [StudentAttendanceController::class, 'index'])->middleware('permission:student-attendances.view')->name('student-attendances.index');
+    Route::get('/student-attendances/create', [StudentAttendanceController::class, 'create'])->middleware('permission:student-attendances.create')->name('student-attendances.create');
+    Route::post('/student-attendances', [StudentAttendanceController::class, 'store'])->middleware('permission:student-attendances.create')->name('student-attendances.store');
+
+    Route::get('/teaching-journals', [TeachingJournalController::class, 'index'])->middleware('permission:teaching-journals.view-own')->name('teaching-journals.index');
+    Route::get('/teaching-journals/create', [TeachingJournalController::class, 'create'])->middleware('permission:teaching-journals.create')->name('teaching-journals.create');
+    Route::post('/teaching-journals', [TeachingJournalController::class, 'store'])->middleware('permission:teaching-journals.create')->name('teaching-journals.store');
+    Route::get('/teaching-journals/{teachingJournal}', [TeachingJournalController::class, 'show'])->middleware('permission:teaching-journals.view-own')->name('teaching-journals.show');
+    Route::patch('/teaching-journals/{teachingJournal}/submit', [TeachingJournalController::class, 'submit'])->middleware('permission:teaching-journals.submit')->name('teaching-journals.submit');
+    Route::patch('/teaching-journals/{teachingJournal}/verify', [TeachingJournalController::class, 'verify'])->middleware('permission:teaching-journals.verify')->name('teaching-journals.verify');
+    Route::patch('/teaching-journals/{teachingJournal}/reject', [TeachingJournalController::class, 'reject'])->middleware('permission:teaching-journals.reject')->name('teaching-journals.reject');
 
     Route::get('/school-profile', [SchoolProfileController::class, 'edit'])
         ->middleware('permission:school-profile.view')

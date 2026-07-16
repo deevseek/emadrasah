@@ -10,6 +10,16 @@
         ['label' => 'Pegawai', 'route' => 'employees.index', 'permission' => 'employees.view'],
         ['label' => 'Penugasan Mengajar', 'route' => 'teaching-assignments.index', 'permission' => 'teaching-assignments.view'],
         ['label' => 'Jadwal Pelajaran', 'route' => 'schedules.index', 'permission' => 'schedules.view'],
+        ['label' => 'KEHADIRAN', 'heading' => true],
+        ['label' => 'Absensi Saya', 'route' => 'employee-attendances.mine', 'permission' => 'employee-attendances.view-own'],
+        ['label' => 'Rekap Absensi Guru', 'route' => 'employee-attendances.index', 'permission' => 'employee-attendances.view'],
+        ['label' => 'Perizinan Guru', 'route' => 'employee-leaves.index', 'permission' => 'employee-leaves.view-own'],
+        ['label' => 'Absensi Siswa', 'route' => 'student-attendances.index', 'permission' => 'student-attendances.view'],
+        ['label' => 'PEMBELAJARAN', 'heading' => true],
+        ['label' => 'Jurnal Mengajar', 'route' => 'teaching-journals.index', 'permission' => 'teaching-journals.view-own'],
+        ['label' => 'Verifikasi Jurnal', 'route' => 'teaching-journals.index', 'permission' => 'teaching-journals.verify'],
+        ['label' => 'Rekap Jurnal', 'route' => 'teaching-journals.index', 'permission' => 'teaching-journals.export'],
+
     ];
 @endphp
 
@@ -31,6 +41,10 @@
 
             <nav class="mt-8 space-y-2" aria-label="Navigasi utama">
                 @foreach ($navigation as $item)
+                    @if($item['heading'] ?? false)
+                        <p class="px-4 pt-4 text-xs font-bold uppercase tracking-widest text-amber-200">{{ $item['label'] }}</p>
+                        @continue
+                    @endif
                     @can($item['permission'])
                         <a
                             href="{{ route($item['route']) }}"

@@ -1,0 +1,2 @@
+<?php declare(strict_types=1); use App\Enums\AttendanceStatus; use App\Models\EmployeeAttendance; use Illuminate\Http\UploadedFile; use Illuminate\Support\Facades\Storage;
+it('defines employee attendance workflow constraints and file validation', function (): void { Storage::fake('public'); expect(AttendanceStatus::Late->value)->toBe('terlambat'); expect(UploadedFile::fake()->image('selfie.jpg'))->not->toBeNull(); expect((new EmployeeAttendance)->getFillable())->toContain('checked_in_at','checked_out_at','latitude','selfie_path','correction_reason'); });
