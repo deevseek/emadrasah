@@ -16,6 +16,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use RuntimeException;
 use Tests\TestCase;
 
 final class EmployeeAttendanceTest extends TestCase
@@ -42,7 +43,7 @@ final class EmployeeAttendanceTest extends TestCase
             'latitude' => '-6.2',
             'longitude' => '106.8',
             'accuracy' => '8',
-            'selfie' => UploadedFile::fake()->image('selfie.jpg'),
+            'selfie' => $this->fakePng(),
         ])->assertSessionHas('status');
 
         $this->assertDatabaseHas('employee_attendances', ['employee_id' => $employee->id]);
@@ -73,6 +74,20 @@ final class EmployeeAttendanceTest extends TestCase
             'is_verified' => true,
         ]);
         $this->assertDatabaseHas('activity_log', ['event' => 'employee-attendance.verified']);
+    }
+
+    private function fakePng(string $name = 'selfie.png'): UploadedFile
+    {
+        $contents = base64_decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl2nYQAAAAASUVORK5CYII=',
+            true
+        );
+
+        if ($contents === false) {
+            throw new RuntimeException('Fixture PNG tidak valid.');
+        }
+
+        return UploadedFile::fake()->createWithContent($name, $contents);
     }
 
     private function admin(): User

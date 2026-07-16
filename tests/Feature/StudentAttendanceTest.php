@@ -42,7 +42,20 @@ final class StudentAttendanceTest extends TestCase
 
         $payload['students'][$enrollment->student_id]['status'] = AttendanceStatus::Late->value;
         $this->actingAs($admin)->post(route('student-attendances.store'), $payload)->assertRedirect();
-        $this->assertSame(1, StudentAttendance::query()->where('student_id', $enrollment->student_id)->whereDate('attendance_date', '2026-07-23')->count());
+        $this->assertSame(
+            1,
+            StudentAttendance::query()
+                ->where('student_id', $enrollment->student_id)
+                ->whereDate('attendance_date', '2026-07-23')
+                ->count()
+        );
+        $this->assertTrue(
+            StudentAttendance::query()
+                ->where('student_id', $enrollment->student_id)
+                ->whereDate('attendance_date', '2026-07-23')
+                ->where('status', AttendanceStatus::Late->value)
+                ->exists()
+        );
         $this->assertDatabaseHas('activity_log', ['event' => 'student-attendance.saved']);
 
         if ($otherEnrollment !== null) {

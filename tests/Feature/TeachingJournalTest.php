@@ -47,13 +47,13 @@ final class TeachingJournalTest extends TestCase
     {
         $admin = $this->admin();
         $assignment = $this->assignmentForTeacher();
-        $journal = TeachingJournal::query()->create($this->payload($assignment, TeachingJournalStatus::Submitted->value) + [
+        $journal = TeachingJournal::query()->create(array_replace($this->payload($assignment, TeachingJournalStatus::Submitted->value), [
             'employee_id' => $assignment->employee_id,
             'subject_id' => $assignment->subject_id,
             'classroom_id' => $assignment->classroom_id,
             'academic_year_id' => $assignment->academic_year_id,
             'semester_id' => $assignment->semester_id,
-        ]);
+        ]));
 
         $this->actingAs($admin)->patch(route('teaching-journals.reject', $journal))->assertSessionHasErrors('rejection_reason');
         $this->actingAs($admin)->patch(route('teaching-journals.verify', $journal))->assertSessionHas('status');
@@ -77,26 +77,16 @@ final class TeachingJournalTest extends TestCase
         $this->seedOnce();
 
         $suffix = Str::upper(Str::random(8));
-        $academicYear = AcademicYear::query()->create([
-            'name' => 'Tahun Uji '.$suffix,
-            'starts_on' => '2026-07-01',
-            'ends_on' => '2027-06-30',
-            'is_active' => true,
-        ]);
-        $semester = Semester::query()->create([
-            'academic_year_id' => $academicYear->id,
-            'name' => 'Semester Uji '.$suffix,
-            'term' => 1,
-            'starts_on' => '2026-07-01',
-            'ends_on' => '2026-12-31',
-            'is_active' => true,
-        ]);
-        $gradeLevel = GradeLevel::query()->create([
-            'name' => 'Kelas Uji '.$suffix,
-            'code' => 'GL-'.$suffix,
-            'level' => 1,
-            'is_active' => true,
-        ]);
+        $academicYear = AcademicYear::query()
+            ->where('is_active', true)
+            ->firstOrFail();
+        $semester = Semester::query()
+            ->where('academic_year_id', $academicYear->id)
+            ->where('is_active', true)
+            ->firstOrFail();
+        $gradeLevel = GradeLevel::query()
+            ->where('level', 1)
+            ->firstOrFail();
         $classroom = Classroom::query()->create([
             'academic_year_id' => $academicYear->id,
             'grade_level_id' => $gradeLevel->id,
