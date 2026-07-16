@@ -27,10 +27,10 @@ final class EmployeeSalaryComponentRequest extends FormRequest
 
     public function rules(): array
     {
-        $employeeSalaryComponent = $this->route('employeeSalaryComponent');
-        $employeeSalaryComponentId = $employeeSalaryComponent instanceof EmployeeSalaryComponent
-            ? $employeeSalaryComponent->getKey()
-            : $employeeSalaryComponent;
+        $employeeSalary = $this->route('employeeSalary');
+        $employeeSalaryId = $employeeSalary instanceof EmployeeSalaryComponent
+            ? $employeeSalary->getKey()
+            : $employeeSalary;
 
         return [
             'employee_id' => [
@@ -41,7 +41,7 @@ final class EmployeeSalaryComponentRequest extends FormRequest
                     ->where(fn ($query) => $query
                         ->where('salary_component_id', $this->input('salary_component_id'))
                         ->where('effective_from', $this->input('effective_from')))
-                    ->ignore($employeeSalaryComponentId),
+                    ->ignore($employeeSalaryId),
             ],
             'salary_component_id' => ['required', 'integer', 'exists:salary_components,id'],
             'amount' => ['nullable', 'numeric', 'min:0', 'required_without:percentage'],
