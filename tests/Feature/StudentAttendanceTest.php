@@ -6,6 +6,7 @@ namespace Tests\Feature;
 
 use App\Enums\AttendanceStatus;
 use App\Models\Classroom;
+use App\Models\StudentAttendance;
 use App\Models\StudentEnrollment;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -31,15 +32,17 @@ final class StudentAttendanceTest extends TestCase
         ];
 
         $this->actingAs($admin)->post(route('student-attendances.store'), $payload)->assertRedirect();
-        $this->assertDatabaseHas('student_attendances', [
-            'student_id' => $enrollment->student_id,
-            'attendance_date' => '2026-07-23',
-            'status' => AttendanceStatus::Present->value,
-        ]);
+        $this->assertTrue(
+            StudentAttendance::query()
+                ->where('student_id', $enrollment->student_id)
+                ->whereDate('attendance_date', '2026-07-23')
+                ->where('status', AttendanceStatus::Present->value)
+                ->exists()
+        );
 
         $payload['students'][$enrollment->student_id]['status'] = AttendanceStatus::Late->value;
         $this->actingAs($admin)->post(route('student-attendances.store'), $payload)->assertRedirect();
-        $this->assertSame(1, \App\Models\StudentAttendance::query()->where('student_id', $enrollment->student_id)->whereDate('attendance_date', '2026-07-23')->count());
+        $this->assertSame(1, StudentAttendance::query()->where('student_id', $enrollment->student_id)->whereDate('attendance_date', '2026-07-23')->count());
         $this->assertDatabaseHas('activity_log', ['event' => 'student-attendance.saved']);
 
         if ($otherEnrollment !== null) {

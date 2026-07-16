@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Enums\AttendanceStatus;
+use App\Enums\EmployeeStatus;
+use App\Enums\EmploymentType;
+use App\Enums\Gender;
 use App\Models\ActivityLog;
 use App\Models\Employee;
 use App\Models\EmployeeAttendance;
@@ -12,11 +15,14 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 final class EmployeeAttendanceTest extends TestCase
 {
     use RefreshDatabase;
+
+    private bool $seeded = false;
 
     public function test_account_without_employee_is_forbidden(): void
     {
@@ -51,7 +57,7 @@ final class EmployeeAttendanceTest extends TestCase
     {
         $admin = $this->admin();
         $attendance = EmployeeAttendance::query()->create([
-            'employee_id' => Employee::query()->firstOrFail()->id,
+            'employee_id' => $this->employeeUser(['employee-attendances.view'])->id,
             'attendance_date' => now()->toDateString(),
             'status' => AttendanceStatus::Present,
         ]);
@@ -71,21 +77,45 @@ final class EmployeeAttendanceTest extends TestCase
 
     private function admin(): User
     {
-        $this->seed();
+        $this->seedOnce();
 
         return User::query()->where('email', 'admin@example.test')->firstOrFail();
     }
 
-    private function employeeUser(): Employee
+    private function employeeUser(array $permissions = [
+        'employee-attendances.view-own',
+        'employee-attendances.check-in',
+        'employee-attendances.check-out',
+    ]): Employee
     {
-        $this->seed();
-        $employee = Employee::query()->whereNotNull('user_id')->firstOrFail();
-        $employee->user->givePermissionTo([
-            'employee-attendances.view-own',
-            'employee-attendances.check-in',
-            'employee-attendances.check-out',
+        $this->seedOnce();
+
+        $user = User::factory()->create([
+            'is_active' => true,
         ]);
 
-        return $employee;
+        $employee = Employee::query()->create([
+            'user_id' => $user->id,
+            'employee_number' => 'TEST-'.Str::upper(Str::random(8)),
+            'name' => 'Guru Pengujian',
+            'gender' => Gender::Male,
+            'employment_type' => EmploymentType::ClassTeacher,
+            'employee_status' => EmployeeStatus::Permanent,
+            'is_active' => true,
+        ]);
+
+        $user->givePermissionTo($permissions);
+
+        return $employee->fresh('user');
+    }
+
+    private function seedOnce(): void
+    {
+        if ($this->seeded) {
+            return;
+        }
+
+        $this->seed();
+        $this->seeded = true;
     }
 }

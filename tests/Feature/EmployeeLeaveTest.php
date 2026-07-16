@@ -4,19 +4,27 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Enums\AttendanceStatus;
+use App\Enums\EmployeeStatus;
+use App\Enums\EmploymentType;
+use App\Enums\Gender;
 use App\Enums\LeaveStatus;
 use App\Enums\LeaveType;
 use App\Models\Employee;
+use App\Models\EmployeeAttendance;
 use App\Models\EmployeeLeaveRequest;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 final class EmployeeLeaveTest extends TestCase
 {
     use RefreshDatabase;
+
+    private bool $seeded = false;
 
     public function test_employee_can_create_leave_with_attachment_and_overlap_is_rejected(): void
     {
@@ -42,7 +50,7 @@ final class EmployeeLeaveTest extends TestCase
     {
         $admin = $this->admin();
         $leave = EmployeeLeaveRequest::query()->create([
-            'employee_id' => Employee::query()->firstOrFail()->id,
+            'employee_id' => $this->employeeUser(['employee-leaves.view-own'])->id,
             'starts_at' => '2026-07-22',
             'ends_at' => '2026-07-22',
             'type' => LeaveType::Sick,
@@ -53,27 +61,57 @@ final class EmployeeLeaveTest extends TestCase
         $this->actingAs($admin)->patch(route('employee-leaves.reject', $leave))->assertSessionHasErrors('rejection_reason');
         $this->actingAs($admin)->patch(route('employee-leaves.approve', $leave))->assertSessionHas('status');
 
-        $this->assertDatabaseHas('employee_attendances', [
-            'employee_id' => $leave->employee_id,
-            'attendance_date' => '2026-07-22',
-            'status' => 'sakit',
-        ]);
+        $this->assertTrue(
+            EmployeeAttendance::query()
+                ->where('employee_id', $leave->employee_id)
+                ->whereDate('attendance_date', '2026-07-22')
+                ->where('status', AttendanceStatus::Sick->value)
+                ->exists()
+        );
         $this->assertDatabaseHas('activity_log', ['event' => 'employee-leave.approved']);
     }
 
     private function admin(): User
     {
-        $this->seed();
+        $this->seedOnce();
 
         return User::query()->where('email', 'admin@example.test')->firstOrFail();
     }
 
-    private function employeeUser(): Employee
+    private function employeeUser(array $permissions = [
+        'employee-leaves.view-own',
+        'employee-leaves.create',
+        'employee-leaves.cancel',
+    ]): Employee
     {
-        $this->seed();
-        $employee = Employee::query()->whereNotNull('user_id')->firstOrFail();
-        $employee->user->givePermissionTo(['employee-leaves.view-own', 'employee-leaves.create', 'employee-leaves.cancel']);
+        $this->seedOnce();
 
-        return $employee;
+        $user = User::factory()->create([
+            'is_active' => true,
+        ]);
+
+        $employee = Employee::query()->create([
+            'user_id' => $user->id,
+            'employee_number' => 'TEST-'.Str::upper(Str::random(8)),
+            'name' => 'Guru Pengujian',
+            'gender' => Gender::Male,
+            'employment_type' => EmploymentType::ClassTeacher,
+            'employee_status' => EmployeeStatus::Permanent,
+            'is_active' => true,
+        ]);
+
+        $user->givePermissionTo($permissions);
+
+        return $employee->fresh('user');
+    }
+
+    private function seedOnce(): void
+    {
+        if ($this->seeded) {
+            return;
+        }
+
+        $this->seed();
+        $this->seeded = true;
     }
 }
