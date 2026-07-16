@@ -52,4 +52,9 @@ class Employee extends Model
     {
         return $this->hasMany(EmployeeLeaveRequest::class);
     }
+
+    public function salaryComponents(): HasMany
+    {
+        return $this->hasMany(\App\Models\Finance\EmployeeSalaryComponent::class);
+    }
 }
