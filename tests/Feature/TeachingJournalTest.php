@@ -4,16 +4,29 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Enums\EmployeeStatus;
+use App\Enums\EmploymentType;
+use App\Enums\Gender;
+use App\Enums\SubjectCategory;
 use App\Enums\TeachingJournalStatus;
+use App\Models\AcademicYear;
+use App\Models\Classroom;
+use App\Models\Employee;
+use App\Models\GradeLevel;
+use App\Models\Semester;
+use App\Models\Subject;
 use App\Models\TeachingAssignment;
 use App\Models\TeachingJournal;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 final class TeachingJournalTest extends TestCase
 {
     use RefreshDatabase;
+
+    private bool $seeded = false;
 
     public function test_teacher_can_create_submit_and_cannot_edit_submitted_journal(): void
     {
@@ -33,7 +46,7 @@ final class TeachingJournalTest extends TestCase
     public function test_verify_and_reject_workflow_requires_reason(): void
     {
         $admin = $this->admin();
-        $assignment = TeachingAssignment::query()->firstOrFail();
+        $assignment = $this->assignmentForTeacher();
         $journal = TeachingJournal::query()->create($this->payload($assignment, TeachingJournalStatus::Submitted->value) + [
             'employee_id' => $assignment->employee_id,
             'subject_id' => $assignment->subject_id,
@@ -49,23 +62,78 @@ final class TeachingJournalTest extends TestCase
 
     private function admin(): User
     {
-        $this->seed();
+        $this->seedOnce();
 
         return User::query()->where('email', 'admin@example.test')->firstOrFail();
     }
 
-    private function assignmentForTeacher(): TeachingAssignment
+    private function assignmentForTeacher(array $permissions = [
+        'teaching-journals.view-own',
+        'teaching-journals.create',
+        'teaching-journals.update',
+        'teaching-journals.submit',
+    ]): TeachingAssignment
     {
-        $this->seed();
-        $assignment = TeachingAssignment::query()->whereHas('employee.user')->firstOrFail();
-        $assignment->employee->user->givePermissionTo([
-            'teaching-journals.view-own',
-            'teaching-journals.create',
-            'teaching-journals.update',
-            'teaching-journals.submit',
+        $this->seedOnce();
+
+        $suffix = Str::upper(Str::random(8));
+        $academicYear = AcademicYear::query()->create([
+            'name' => 'Tahun Uji '.$suffix,
+            'starts_on' => '2026-07-01',
+            'ends_on' => '2027-06-30',
+            'is_active' => true,
+        ]);
+        $semester = Semester::query()->create([
+            'academic_year_id' => $academicYear->id,
+            'name' => 'Semester Uji '.$suffix,
+            'term' => 1,
+            'starts_on' => '2026-07-01',
+            'ends_on' => '2026-12-31',
+            'is_active' => true,
+        ]);
+        $gradeLevel = GradeLevel::query()->create([
+            'name' => 'Kelas Uji '.$suffix,
+            'code' => 'GL-'.$suffix,
+            'level' => 1,
+            'is_active' => true,
+        ]);
+        $classroom = Classroom::query()->create([
+            'academic_year_id' => $academicYear->id,
+            'grade_level_id' => $gradeLevel->id,
+            'name' => 'Rombel Uji '.$suffix,
+            'code' => 'CL-'.$suffix,
+            'capacity' => 30,
+            'is_active' => true,
+        ]);
+        $subject = Subject::query()->create([
+            'code' => 'SB-'.$suffix,
+            'name' => 'Mapel Uji '.$suffix,
+            'category' => SubjectCategory::General,
+            'minimum_passing_grade' => 75,
+            'is_active' => true,
+        ]);
+        $user = User::factory()->create(['is_active' => true]);
+        $employee = Employee::query()->create([
+            'user_id' => $user->id,
+            'employee_number' => 'TEST-'.$suffix,
+            'name' => 'Guru Jurnal Pengujian',
+            'gender' => Gender::Male,
+            'employment_type' => EmploymentType::ClassTeacher,
+            'employee_status' => EmployeeStatus::Permanent,
+            'is_active' => true,
         ]);
 
-        return $assignment;
+        $user->givePermissionTo($permissions);
+
+        return TeachingAssignment::query()->create([
+            'academic_year_id' => $academicYear->id,
+            'semester_id' => $semester->id,
+            'employee_id' => $employee->id,
+            'classroom_id' => $classroom->id,
+            'subject_id' => $subject->id,
+            'weekly_hours' => 4,
+            'is_active' => true,
+        ])->fresh('employee.user', 'subject', 'classroom');
     }
 
     private function payload(TeachingAssignment $assignment, string $status): array
@@ -85,5 +153,15 @@ final class TeachingJournalTest extends TestCase
             'teacher_notes' => 'Kelas berjalan tertib.',
             'status' => $status,
         ];
+    }
+
+    private function seedOnce(): void
+    {
+        if ($this->seeded) {
+            return;
+        }
+
+        $this->seed();
+        $this->seeded = true;
     }
 }
