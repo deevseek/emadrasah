@@ -44,7 +44,7 @@ final class PayrollPeriodController extends Controller
             'description' => 'Kelola periode dan jalankan workflow payroll secara berurutan.',
             'items' => $items,
             'headers' => ['Periode', 'Bulan/Tahun', 'Rentang', 'Pegawai', 'Total Netto', 'Status'],
-            'rowBuilder' => static fn (PayrollPeriod $period): array => [
+            'rowBuilder' => fn (PayrollPeriod $period): array => [
                 $period->name,
                 str_pad((string) $period->month, 2, '0', STR_PAD_LEFT).'/'.$period->year,
                 $period->starts_on?->format('d/m/Y').' - '.$period->ends_on?->format('d/m/Y'),
