@@ -8,11 +8,21 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-class EnsureUserHasPermission
+final class EnsureUserHasPermission
 {
-    public function handle(Request $request, Closure $next, string $permission): Response
-    {
-        abort_unless($request->user()?->can($permission), 403);
+    public function handle(
+        Request $request,
+        Closure $next,
+        string $permission,
+    ): Response {
+        $user = $request->user();
+        $permissions = array_filter(explode('|', $permission));
+        $isAllowed = $user !== null
+            && collect($permissions)->contains(
+                static fn (string $permission): bool => $user->can($permission),
+            );
+
+        abort_unless($isAllowed, 403);
 
         return $next($request);
     }
