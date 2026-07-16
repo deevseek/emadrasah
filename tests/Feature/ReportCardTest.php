@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Services\AssessmentService;
 use App\Services\ReportCardService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Permission;
 use Tests\Support\CreatesAcademicTestData;
 use Tests\TestCase;
@@ -53,15 +54,31 @@ class ReportCardTest extends TestCase
         $again = app(ReportCardService::class)->generate($enrollment, $semester->id);
 
         $this->assertEquals($card->id, $again->id);
+        $this->assertDatabaseCount('report_cards', 1);
         $this->assertSame(1, ReportCardSubject::query()->where('report_card_id', $card->id)->where('subject_id', $subject->id)->count());
+        $this->assertDatabaseCount('report_card_btaq', 1);
+        $this->assertDatabaseHas('report_card_btaq', [
+            'report_card_id' => $card->id,
+        ]);
         $this->patch(route('report-cards.submit', $card))->assertRedirect();
         $this->patch(route('report-cards.approve', $card))->assertRedirect();
         $this->patch(route('report-cards.lock', $card))->assertRedirect();
         $this->put(route('report-cards.update', $card), ['general_notes' => 'Terkunci'])->assertForbidden();
+
+        $card->refresh();
+
+        try {
+            app(ReportCardService::class)->generate($enrollment, $semester->id);
+            $this->fail('Rapor terkunci tidak boleh digenerate ulang.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('status', $exception->errors());
+        }
+
         $this->patch(route('report-cards.reopen', $card))->assertSessionHasErrors('reason');
         $this->patch(route('report-cards.reopen', $card), ['reason' => 'Perbaikan'])->assertRedirect();
         $this->get(route('report-cards.print', $card))->assertOk()->assertSee('Rapor Siswa');
         $this->assertDatabaseHas('report_card_status_histories', ['report_card_id' => $card->id, 'to_status' => 'reopened']);
+        $this->assertDatabaseHas('activity_log', ['event' => 'report-card.generated']);
         $this->assertDatabaseHas('activity_log', ['event' => 'report-card.status']);
     }
 }
