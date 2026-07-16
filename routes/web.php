@@ -7,8 +7,10 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\PasswordUpdateController;
+use App\Http\Controllers\Foundation\AcademicYearController;
 use App\Http\Controllers\Foundation\DashboardController;
 use App\Http\Controllers\Foundation\SchoolProfileController;
+use App\Http\Controllers\Foundation\SemesterController;
 use App\Http\Controllers\Foundation\SettingController;
 use App\Http\Controllers\Foundation\UserManagementController;
 use App\Http\Controllers\Attendance\EmployeeAttendanceController;
@@ -83,6 +85,24 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         ->middleware('permission:school-profile.update')
         ->name('school-profile.update');
 
+    Route::get('/academic-years', [AcademicYearController::class, 'index'])->middleware('permission:academic-years.view')->name('academic-years.index');
+    Route::get('/academic-years/create', [AcademicYearController::class, 'create'])->middleware('permission:academic-years.create')->name('academic-years.create');
+    Route::post('/academic-years', [AcademicYearController::class, 'store'])->middleware('permission:academic-years.create')->name('academic-years.store');
+    Route::get('/academic-years/{academic_year}', [AcademicYearController::class, 'show'])->middleware('permission:academic-years.view')->name('academic-years.show');
+    Route::get('/academic-years/{academic_year}/edit', [AcademicYearController::class, 'edit'])->middleware('permission:academic-years.update')->name('academic-years.edit');
+    Route::put('/academic-years/{academic_year}', [AcademicYearController::class, 'update'])->middleware('permission:academic-years.update')->name('academic-years.update');
+    Route::patch('/academic-years/{academic_year}/activate', [AcademicYearController::class, 'activate'])->middleware('permission:academic-years.activate')->name('academic-years.activate');
+    Route::patch('/academic-years/{academic_year}/deactivate', [AcademicYearController::class, 'deactivate'])->middleware('permission:academic-years.activate')->name('academic-years.deactivate');
+
+    Route::get('/semesters', [SemesterController::class, 'index'])->middleware('permission:semesters.view')->name('semesters.index');
+    Route::get('/semesters/create', [SemesterController::class, 'create'])->middleware('permission:semesters.create')->name('semesters.create');
+    Route::post('/semesters', [SemesterController::class, 'store'])->middleware('permission:semesters.create')->name('semesters.store');
+    Route::get('/semesters/{semester}', [SemesterController::class, 'show'])->middleware('permission:semesters.view')->name('semesters.show');
+    Route::get('/semesters/{semester}/edit', [SemesterController::class, 'edit'])->middleware('permission:semesters.update')->name('semesters.edit');
+    Route::put('/semesters/{semester}', [SemesterController::class, 'update'])->middleware('permission:semesters.update')->name('semesters.update');
+    Route::patch('/semesters/{semester}/activate', [SemesterController::class, 'activate'])->middleware('permission:semesters.activate')->name('semesters.activate');
+    Route::patch('/semesters/{semester}/deactivate', [SemesterController::class, 'deactivate'])->middleware('permission:semesters.activate')->name('semesters.deactivate');
+
     Route::get('/settings', [SettingController::class, 'index'])
         ->middleware('permission:settings.view')
         ->name('settings.index');
@@ -96,6 +116,7 @@ Route::middleware(['auth', 'active'])->group(function (): void {
     Route::get('/users/{user}', [UserManagementController::class, 'show'])->middleware('permission:users.view')->name('users.show');
     Route::get('/users/{user}/edit', [UserManagementController::class, 'edit'])->middleware('permission:users.update')->name('users.edit');
     Route::put('/users/{user}', [UserManagementController::class, 'update'])->middleware('permission:users.update')->name('users.update');
+    Route::patch('/users/{user}/reset-password', [UserManagementController::class, 'resetPassword'])->middleware('permission:users.reset-password')->name('users.reset-password');
 
     Route::get('/students', [StudentController::class, 'index'])->middleware('permission:students.view')->name('students.index');
     Route::get('/students/create', [StudentController::class, 'create'])->middleware('permission:students.create')->name('students.create');
@@ -228,7 +249,7 @@ Route::middleware(['auth', 'active'])->group(function (): void {
     Route::patch('/report-cards/{reportCard}/lock', [ReportCardController::class, 'lock'])->middleware('permission:report-cards.lock')->name('report-cards.lock');
     Route::patch('/report-cards/{reportCard}/reopen', [ReportCardController::class, 'reopen'])->middleware('permission:report-cards.reopen')->name('report-cards.reopen');
     Route::get('/report-cards/{reportCard}/print', [ReportCardController::class, 'print'])->middleware('permission:report-cards.print')->name('report-cards.print');
-    Route::patch('/users/{user}/toggle', [UserManagementController::class, 'toggle'])->middleware('permission:users.deactivate')->name('users.toggle');
+    Route::patch('/users/{user}/toggle', [UserManagementController::class, 'toggle'])->middleware('permission:users.activate')->name('users.toggle');
 });
 
 require __DIR__.'/finance.php';
