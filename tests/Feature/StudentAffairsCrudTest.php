@@ -53,7 +53,12 @@ final class StudentAffairsCrudTest extends TestCase
 
         $this->actingAs($this->admin)->get(route('students.index'))->assertOk()->assertSee(route('students.create'));
         $this->get(route('students.create'))->assertOk()->assertSee('Simpan');
-        $this->post(route('students.store'), $studentPayload + ['photo' => UploadedFile::fake()->image('siswa.jpg')])->assertRedirect();
+        $png = base64_decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9ZQmcAAAAASUVORK5CYII='
+        );
+        $photo = UploadedFile::fake()->createWithContent('student-photo.png', $png);
+
+        $this->post(route('students.store'), $studentPayload + ['photo' => $photo])->assertRedirect();
         $student = Student::where('student_number', 'NIS-CRUD-1')->firstOrFail();
         $this->get(route('students.show', $student))->assertOk();
         $this->get(route('students.edit', $student))->assertOk();
@@ -90,7 +95,7 @@ final class StudentAffairsCrudTest extends TestCase
         $this->post(route('students.status.store', $student), ['student_status' => StudentStatus::Transferred->value, 'effective_date' => '2026-07-16', 'reason' => 'Pindah'])->assertRedirect();
         $this->assertDatabaseHas('student_status_histories', ['student_id' => $student->id, 'student_status' => StudentStatus::Transferred->value]);
 
-        $file = UploadedFile::fake()->create('akta.pdf', 10, 'application/pdf');
+        $file = UploadedFile::fake()->create('dokumen.pdf', 100, 'application/pdf');
         $this->post(route('students.documents.store', $student), ['document_type' => StudentDocumentType::BirthCertificate->value, 'file' => $file])->assertRedirect();
         $document = StudentDocument::where('student_id', $student->id)->firstOrFail();
         Storage::disk('public')->assertExists($document->file_path);
@@ -100,6 +105,38 @@ final class StudentAffairsCrudTest extends TestCase
 
         $this->delete(route('students.destroy', $student))->assertRedirect();
         $this->assertGreaterThan(0, Activity::count());
+    }
+
+    public function test_student_affairs_forms_render(): void
+    {
+        [$year] = $this->createActiveAcademicPeriod('FORM');
+        $student = $this->createActiveStudent('FORM');
+        $guardian = Guardian::query()->create([
+            'name' => 'Wali Form',
+            'gender' => Gender::Female,
+            'phone' => '081200000000',
+            'is_active' => true,
+        ]);
+        $classroom = $this->createClassroom($year, $this->createGradeLevel('FORM'));
+
+        $routes = [
+            [route('students.create'), route('students.store'), 'Nama lengkap'],
+            [route('students.edit', $student), route('students.update', $student), 'Siswa Pengujian'],
+            [route('guardians.create'), route('guardians.store'), 'Nama wali'],
+            [route('guardians.edit', $guardian), route('guardians.update', $guardian), 'Wali Form'],
+            [route('student-enrollments.create'), route('student-enrollments.store'), 'Penempatan Kelas'],
+        ];
+
+        foreach ($routes as [$url, $action, $field]) {
+            $this->actingAs($this->admin)
+                ->get($url)
+                ->assertOk()
+                ->assertSee('<form', false)
+                ->assertSee($action, false)
+                ->assertSee($field);
+        }
+
+        $this->assertNotNull($classroom);
     }
 
     public function test_student_affairs_routes_forbid_users_without_permission(): void
