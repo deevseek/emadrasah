@@ -23,6 +23,13 @@ final class FinancialTransactionRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $lines = collect($this->input('lines', []))
+            ->filter(static function (array $line): bool {
+                return filled($line['chart_account_id'] ?? null)
+                    || (float) ($line['debit'] ?? 0) > 0
+                    || (float) ($line['credit'] ?? 0) > 0
+                    || filled($line['description'] ?? null);
+            })
+            ->values()
             ->map(static fn (array $line): array => [
                 ...$line,
                 'cash_account_id' => filled($line['cash_account_id'] ?? null)
