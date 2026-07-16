@@ -19,8 +19,7 @@ use Illuminate\Support\Str;
 use RuntimeException;
 use Tests\TestCase;
 
-final 
-class EmployeeAttendanceTest extends TestCase
+final class EmployeeAttendanceTest extends TestCase
 {
     use RefreshDatabase;
 

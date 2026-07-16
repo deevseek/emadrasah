@@ -12,8 +12,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-final 
-class StudentAttendanceTest extends TestCase
+final class StudentAttendanceTest extends TestCase
 {
     use RefreshDatabase;
 
