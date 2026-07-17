@@ -7,13 +7,15 @@ namespace App\Enums;
 enum SubjectCategory: string
 {
     case General = 'umum';
-    case Religion = 'agama';
+    case Religion = 'keagamaan';
     case LocalContent = 'muatan_lokal';
-    case Btaq = 'btaq';
-    case Extracurricular = 'ekstrakurikuler';
+    case SelfDevelopment = 'pengembangan_diri';
+    case Other = 'lainnya';
 
     public function label(): string
     {
-        return str($this->value)->replace('_', ' ')->title()->toString();
+        return match ($this) {
+            self::General => 'Umum', self::Religion => 'Keagamaan', self::LocalContent => 'Muatan Lokal', self::SelfDevelopment => 'Pengembangan Diri', self::Other => 'Lainnya',
+        };
     }
 }
