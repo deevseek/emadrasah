@@ -1,0 +1,1 @@
+<x-module-page title="Siswa Belum Memiliki Kelompok BTAQ"><div class="rounded-xl bg-white p-6 shadow">@forelse($students as $student)<p class="border-t py-2">{{ $student->name }}</p>@empty<p class="text-slate-500">Tidak ada siswa pada daftar ini.</p>@endforelse{{ $students->links() }}</div></x-module-page>

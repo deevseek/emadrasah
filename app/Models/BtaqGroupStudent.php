@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class BtaqGroupStudent extends Model
 {
-    protected $fillable = ['btaq_group_id', 'student_id', 'joined_at', 'completed_at', 'status', 'notes'];
+    protected $fillable = ['btaq_group_id','student_id','student_enrollment_id','joined_at','left_at','completed_at','status','assigned_by','notes'];
 
     protected function casts(): array
     {

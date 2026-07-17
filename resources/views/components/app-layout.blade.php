@@ -24,6 +24,15 @@
             ['label' => 'Jurnal Mengajar', 'route' => 'teaching-journals.index', 'match' => 'teaching-journals.*', 'permission' => ['teaching-journals.view-own', 'teaching-journals.view']],
             ['label' => 'Absensi Siswa', 'route' => 'student-attendances.index', 'match' => 'student-attendances.*', 'permission' => ['student-attendances.view-own-class', 'student-attendances.view', 'student-attendances.report']],
         ]],
+        ['label' => 'BTAQ', 'items' => [
+            ['label' => 'Dashboard BTAQ', 'route' => 'btaq.index', 'match' => 'btaq.index', 'permission' => ['btaq-reports.view', 'btaq-sessions.view-own']],
+            ['label' => 'BTAQ Saya', 'route' => 'btaq.mine', 'match' => 'btaq.mine', 'permission' => ['btaq-sessions.view-own']],
+            ['label' => 'Kelompok & Jadwal', 'route' => 'btaq-groups.index', 'match' => 'btaq-groups.*', 'permission' => ['btaq-groups.view', 'btaq-schedules.view']],
+            ['label' => 'Jurnal BTAQ', 'route' => 'btaq-sessions.index', 'match' => 'btaq-sessions.*', 'permission' => ['btaq-sessions.view', 'btaq-sessions.view-own']],
+            ['label' => 'Perkembangan Siswa', 'route' => 'btaq.progress', 'match' => 'btaq.progress', 'permission' => ['btaq-progress.view', 'btaq-progress.view-own-groups', 'btaq-reports.view']],
+            ['label' => 'Materi & Level', 'route' => 'btaq-materials.index', 'match' => 'btaq-materials.*', 'permission' => ['btaq-materials.view', 'btaq-levels.view', 'btaq-programs.view']],
+            ['label' => 'Laporan BTAQ', 'route' => 'btaq-reports.index', 'match' => 'btaq-reports.*', 'permission' => ['btaq-reports.view']],
+        ]],
         ['label' => 'Kehadiran', 'items' => [
             ['label' => 'Absensi Saya', 'route' => 'employee-attendances.mine', 'match' => 'employee-attendances.mine', 'permission' => ['employee-attendances.view-own', 'employee-attendances.check-in', 'employee-attendances.check-out']],
             ['label' => 'Perizinan Saya', 'route' => 'employee-leaves.index', 'match' => 'employee-leaves.index', 'permission' => ['employee-leaves.view-own', 'employee-leaves.create']],

@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class BtaqMaterial extends Model
 {
-    protected $fillable = ['btaq_level_id', 'code', 'name', 'category', 'sequence', 'target_description', 'is_active'];
+    protected $fillable = ['btaq_program_id','btaq_level_id','code','name','title','category','material_type','sequence','target_description','target','is_active','notes'];
 
     protected function casts(): array
     {

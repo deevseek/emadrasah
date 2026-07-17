@@ -10,7 +10,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class BtaqGroup extends Model
 {
-    protected $fillable = ['academic_year_id', 'semester_id', 'name', 'code', 'employee_id', 'btaq_level_id', 'capacity', 'is_active', 'notes'];
+    public function program(): BelongsTo { return $this->belongsTo(BtaqProgram::class, 'btaq_program_id'); }
+    public function teacher(): BelongsTo { return $this->belongsTo(Employee::class, 'teacher_employee_id'); }
+    public function schedules(): HasMany { return $this->hasMany(BtaqSchedule::class); }
+
+    protected $fillable = ['academic_year_id','semester_id','btaq_program_id','name','code','employee_id','teacher_employee_id','btaq_level_id','capacity','room','is_active','start_date','end_date','notes'];
 
     protected function casts(): array
     {

@@ -1,0 +1,1 @@
+<?php declare(strict_types=1); namespace App\Models; use Illuminate\Database\Eloquent\Model; final class BtaqSessionAttendance extends Model{protected $fillable=['btaq_session_id','btaq_group_student_id','student_id','status','arrival_time','notes','recorded_by'];}

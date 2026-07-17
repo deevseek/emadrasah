@@ -10,7 +10,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class BtaqLevel extends Model
 {
-    protected $fillable = ['code', 'name', 'sequence', 'description', 'is_active'];
+    public function program(): BelongsTo { return $this->belongsTo(BtaqProgram::class, 'btaq_program_id'); }
+    public function materials(): HasMany { return $this->hasMany(BtaqMaterial::class); }
+
+    protected $fillable = ['btaq_program_id','code','name','sequence','sort_order','minimum_score','description','is_active','notes'];
 
     protected function casts(): array
     {
