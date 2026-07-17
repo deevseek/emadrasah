@@ -1,26 +1,35 @@
 <x-app-layout :title="$title">
 <div class="space-y-6">
   <section class="rounded-3xl bg-emerald-950 p-6 text-white shadow-sm">
-    <p class="text-sm text-emerald-100">Dashboard dasar</p>
+    <p class="text-sm text-emerald-100">Beranda e-Madrasah</p>
     <h2 class="mt-2 text-2xl font-black">{{ $profile->school_name }}</h2>
-    <p class="mt-2 max-w-3xl text-sm text-emerald-50">Ringkasan ini hanya menggunakan data fondasi: profil madrasah, tahun ajaran, semester, pengguna, dan aktivitas perubahan.</p>
+    <p class="mt-2 max-w-3xl text-sm text-emerald-50">Ringkasan operasional Modul 1–5 berdasarkan data nyata madrasah, pengguna, pegawai, siswa, kelas, mata pelajaran, penugasan mengajar, dan jadwal pelajaran.</p>
   </section>
 
-  <section class="grid gap-4 md:grid-cols-3">
+  <section class="grid gap-4 md:grid-cols-3 xl:grid-cols-4">
     <div class="card"><div class="card-body"><p class="text-sm text-slate-500">Tahun ajaran aktif</p><p class="mt-2 text-xl font-bold text-emerald-950">{{ $activeYear?->name ?? 'Belum ditetapkan' }}</p></div></div>
     <div class="card"><div class="card-body"><p class="text-sm text-slate-500">Semester aktif</p><p class="mt-2 text-xl font-bold text-emerald-950">{{ $activeSemester?->name ?? 'Belum ditetapkan' }}</p></div></div>
     <div class="card"><div class="card-body"><p class="text-sm text-slate-500">Pengguna aktif</p><p class="mt-2 text-xl font-bold text-emerald-950">{{ number_format($activeUsers) }}</p></div></div>
     <div class="card"><div class="card-body"><p class="text-sm text-slate-500">Pegawai aktif</p><p class="mt-2 text-xl font-bold text-emerald-950">{{ number_format($activeEmployees) }}</p><a class="mt-3 inline-block text-sm font-semibold text-emerald-700" href="{{ route('employees.index') }}">Buka Guru & Pegawai</a></div></div>
-    <div class="card"><div class="card-body"><p class="text-sm text-slate-500">Pegawai tanpa akun</p><p class="mt-2 text-xl font-bold text-emerald-950">{{ number_format($employeesWithoutAccount) }}</p></div></div>
-    <div class="card"><div class="card-body"><p class="text-sm text-slate-500">Data pegawai belum lengkap</p><p class="mt-2 text-xl font-bold text-emerald-950">{{ number_format($incompleteEmployees) }}</p></div></div>
+    <div class="card"><div class="card-body"><p class="text-sm text-slate-500">Siswa aktif</p><p class="mt-2 text-xl font-bold text-emerald-950">{{ number_format($activeStudents) }}</p><a class="mt-3 inline-block text-sm font-semibold text-emerald-700" href="{{ route('students.index') }}">Buka Data Siswa</a></div></div>
+    <div class="card"><div class="card-body"><p class="text-sm text-slate-500">Kelas aktif</p><p class="mt-2 text-xl font-bold text-emerald-950">{{ number_format($activeClassrooms) }}</p><a class="mt-3 inline-block text-sm font-semibold text-emerald-700" href="{{ route('classrooms.index') }}">Buka Kelas & Rombel</a></div></div>
+    <div class="card"><div class="card-body"><p class="text-sm text-slate-500">Kelas tanpa wali kelas</p><p class="mt-2 text-xl font-bold text-emerald-950">{{ number_format($classroomsWithoutHomeroom) }}</p></div></div>
+    <div class="card"><div class="card-body"><p class="text-sm text-slate-500">Siswa belum ditempatkan</p><p class="mt-2 text-xl font-bold text-emerald-950">{{ number_format($activeStudentsWithoutPlacement) }}</p></div></div>
+    <div class="card"><div class="card-body"><p class="text-sm text-slate-500">Kelas penuh/melebihi kapasitas</p><p class="mt-2 text-xl font-bold text-emerald-950">{{ number_format($classroomsAtOrOverCapacity) }}</p></div></div>
+    <div class="card"><div class="card-body"><p class="text-sm text-slate-500">Mata pelajaran aktif</p><p class="mt-2 text-xl font-bold text-emerald-950">{{ number_format($activeSubjects) }}</p><a class="mt-3 inline-block text-sm font-semibold text-emerald-700" href="{{ route('subjects.index') }}">Buka Mata Pelajaran</a></div></div>
+    <div class="card"><div class="card-body"><p class="text-sm text-slate-500">Penugasan mengajar aktif</p><p class="mt-2 text-xl font-bold text-emerald-950">{{ number_format($activeTeachingAssignments) }}</p><a class="mt-3 inline-block text-sm font-semibold text-emerald-700" href="{{ route('teaching-assignments.index') }}">Buka Penugasan</a></div></div>
+    <div class="card"><div class="card-body"><p class="text-sm text-slate-500">Jadwal aktif</p><p class="mt-2 text-xl font-bold text-emerald-950">{{ number_format($activeSchedules) }}</p><a class="mt-3 inline-block text-sm font-semibold text-emerald-700" href="{{ route('schedules.index') }}">Buka Jadwal</a></div></div>
   </section>
 
   <section class="card"><div class="card-body"><h2 class="text-lg font-bold text-emerald-950">Tindakan yang perlu diperhatikan</h2><div class="mt-4 grid gap-3">
     @unless($profileComplete)<a class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" href="{{ route('school-profile.edit') }}">Profil madrasah belum lengkap — Lengkapi sekarang</a>@endunless
     @unless($activeYear)<a class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" href="{{ route('academic-years.index') }}">Belum ada tahun ajaran aktif — Aktifkan tahun ajaran</a>@endunless
-    @unless($activeSemester)<a class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" href="{{ route('semesters.index') }}">Semester aktif belum ditentukan — Atur semester</a>@endunless
-    @if($inactiveUsers > 0)<a class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700" href="{{ route('users.index', ['status' => '0']) }}">{{ $inactiveUsers }} pengguna tidak aktif — Lihat pengguna</a>@endif
-    @if($profileComplete && $activeYear && $activeSemester && $inactiveUsers === 0)<div class="empty-state">Tidak ada tindakan fondasi yang mendesak.</div>@endif
+    @unless($activeSemester)<a class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" href="{{ route('semesters.index') }}">Belum ada semester aktif — Atur semester</a>@endunless
+    @if($classroomsWithoutHomeroom > 0)<a class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" href="{{ route('classrooms.index') }}">{{ $classroomsWithoutHomeroom }} kelas belum memiliki wali kelas — Atur wali kelas</a>@endif
+    @if($activeStudentsWithoutPlacement > 0)<a class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" href="{{ route('classrooms.index') }}">{{ $activeStudentsWithoutPlacement }} siswa belum ditempatkan — Lakukan penempatan kelas</a>@endif
+    @if($subjectsWithoutTeacher > 0)<a class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" href="{{ route('teaching-assignments.index') }}">{{ $subjectsWithoutTeacher }} mata pelajaran belum memiliki guru — Buat penugasan mengajar</a>@endif
+    @if($assignmentsWithoutSchedule > 0)<a class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" href="{{ route('schedules.index') }}">{{ $assignmentsWithoutSchedule }} penugasan belum dijadwalkan — Susun jadwal pelajaran</a>@endif
+    @if($profileComplete && $activeYear && $activeSemester && $classroomsWithoutHomeroom === 0 && $activeStudentsWithoutPlacement === 0 && $subjectsWithoutTeacher === 0 && $assignmentsWithoutSchedule === 0)<div class="empty-state">Tidak ada tindakan penting yang mendesak.</div>@endif
   </div></div></section>
 
   <section class="card"><div class="card-body"><h2 class="mb-4 text-lg font-bold text-emerald-950">Aktivitas fondasi terbaru</h2><div class="space-y-3">@forelse($latestActivities as $activity)<div class="rounded-xl bg-slate-50 p-3 text-sm"><p class="font-semibold text-slate-800">{{ $activity->description }}</p><p class="text-xs text-slate-500">{{ $activity->created_at?->diffForHumans() }}</p></div>@empty<div class="empty-state">Belum ada aktivitas perubahan fondasi.</div>@endforelse</div></div></section>

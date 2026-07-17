@@ -1,12 +1,9 @@
 @props(['title' => 'Dashboard'])
 @php
     use App\Services\Foundation\SchoolProfileService;
-    use App\Models\{AcademicYear, Semester};
     use Illuminate\Support\Facades\Gate;
 
     $profile = app(SchoolProfileService::class)->current();
-    $activeYear = AcademicYear::query()->where('is_active', true)->first();
-    $activeSemester = Semester::query()->where('is_active', true)->first();
     $user = auth()->user();
     $role = $user?->roles?->pluck('display_name')->filter()->first() ?? $user?->roles?->pluck('name')->first() ?? 'Pengguna';
     $navGroups = [
@@ -18,6 +15,12 @@
             ['label' => 'Guru & Pegawai', 'route' => 'employees.index', 'match' => 'employees.*', 'permission' => 'employees.view'],
             ['label' => 'Data Siswa', 'route' => 'students.index', 'match' => 'students.*', 'permission' => 'students.view'],
             ['label' => 'Orang Tua/Wali', 'route' => 'guardians.index', 'match' => 'guardians.*', 'permission' => 'guardians.view'],
+            ['label' => 'Kelas & Rombel', 'route' => 'classrooms.index', 'match' => 'classrooms.*', 'permission' => 'classrooms.view'],
+        ]],
+        ['label' => 'Akademik', 'items' => [
+            ['label' => 'Mata Pelajaran', 'route' => 'subjects.index', 'match' => 'subjects.*', 'permission' => 'subjects.view'],
+            ['label' => 'Penugasan Mengajar', 'route' => 'teaching-assignments.index', 'match' => 'teaching-assignments.*', 'permission' => ['teaching-assignments.view', 'teaching-assignments.view-own']],
+            ['label' => 'Jadwal Pelajaran', 'route' => 'schedules.index', 'match' => 'schedules.*', 'permission' => ['schedules.view', 'schedules.view-own']],
         ]],
         ['label' => 'Akun & Akses', 'items' => [
             ['label' => 'Pengguna', 'route' => 'users.index', 'match' => 'users.*', 'permission' => 'users.view'],
@@ -35,12 +38,12 @@
     <div class="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-2xl bg-white text-lg font-black text-emerald-800">
       @if($profile->logo_path)<img src="{{ Storage::url($profile->logo_path) }}" class="h-full w-full object-cover" alt="Logo {{ $profile->school_name }}">@else {{ str($profile->school_name)->substr(0,2)->upper() }} @endif
     </div>
-    <div class="min-w-0 sidebar-label"><p class="truncate font-bold">{{ $profile->school_name }}</p><p class="text-xs text-emerald-100">Fondasi Madrasah</p></div>
+    <div class="min-w-0 sidebar-label"><p class="truncate font-bold">{{ $profile->school_name }}</p><p class="text-xs text-emerald-100">e-Madrasah</p></div>
     <button class="ml-auto rounded-lg p-2 text-emerald-100 hover:bg-white/10 lg:hidden" onclick="closeMobileSidebar()">✕</button>
   </div>
   <nav class="flex-1 space-y-5 overflow-y-auto p-4" aria-label="Navigasi utama">
     @foreach($navGroups as $group)
-      @php $visible = collect($group['items'])->filter(fn ($item) => Gate::allows($item['permission'])); @endphp
+      @php $visible = collect($group['items'])->filter(fn ($item) => is_array($item['permission']) ? Gate::any($item['permission']) : Gate::allows($item['permission'])); @endphp
       @if($visible->isNotEmpty())
         <div><p class="sidebar-section px-3 pb-2 text-xs font-bold uppercase tracking-wider text-emerald-200/80">{{ $group['label'] }}</p><div class="space-y-1">
           @foreach($visible as $item)<a href="{{ route($item['route']) }}" @class(['nav-link','nav-link-active'=>request()->routeIs($item['match'])])><svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M4 5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5Zm4 2v2h8V7H8Zm0 4v2h8v-2H8Zm0 4v2h5v-2H8Z"/></svg><span class="sidebar-label flex-1 truncate">{{ $item['label'] }}</span></a>@endforeach
@@ -50,6 +53,6 @@
   </nav>
   <div class="border-t border-white/10 p-4"><div class="flex items-center gap-3 rounded-2xl bg-white/10 p-3"><div class="grid h-10 w-10 place-items-center rounded-xl bg-amber-300 font-bold text-emerald-950">{{ str($user?->name ?? 'U')->substr(0,2)->upper() }}</div><div class="min-w-0 sidebar-user-detail"><p class="truncate text-sm font-semibold">{{ $user?->name }}</p><p class="truncate text-xs text-emerald-100">{{ $role }}</p><div class="mt-2 flex gap-2 text-xs"><a href="{{ route('password.change') }}" class="text-amber-200 hover:text-white">Ganti password</a><form method="post" action="{{ route('logout') }}">@csrf<button class="text-amber-200 hover:text-white">Keluar</button></form></div></div></div></div>
 </aside>
-<main class="app-main"><header class="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur"><div class="flex flex-col gap-4 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between"><div class="flex min-w-0 items-start gap-3"><button class="rounded-xl border border-slate-200 bg-white p-2 lg:hidden" onclick="openMobileSidebar()">☰</button><button class="hidden rounded-xl border border-slate-200 bg-white p-2 lg:block" onclick="toggleSidebar()">☰</button><div><p class="text-xs text-slate-500">Beranda / {{ $crumbs->join(' / ') }}</p><h1 class="text-xl font-bold text-emerald-950 sm:text-2xl">{{ $title }}</h1></div></div><div class="flex flex-wrap items-center gap-2 text-xs text-slate-600"><span class="rounded-full bg-emerald-50 px-3 py-1.5 font-semibold text-emerald-700">{{ $activeYear?->name ?? 'Tahun ajaran belum aktif' }}</span><span class="rounded-full bg-amber-50 px-3 py-1.5 font-semibold text-amber-700">{{ $activeSemester?->name ?? 'Semester belum aktif' }}</span><span>{{ now()->translatedFormat('d F Y') }}</span></div></div></header>
+<main class="app-main"><header class="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur"><div class="flex flex-col gap-4 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between"><div class="flex min-w-0 items-start gap-3"><button class="rounded-xl border border-slate-200 bg-white p-2 lg:hidden" onclick="openMobileSidebar()">☰</button><button class="hidden rounded-xl border border-slate-200 bg-white p-2 lg:block" onclick="toggleSidebar()">☰</button><div><p class="text-xs text-slate-500">Beranda / {{ $crumbs->join(' / ') }}</p><h1 class="text-xl font-bold text-emerald-950 sm:text-2xl">{{ $title }}</h1></div></div><div class="flex flex-wrap items-center gap-2 text-xs text-slate-600"><span class="rounded-full bg-emerald-50 px-3 py-1.5 font-semibold text-emerald-700">{{ $activeYearName ?? 'Tahun ajaran belum aktif' }}</span><span class="rounded-full bg-amber-50 px-3 py-1.5 font-semibold text-amber-700">{{ $activeSemesterName ?? 'Semester belum aktif' }}</span><span>{{ now()->translatedFormat('d F Y') }}</span></div></div></header>
 <div class="max-w-full p-4 sm:p-6">@if(session('status'))<div class="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-800">{{ session('status') }}</div>@endif @if($errors->any())<div class="mb-6 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">Periksa kembali isian formulir.</div>@endif {{ $slot }}</div></main>
 </body></html>
