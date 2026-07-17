@@ -22,6 +22,7 @@
             ['label' => 'Penugasan Mengajar', 'route' => 'teaching-assignments.index', 'match' => 'teaching-assignments.*', 'permission' => ['teaching-assignments.view', 'teaching-assignments.view-own']],
             ['label' => 'Jadwal Pelajaran', 'route' => 'schedules.index', 'match' => 'schedules.*', 'permission' => ['schedules.view', 'schedules.view-own']],
             ['label' => 'Jurnal Mengajar', 'route' => 'teaching-journals.index', 'match' => 'teaching-journals.*', 'permission' => ['teaching-journals.view-own', 'teaching-journals.view']],
+            ['label' => 'Absensi Siswa', 'route' => 'student-attendances.index', 'match' => 'student-attendances.*', 'permission' => ['student-attendances.view-own-class', 'student-attendances.view', 'student-attendances.report']],
         ]],
         ['label' => 'Kehadiran', 'items' => [
             ['label' => 'Absensi Saya', 'route' => 'employee-attendances.mine', 'match' => 'employee-attendances.mine', 'permission' => ['employee-attendances.view-own', 'employee-attendances.check-in', 'employee-attendances.check-out']],

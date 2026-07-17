@@ -52,6 +52,11 @@ class Classroom extends Model
         return $this->hasMany(StudentEnrollment::class)->where('enrollment_status', \App\Enums\EnrollmentStatus::Active);
     }
 
+    public function studentAttendanceSessions(): HasMany
+    {
+        return $this->hasMany(StudentAttendanceSession::class);
+    }
+
     public function homeroomAssignments(): HasMany
     {
         return $this->hasMany(HomeroomAssignment::class);

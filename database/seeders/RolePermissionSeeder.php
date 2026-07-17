@@ -187,6 +187,21 @@ class RolePermissionSeeder extends Seeder
         Role::findByName('guru-full-day')->givePermissionTo($moduleSixPersonal);
         Role::findByName('bendahara')->givePermissionTo($moduleSixPersonal);
 
+
+
+        $moduleEightPermissions = [
+            'student-attendances.view-own-class', 'student-attendances.create', 'student-attendances.update-draft', 'student-attendances.finalize', 'student-attendances.view', 'student-attendances.correct', 'student-attendances.view-attachment', 'student-attendances.export', 'student-attendances.print', 'student-attendances.report', 'student-attendances.view-missing-classes',
+        ];
+        foreach ($moduleEightPermissions as $permissionName) {
+            Permission::firstOrCreate(['name' => $permissionName, 'guard_name' => 'web']);
+        }
+        Role::findByName('super-admin')->givePermissionTo($moduleEightPermissions);
+        Role::findByName('admin-madrasah')->givePermissionTo($moduleEightPermissions);
+        Role::findByName('operator')->givePermissionTo(['student-attendances.view','student-attendances.create','student-attendances.update-draft','student-attendances.finalize','student-attendances.correct','student-attendances.view-attachment','student-attendances.export','student-attendances.print','student-attendances.report','student-attendances.view-missing-classes']);
+        Role::findByName('tata-usaha')->givePermissionTo(['student-attendances.view','student-attendances.create','student-attendances.update-draft','student-attendances.finalize','student-attendances.view-attachment','student-attendances.export','student-attendances.print','student-attendances.report','student-attendances.view-missing-classes']);
+        Role::findByName('kepala-madrasah')->givePermissionTo(['student-attendances.view','student-attendances.view-attachment','student-attendances.export','student-attendances.print','student-attendances.report','student-attendances.view-missing-classes']);
+        Role::findByName('guru-kelas')->givePermissionTo(['student-attendances.view-own-class','student-attendances.create','student-attendances.update-draft','student-attendances.finalize','student-attendances.print']);
+
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 }
