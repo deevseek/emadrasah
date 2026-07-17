@@ -33,17 +33,17 @@ class ClassroomController extends Controller
             ->when($request->status !== null && $request->status !== '', fn($q)=>$q->where('is_active',$request->status === 'active'))
             ->when($request->homeroom === 'none', fn($q)=>$q->whereNull('homeroom_teacher_id'))
             ->orderByDesc('academic_year_id')->orderBy('code')->paginate(15)->withQueryString();
-        return view('academic.classrooms.index',['classrooms'=>$classrooms,'academicYears'=>AcademicYear::orderByDesc('starts_at')->get(),'gradeLevels'=>GradeLevel::orderBy('level')->get()]);
+        return view('academic.classrooms.index',['classrooms'=>$classrooms,'academicYears'=>AcademicYear::orderByDesc('starts_on')->get(),'gradeLevels'=>GradeLevel::orderBy('level')->get()]);
     }
 
-    public function create(): View { return view('academic.classrooms.form',['classroom'=>new Classroom,'academicYears'=>AcademicYear::orderByDesc('starts_at')->get(),'gradeLevels'=>GradeLevel::where('is_active',true)->orderBy('level')->get()]); }
+    public function create(): View { return view('academic.classrooms.form',['classroom'=>new Classroom,'academicYears'=>AcademicYear::orderByDesc('starts_on')->get(),'gradeLevels'=>GradeLevel::where('is_active',true)->orderBy('level')->get()]); }
     public function store(StoreClassroomRequest $request): RedirectResponse { $classroom=Classroom::create($request->validated()+['is_active'=>$request->boolean('is_active',true)]); $this->logger->log('classroom.created',$classroom,[],$classroom->getAttributes(),'Kelas dibuat.'); return redirect()->route('classrooms.show',$classroom)->with('status','Kelas/Rombel berhasil dibuat.'); }
     public function show(Classroom $classroom): View
     {
         $classroom->load(['academicYear','gradeLevel','homeroomTeacher','homeroomAssignments.employee'])->loadCount(['activeStudentEnrollments','studentEnrollments']);
         return view('academic.classrooms.show',['classroom'=>$classroom,'activeEnrollments'=>$classroom->studentEnrollments()->where('enrollment_status',EnrollmentStatus::Active)->with('student')->orderBy('enrolled_at')->get(),'historyEnrollments'=>$classroom->studentEnrollments()->with('student')->latest()->paginate(20),'activities'=>\App\Models\ActivityLog::latest()->limit(10)->get()]);
     }
-    public function edit(Classroom $classroom): View { return view('academic.classrooms.form',['classroom'=>$classroom,'academicYears'=>AcademicYear::orderByDesc('starts_at')->get(),'gradeLevels'=>GradeLevel::where('is_active',true)->orderBy('level')->get()]); }
+    public function edit(Classroom $classroom): View { return view('academic.classrooms.form',['classroom'=>$classroom,'academicYears'=>AcademicYear::orderByDesc('starts_on')->get(),'gradeLevels'=>GradeLevel::where('is_active',true)->orderBy('level')->get()]); }
     public function update(UpdateClassroomRequest $request, Classroom $classroom): RedirectResponse { $old=$classroom->getAttributes(); $classroom->update($request->validated()+['is_active'=>$request->boolean('is_active')]); $this->logger->log('classroom.updated',$classroom,$old,$classroom->getAttributes(),'Kelas diperbarui.'); return redirect()->route('classrooms.show',$classroom)->with('status','Kelas/Rombel berhasil diperbarui.'); }
     public function toggle(Classroom $classroom): RedirectResponse { $old=$classroom->getAttributes(); $classroom->update(['is_active'=>!$classroom->is_active]); $this->logger->log('classroom.status',$classroom,$old,$classroom->getAttributes(),'Status kelas diubah.'); return back()->with('status','Status kelas diperbarui.'); }
     public function destroy(Classroom $classroom): RedirectResponse { if($classroom->studentEnrollments()->exists() || $classroom->homeroomAssignments()->exists()){ $classroom->update(['is_active'=>false]); return back()->with('status','Kelas memiliki riwayat sehingga dinonaktifkan, bukan dihapus.'); } $classroom->delete(); return redirect()->route('classrooms.index')->with('status','Kelas dihapus.'); }
