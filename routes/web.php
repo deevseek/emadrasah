@@ -3,6 +3,9 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Academic\AcademicResourceController;
+use App\Http\Controllers\Academic\ClassroomController;
+use App\Http\Controllers\Academic\HomeroomAssignmentController;
+use App\Http\Controllers\Academic\StudentPlacementController;
 use App\Http\Controllers\Employee\EmployeeController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\NewPasswordController;
@@ -163,7 +166,6 @@ Route::middleware(['auth', 'active'])->group(function (): void {
     Route::get('/student-enrollments', [EnrollmentController::class, 'index'])->middleware('permission:student-enrollments.view')->name('student-enrollments.index');
     Route::get('/student-enrollments/create', [EnrollmentController::class, 'index'])->middleware('permission:student-enrollments.create')->name('student-enrollments.create');
     Route::post('/student-enrollments', [EnrollmentController::class, 'store'])->middleware('permission:student-enrollments.create')->name('student-enrollments.store');
-    Route::post('/student-enrollments/{enrollment}/transfer', [EnrollmentController::class, 'transfer'])->middleware('permission:student-enrollments.transfer')->name('student-enrollments.transfer');
     Route::delete('/student-enrollments/{enrollment}', [EnrollmentController::class, 'destroy'])->middleware('permission:student-enrollments.delete')->name('student-enrollments.destroy');
 
     Route::prefix('academic')->group(function (): void {
@@ -173,13 +175,23 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         Route::get('/grade-levels/{gradeLevel}/edit', [AcademicResourceController::class, 'editGradeLevel'])->middleware('permission:grade-levels.update')->name('grade-levels.edit');
         Route::put('/grade-levels/{gradeLevel}', [AcademicResourceController::class, 'updateGradeLevel'])->middleware('permission:grade-levels.update')->name('grade-levels.update');
         Route::delete('/grade-levels/{gradeLevel}', [AcademicResourceController::class, 'destroyGradeLevel'])->middleware('permission:grade-levels.delete')->name('grade-levels.destroy');
-        Route::resource('classrooms', AcademicResourceController::class)->only([]);
-        Route::get('/classrooms', [AcademicResourceController::class, 'classrooms'])->middleware('permission:classrooms.view')->name('classrooms.index');
-        Route::get('/classrooms/create', [AcademicResourceController::class, 'createClassroom'])->middleware('permission:classrooms.create')->name('classrooms.create');
-        Route::post('/classrooms', [AcademicResourceController::class, 'storeClassroom'])->middleware('permission:classrooms.create')->name('classrooms.store');
-        Route::get('/classrooms/{classroom}/edit', [AcademicResourceController::class, 'editClassroom'])->middleware('permission:classrooms.update')->name('classrooms.edit');
-        Route::put('/classrooms/{classroom}', [AcademicResourceController::class, 'updateClassroom'])->middleware('permission:classrooms.update')->name('classrooms.update');
-        Route::delete('/classrooms/{classroom}', [AcademicResourceController::class, 'destroyClassroom'])->middleware('permission:classrooms.delete')->name('classrooms.destroy');
+        Route::get('/classrooms/export', [ClassroomController::class, 'export'])->middleware('permission:classrooms.export')->name('classrooms.export');
+        Route::get('/classrooms', [ClassroomController::class, 'index'])->middleware('permission:classrooms.view')->name('classrooms.index');
+        Route::get('/classrooms/create', [ClassroomController::class, 'create'])->middleware('permission:classrooms.create')->name('classrooms.create');
+        Route::post('/classrooms', [ClassroomController::class, 'store'])->middleware('permission:classrooms.create')->name('classrooms.store');
+        Route::get('/classrooms/{classroom}', [ClassroomController::class, 'show'])->middleware('permission:classrooms.view')->name('classrooms.show');
+        Route::get('/classrooms/{classroom}/edit', [ClassroomController::class, 'edit'])->middleware('permission:classrooms.update')->name('classrooms.edit');
+        Route::put('/classrooms/{classroom}', [ClassroomController::class, 'update'])->middleware('permission:classrooms.update')->name('classrooms.update');
+        Route::patch('/classrooms/{classroom}/toggle', [ClassroomController::class, 'toggle'])->middleware('permission:classrooms.activate')->name('classrooms.toggle');
+        Route::delete('/classrooms/{classroom}', [ClassroomController::class, 'destroy'])->middleware('permission:classrooms.update')->name('classrooms.destroy');
+        Route::get('/classrooms/{classroom}/students/export', [ClassroomController::class, 'exportStudents'])->middleware('permission:student-enrollments.export')->name('classrooms.students.export');
+        Route::get('/classrooms/{classroom}/placements/create', [StudentPlacementController::class, 'create'])->middleware('permission:student-enrollments.create')->name('classrooms.placements.create');
+        Route::post('/classrooms/{classroom}/placements', [StudentPlacementController::class, 'store'])->middleware('permission:student-enrollments.create')->name('classrooms.placements.store');
+        Route::get('/student-enrollments/{enrollment}/transfer', [StudentPlacementController::class, 'editTransfer'])->middleware('permission:student-enrollments.transfer')->name('student-enrollments.transfer.edit');
+        Route::post('/student-enrollments/{enrollment}/transfer', [StudentPlacementController::class, 'transfer'])->middleware('permission:student-enrollments.transfer')->name('student-enrollments.transfer');
+        Route::get('/classrooms/{classroom}/homeroom', [HomeroomAssignmentController::class, 'edit'])->middleware('permission:homeroom-assignments.manage')->name('classrooms.homeroom.edit');
+        Route::put('/classrooms/{classroom}/homeroom', [HomeroomAssignmentController::class, 'update'])->middleware('permission:homeroom-assignments.manage')->name('classrooms.homeroom.update');
+        Route::delete('/classrooms/{classroom}/homeroom', [HomeroomAssignmentController::class, 'destroy'])->middleware('permission:homeroom-assignments.manage')->name('classrooms.homeroom.destroy');
         Route::get('/subjects', [AcademicResourceController::class, 'subjects'])->middleware('permission:subjects.view')->name('subjects.index');
         Route::get('/subjects/create', [AcademicResourceController::class, 'createSubject'])->middleware('permission:subjects.create')->name('subjects.create');
         Route::post('/subjects', [AcademicResourceController::class, 'storeSubject'])->middleware('permission:subjects.create')->name('subjects.store');

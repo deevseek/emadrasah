@@ -36,8 +36,9 @@ class RolePermissionSeeder extends Seeder
             'semesters.create',
             'semesters.update',
             'semesters.activate',
-            'grade-levels.view', 'grade-levels.create', 'grade-levels.update', 'grade-levels.delete',
-            'classrooms.view', 'classrooms.create', 'classrooms.update', 'classrooms.delete',
+            'grade-levels.view', 'grade-levels.manage', 'grade-levels.create', 'grade-levels.update', 'grade-levels.delete',
+            'classrooms.view', 'classrooms.create', 'classrooms.update', 'classrooms.activate', 'classrooms.export', 'classrooms.delete',
+            'homeroom-assignments.view', 'homeroom-assignments.manage',
             'subjects.view', 'subjects.create', 'subjects.update', 'subjects.delete',
             'employees.view', 'employees.view-own', 'employees.create', 'employees.update', 'employees.activate', 'employees.manage-documents', 'employees.link-account', 'employees.export',
             'teaching-assignments.view', 'teaching-assignments.create', 'teaching-assignments.update', 'teaching-assignments.delete',
@@ -45,7 +46,7 @@ class RolePermissionSeeder extends Seeder
             'students.view','students.create','students.update','students.delete','students.change-status','students.manage-documents','students.export','students.view-sensitive',
             'guardians.view','guardians.create','guardians.update','guardians.delete','guardians.link-student','guardians.unlink-student','guardians.view-sensitive','guardians.export',
             'student-guardians.view','student-guardians.create','student-guardians.update','student-guardians.delete',
-            'student-enrollments.view','student-enrollments.create','student-enrollments.update','student-enrollments.delete','student-enrollments.transfer',
+            'student-enrollments.view','student-enrollments.create','student-enrollments.update','student-enrollments.delete','student-enrollments.transfer','student-enrollments.promote','student-enrollments.cancel','student-enrollments.override-capacity','student-enrollments.export',
             'employee-attendances.view-own','employee-attendances.check-in','employee-attendances.check-out','employee-attendances.view','employee-attendances.update','employee-attendances.verify','employee-attendances.export',
             'employee-leaves.view-own','employee-leaves.create','employee-leaves.cancel','employee-leaves.view','employee-leaves.approve','employee-leaves.reject',
             'student-attendances.view','student-attendances.create','student-attendances.update','student-attendances.export',
@@ -150,6 +151,14 @@ class RolePermissionSeeder extends Seeder
         Role::findByName('guru-btaq-murobi')->givePermissionTo(['btaq-groups.view','btaq-journals.view-own','btaq-journals.create','btaq-journals.update','btaq-journals.submit','btaq-reports.view']);
         Role::findByName('operator')->givePermissionTo(['btaq-levels.view','btaq-levels.manage','btaq-materials.view','btaq-materials.manage','btaq-groups.view','btaq-groups.manage','predicate-ranges.manage','report-cards.view']);
         Role::findByName('tata-usaha')->givePermissionTo(['report-cards.view','report-cards.print','btaq-reports.view','assessment-reports.view']);
+
+        $moduleFourPermissions = ['grade-levels.view','grade-levels.manage','classrooms.view','classrooms.create','classrooms.update','classrooms.activate','classrooms.export','homeroom-assignments.view','homeroom-assignments.manage','student-enrollments.view','student-enrollments.create','student-enrollments.transfer','student-enrollments.promote','student-enrollments.cancel','student-enrollments.export','student-enrollments.override-capacity'];
+        Role::findByName('super-admin')->givePermissionTo($moduleFourPermissions);
+        Role::findByName('admin-madrasah')->givePermissionTo($moduleFourPermissions);
+        Role::findByName('operator')->givePermissionTo($moduleFourPermissions);
+        Role::findByName('tata-usaha')->givePermissionTo(['grade-levels.view','classrooms.view','classrooms.create','classrooms.update','classrooms.export','student-enrollments.view','student-enrollments.create','student-enrollments.transfer','student-enrollments.export']);
+        Role::findByName('kepala-madrasah')->givePermissionTo(['grade-levels.view','classrooms.view','classrooms.export','homeroom-assignments.view','student-enrollments.view','student-enrollments.export','student-enrollments.promote']);
+        Role::findByName('guru-kelas')->givePermissionTo(['classrooms.view','homeroom-assignments.view','student-enrollments.view']);
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
