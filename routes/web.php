@@ -36,6 +36,11 @@ use App\Http\Controllers\Btaq\BtaqGroupController;
 use App\Http\Controllers\Btaq\BtaqJournalController;
 use App\Http\Controllers\Btaq\BtaqLevelController;
 use App\Http\Controllers\Btaq\BtaqMaterialController;
+use App\Http\Controllers\Btaq\BtaqProgramController;
+use App\Http\Controllers\Btaq\BtaqScheduleController;
+use App\Http\Controllers\Btaq\BtaqSessionController;
+use App\Http\Controllers\Btaq\BtaqVerificationController;
+use App\Http\Controllers\Btaq\BtaqReportController;
 use App\Http\Controllers\Assessment\AssessmentController;
 use App\Http\Controllers\ReportCard\ReportCardController;
 use Illuminate\Support\Facades\Route;
@@ -255,6 +260,25 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         Route::delete('/schedules/{schedule}', [ScheduleController::class, 'destroy'])->middleware('permission:schedules.activate')->name('schedules.destroy');
     });
 
+
+
+    Route::get('/btaq', [BtaqReportController::class, 'index'])->middleware('permission:btaq-reports.view|btaq-sessions.view-own')->name('btaq.index');
+    Route::get('/btaq/saya', [BtaqSessionController::class, 'mine'])->middleware('permission:btaq-sessions.view-own')->name('btaq.mine');
+    Route::resource('btaq-programs', BtaqProgramController::class)->except(['destroy'])->middleware(['permission:btaq-programs.view|btaq-programs.manage']);
+    Route::patch('/btaq-programs/{btaqProgram}/toggle', [BtaqProgramController::class, 'toggle'])->middleware('permission:btaq-programs.manage')->name('btaq-programs.toggle');
+    Route::resource('btaq-schedules', BtaqScheduleController::class)->except(['destroy'])->middleware(['permission:btaq-schedules.view|btaq-schedules.manage']);
+    Route::patch('/btaq-schedules/{btaqSchedule}/toggle', [BtaqScheduleController::class, 'toggle'])->middleware('permission:btaq-schedules.manage')->name('btaq-schedules.toggle');
+    Route::resource('btaq-sessions', BtaqSessionController::class)->except(['destroy'])->middleware(['permission:btaq-sessions.view|btaq-sessions.view-own|btaq-sessions.create']);
+    Route::patch('/btaq-sessions/{btaqSession}/submit', [BtaqSessionController::class, 'submit'])->middleware('permission:btaq-sessions.submit')->name('btaq-sessions.submit');
+    Route::get('/btaq-sessions/{btaqSession}/print', [BtaqSessionController::class, 'print'])->middleware('permission:btaq-sessions.print|btaq-sessions.print-own')->name('btaq-sessions.print');
+    Route::get('/btaq/verifikasi', [BtaqVerificationController::class, 'index'])->middleware('permission:btaq-sessions.verify|btaq-sessions.reject')->name('btaq-verifications.index');
+    Route::patch('/btaq/verifikasi/{btaqSession}/verify', [BtaqVerificationController::class, 'verify'])->middleware('permission:btaq-sessions.verify')->name('btaq-verifications.verify');
+    Route::patch('/btaq/verifikasi/{btaqSession}/reject', [BtaqVerificationController::class, 'reject'])->middleware('permission:btaq-sessions.reject')->name('btaq-verifications.reject');
+    Route::get('/btaq/laporan', [BtaqReportController::class, 'index'])->middleware('permission:btaq-reports.view')->name('btaq-reports.index');
+    Route::get('/btaq/laporan/export', [BtaqReportController::class, 'export'])->middleware('permission:btaq-reports.export')->name('btaq-reports.export');
+    Route::get('/btaq/laporan/cetak', [BtaqReportController::class, 'print'])->middleware('permission:btaq-reports.print')->name('btaq-reports.print');
+    Route::get('/btaq/sesi-belum-diisi', [BtaqReportController::class, 'missingSessions'])->middleware('permission:btaq-reports.view')->name('btaq-reports.missing-sessions');
+    Route::get('/btaq/siswa-belum-berkelompok', [BtaqReportController::class, 'unassignedStudents'])->middleware('permission:btaq-groups.assign-students|btaq-reports.view')->name('btaq-reports.unassigned-students');
 
     Route::get('/btaq/dashboard', [BtaqJournalController::class, 'dashboard'])->middleware('permission:btaq-reports.view')->name('btaq.dashboard');
     Route::get('/btaq-levels', [BtaqLevelController::class, 'index'])->middleware('permission:btaq-levels.view')->name('btaq-levels.index');

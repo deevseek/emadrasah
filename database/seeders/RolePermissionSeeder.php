@@ -189,6 +189,17 @@ class RolePermissionSeeder extends Seeder
 
 
 
+        $moduleNinePermissions = [
+            'btaq-programs.view','btaq-programs.manage','btaq-levels.view','btaq-levels.manage','btaq-materials.view','btaq-materials.manage','btaq-groups.view','btaq-groups.manage','btaq-groups.assign-students','btaq-groups.transfer-students','btaq-schedules.view','btaq-schedules.manage','btaq-sessions.view-own','btaq-sessions.create','btaq-sessions.update-own','btaq-sessions.submit','btaq-sessions.view','btaq-sessions.verify','btaq-sessions.reject','btaq-sessions.print-own','btaq-sessions.print','btaq-progress.view-own-groups','btaq-progress.update-own-groups','btaq-progress.view','btaq-progress.correct','btaq-progress.promote-level','btaq-reports.view','btaq-reports.export','btaq-reports.print',
+        ];
+        foreach ($moduleNinePermissions as $permissionName) { Permission::firstOrCreate(['name' => $permissionName, 'guard_name' => 'web']); }
+        Role::findByName('super-admin')->givePermissionTo($moduleNinePermissions);
+        Role::findByName('admin-madrasah')->givePermissionTo($moduleNinePermissions);
+        Role::findByName('operator')->givePermissionTo(['btaq-programs.view','btaq-programs.manage','btaq-levels.view','btaq-levels.manage','btaq-materials.view','btaq-materials.manage','btaq-groups.view','btaq-groups.manage','btaq-groups.assign-students','btaq-groups.transfer-students','btaq-schedules.view','btaq-schedules.manage','btaq-sessions.view','btaq-progress.view','btaq-reports.view','btaq-reports.export','btaq-reports.print']);
+        Role::findByName('tata-usaha')->givePermissionTo(['btaq-groups.view','btaq-groups.assign-students','btaq-schedules.view','btaq-sessions.view','btaq-progress.view','btaq-reports.view','btaq-reports.export','btaq-reports.print']);
+        Role::findByName('kepala-madrasah')->givePermissionTo(['btaq-programs.view','btaq-levels.view','btaq-materials.view','btaq-groups.view','btaq-schedules.view','btaq-sessions.view','btaq-sessions.verify','btaq-sessions.reject','btaq-sessions.print','btaq-progress.view','btaq-progress.promote-level','btaq-reports.view','btaq-reports.export','btaq-reports.print']);
+        Role::findByName('guru-btaq-murobi')->givePermissionTo(['btaq-groups.view','btaq-schedules.view','btaq-sessions.view-own','btaq-sessions.create','btaq-sessions.update-own','btaq-sessions.submit','btaq-sessions.print-own','btaq-progress.view-own-groups','btaq-progress.update-own-groups']);
+
         $moduleEightPermissions = [
             'student-attendances.view-own-class', 'student-attendances.create', 'student-attendances.update-draft', 'student-attendances.finalize', 'student-attendances.view', 'student-attendances.correct', 'student-attendances.view-attachment', 'student-attendances.export', 'student-attendances.print', 'student-attendances.report', 'student-attendances.view-missing-classes',
         ];
