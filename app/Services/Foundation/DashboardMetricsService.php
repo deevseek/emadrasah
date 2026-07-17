@@ -8,6 +8,12 @@ use App\Enums\EnrollmentStatus;
 use App\Models\AcademicYear;
 use App\Models\Classroom;
 use App\Models\Employee;
+use App\Models\EmployeeAttendance;
+use App\Models\EmployeeLeaveRequest;
+use App\Models\WorkSchedule;
+use App\Enums\AttendanceStatus;
+use App\Enums\AttendanceVerificationStatus;
+use App\Enums\LeaveStatus;
 use App\Models\LessonSchedule;
 use App\Models\Semester;
 use App\Models\Student;
@@ -59,6 +65,13 @@ class DashboardMetricsService
             'activeTeachingAssignments' => TeachingAssignment::query()->when($activeYearId, fn ($query) => $query->where('academic_year_id', $activeYearId))->when($activeSemesterId, fn ($query) => $query->where('semester_id', $activeSemesterId))->where('is_active', true)->count(),
             'assignmentsWithoutSchedule' => TeachingAssignment::query()->when($activeYearId, fn ($query) => $query->where('academic_year_id', $activeYearId))->when($activeSemesterId, fn ($query) => $query->where('semester_id', $activeSemesterId))->where('is_active', true)->whereDoesntHave('schedules', fn ($schedule) => $schedule->where('is_active', true))->count(),
             'activeSchedules' => LessonSchedule::query()->when($activeYearId, fn ($query) => $query->where('academic_year_id', $activeYearId))->when($activeSemesterId, fn ($query) => $query->where('semester_id', $activeSemesterId))->where('is_active', true)->count(),
+            'employeesPresentToday' => EmployeeAttendance::query()->whereDate('attendance_date', today())->whereIn('status', [AttendanceStatus::Present->value, AttendanceStatus::Late->value])->count(),
+            'employeesLateToday' => EmployeeAttendance::query()->whereDate('attendance_date', today())->where('status', AttendanceStatus::Late->value)->count(),
+            'employeesNotCheckedOutToday' => EmployeeAttendance::query()->whereDate('attendance_date', today())->whereNotNull('checked_in_at')->whereNull('checked_out_at')->count(),
+            'employeesOnLeaveToday' => EmployeeAttendance::query()->whereDate('attendance_date', today())->whereIn('status', [AttendanceStatus::Leave->value, AttendanceStatus::Sick->value])->count(),
+            'pendingEmployeeLeaves' => EmployeeLeaveRequest::query()->where('status', LeaveStatus::Pending->value)->count(),
+            'employeesWithoutActiveWorkSchedule' => Employee::query()->where('is_active', true)->whereDoesntHave('workScheduleAssignments', fn ($assignment) => $assignment->where('is_active', true))->count(),
+            'unverifiedEmployeeAttendances' => EmployeeAttendance::query()->where('verification_status', AttendanceVerificationStatus::Pending->value)->count(),
             'subjectsWithoutTeacher' => Subject::query()->where('is_active', true)->whereNotExists(function ($query) use ($activeYearId, $activeSemesterId): void {
                 $query->select(DB::raw(1))->from('teaching_assignments')->whereColumn('teaching_assignments.subject_id', 'subjects.id')->where('teaching_assignments.is_active', true);
                 if ($activeYearId !== null) { $query->where('teaching_assignments.academic_year_id', $activeYearId); }

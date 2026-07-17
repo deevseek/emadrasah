@@ -3,7 +3,7 @@
   <section class="rounded-3xl bg-emerald-950 p-6 text-white shadow-sm">
     <p class="text-sm text-emerald-100">Beranda e-Madrasah</p>
     <h2 class="mt-2 text-2xl font-black">{{ $profile->school_name }}</h2>
-    <p class="mt-2 max-w-3xl text-sm text-emerald-50">Ringkasan operasional Modul 1–5 berdasarkan data nyata madrasah, pengguna, pegawai, siswa, kelas, mata pelajaran, penugasan mengajar, dan jadwal pelajaran.</p>
+    <p class="mt-2 max-w-3xl text-sm text-emerald-50">Ringkasan operasional e-Madrasah berdasarkan data madrasah terkini, termasuk Modul 1–6 dan layanan kehadiran pegawai.</p>
   </section>
 
   <section class="grid gap-4 md:grid-cols-3 xl:grid-cols-4">
@@ -19,9 +19,21 @@
     <div class="card"><div class="card-body"><p class="text-sm text-slate-500">Mata pelajaran aktif</p><p class="mt-2 text-xl font-bold text-emerald-950">{{ number_format($activeSubjects) }}</p><a class="mt-3 inline-block text-sm font-semibold text-emerald-700" href="{{ route('subjects.index') }}">Buka Mata Pelajaran</a></div></div>
     <div class="card"><div class="card-body"><p class="text-sm text-slate-500">Penugasan mengajar aktif</p><p class="mt-2 text-xl font-bold text-emerald-950">{{ number_format($activeTeachingAssignments) }}</p><a class="mt-3 inline-block text-sm font-semibold text-emerald-700" href="{{ route('teaching-assignments.index') }}">Buka Penugasan</a></div></div>
     <div class="card"><div class="card-body"><p class="text-sm text-slate-500">Jadwal aktif</p><p class="mt-2 text-xl font-bold text-emerald-950">{{ number_format($activeSchedules) }}</p><a class="mt-3 inline-block text-sm font-semibold text-emerald-700" href="{{ route('schedules.index') }}">Buka Jadwal</a></div></div>
+
+    <div class="card"><div class="card-body"><p class="text-sm text-slate-500">Pegawai hadir hari ini</p><p class="mt-2 text-xl font-bold text-emerald-950">{{ number_format($employeesPresentToday) }}</p><a class="mt-3 inline-block text-sm font-semibold text-emerald-700" href="{{ route('employee-attendances.index', ['date' => now()->toDateString()]) }}">Buka Kehadiran</a></div></div>
+    <div class="card"><div class="card-body"><p class="text-sm text-slate-500">Pegawai terlambat</p><p class="mt-2 text-xl font-bold text-emerald-950">{{ number_format($employeesLateToday) }}</p></div></div>
+    <div class="card"><div class="card-body"><p class="text-sm text-slate-500">Belum check-out</p><p class="mt-2 text-xl font-bold text-emerald-950">{{ number_format($employeesNotCheckedOutToday) }}</p></div></div>
+    <div class="card"><div class="card-body"><p class="text-sm text-slate-500">Izin/sakit hari ini</p><p class="mt-2 text-xl font-bold text-emerald-950">{{ number_format($employeesOnLeaveToday) }}</p></div></div>
+    <div class="card"><div class="card-body"><p class="text-sm text-slate-500">Izin menunggu</p><p class="mt-2 text-xl font-bold text-emerald-950">{{ number_format($pendingEmployeeLeaves) }}</p><a class="mt-3 inline-block text-sm font-semibold text-emerald-700" href="{{ route('employee-leaves.approvals') }}">Buka Persetujuan</a></div></div>
+    <div class="card"><div class="card-body"><p class="text-sm text-slate-500">Pegawai tanpa jadwal aktif</p><p class="mt-2 text-xl font-bold text-emerald-950">{{ number_format($employeesWithoutActiveWorkSchedule) }}</p><a class="mt-3 inline-block text-sm font-semibold text-emerald-700" href="{{ route('work-schedules.index') }}">Atur Jadwal</a></div></div>
   </section>
 
   <section class="card"><div class="card-body"><h2 class="text-lg font-bold text-emerald-950">Tindakan yang perlu diperhatikan</h2><div class="mt-4 grid gap-3">
+
+    @if($pendingEmployeeLeaves > 0)<a class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" href="{{ route('employee-leaves.approvals') }}">{{ $pendingEmployeeLeaves }} pengajuan izin menunggu persetujuan — Proses sekarang</a>@endif
+    @if($employeesNotCheckedOutToday > 0)<a class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" href="{{ route('employee-attendances.index', ['date' => now()->toDateString()]) }}">{{ $employeesNotCheckedOutToday }} pegawai belum check-out — Pantau kehadiran</a>@endif
+    @if($employeesWithoutActiveWorkSchedule > 0)<a class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" href="{{ route('work-schedules.index') }}">{{ $employeesWithoutActiveWorkSchedule }} pegawai belum memiliki jadwal aktif — Atur jadwal kerja</a>@endif
+    @if($unverifiedEmployeeAttendances > 0)<a class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" href="{{ route('employee-attendances.index', ['verification_status' => 'pending']) }}">{{ $unverifiedEmployeeAttendances }} kehadiran menunggu verifikasi — Verifikasi kehadiran</a>@endif
     @unless($profileComplete)<a class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" href="{{ route('school-profile.edit') }}">Profil madrasah belum lengkap — Lengkapi sekarang</a>@endunless
     @unless($activeYear)<a class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" href="{{ route('academic-years.index') }}">Belum ada tahun ajaran aktif — Aktifkan tahun ajaran</a>@endunless
     @unless($activeSemester)<a class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" href="{{ route('semesters.index') }}">Belum ada semester aktif — Atur semester</a>@endunless

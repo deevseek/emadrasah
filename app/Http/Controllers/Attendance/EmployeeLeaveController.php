@@ -14,6 +14,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Illuminate\Support\Facades\Response;
 
 final class EmployeeLeaveController extends Controller
 {
@@ -28,6 +29,17 @@ final class EmployeeLeaveController extends Controller
         return view('attendance.leaves.index', [
             'leaves' => $query->latest()->paginate(15),
         ]);
+    }
+
+    public function approvals(): View
+    {
+        return view('attendance.leaves.approvals', ['leaves' => EmployeeLeaveRequest::query()->with('employee')->where('status', LeaveStatus::Pending)->latest()->paginate(15)]);
+    }
+
+    public function export(): StreamedResponse
+    {
+        $leaves = EmployeeLeaveRequest::query()->with('employee')->latest()->get();
+        return Response::streamDownload(function () use ($leaves): void { $out = fopen('php://output', 'w'); fputcsv($out, ['Pegawai','Mulai','Selesai','Jenis','Status','Alasan']); foreach ($leaves as $leave) fputcsv($out, [$leave->employee?->name, $leave->starts_at?->toDateString(), $leave->ends_at?->toDateString(), $leave->type?->value, $leave->status?->label(), $leave->reason]); fclose($out); }, 'pengajuan-izin.csv', ['Content-Type' => 'text/csv']);
     }
 
     public function create(): View

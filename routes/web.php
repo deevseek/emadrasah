@@ -22,6 +22,8 @@ use App\Http\Controllers\Foundation\SettingController;
 use App\Http\Controllers\Foundation\UserManagementController;
 use App\Http\Controllers\Attendance\EmployeeAttendanceController;
 use App\Http\Controllers\Attendance\EmployeeLeaveController;
+use App\Http\Controllers\Attendance\WorkScheduleController;
+use App\Http\Controllers\Attendance\AttendanceReportController;
 use App\Http\Controllers\Attendance\StudentAttendanceController;
 use App\Http\Controllers\Attendance\TeachingJournalController;
 use App\Http\Controllers\StudentAffairs\EnrollmentController;
@@ -57,11 +59,14 @@ Route::middleware(['auth', 'active'])->group(function (): void {
     Route::get('/employee-attendances/mine', [EmployeeAttendanceController::class, 'mine'])->middleware('permission:employee-attendances.view-own')->name('employee-attendances.mine');
     Route::post('/employee-attendances/check-in', [EmployeeAttendanceController::class, 'checkIn'])->middleware('permission:employee-attendances.check-in')->name('employee-attendances.check-in');
     Route::post('/employee-attendances/check-out', [EmployeeAttendanceController::class, 'checkOut'])->middleware('permission:employee-attendances.check-out')->name('employee-attendances.check-out');
+    Route::get('/employee-attendances/export', [EmployeeAttendanceController::class, 'export'])->middleware('permission:employee-attendances.export')->name('employee-attendances.export');
     Route::get('/employee-attendances', [EmployeeAttendanceController::class, 'index'])->middleware('permission:employee-attendances.view')->name('employee-attendances.index');
     Route::get('/employee-attendances/{employeeAttendance}', [EmployeeAttendanceController::class, 'show'])->middleware('permission:employee-attendances.view')->name('employee-attendances.show');
     Route::patch('/employee-attendances/{employeeAttendance}/verify', [EmployeeAttendanceController::class, 'verify'])->middleware('permission:employee-attendances.verify')->name('employee-attendances.verify');
     Route::patch('/employee-attendances/{employeeAttendance}/correct', [EmployeeAttendanceController::class, 'correct'])->middleware('permission:employee-attendances.correct')->name('employee-attendances.correct');
 
+    Route::get('/employee-leaves/approvals', [EmployeeLeaveController::class, 'approvals'])->middleware('permission:employee-leaves.approve|employee-leaves.reject')->name('employee-leaves.approvals');
+    Route::get('/employee-leaves/export', [EmployeeLeaveController::class, 'export'])->middleware('permission:employee-leaves.export')->name('employee-leaves.export');
     Route::get('/employee-leaves', [EmployeeLeaveController::class, 'index'])->middleware('permission:employee-leaves.view-own')->name('employee-leaves.index');
     Route::get('/employee-leaves/create', [EmployeeLeaveController::class, 'create'])->middleware('permission:employee-leaves.create')->name('employee-leaves.create');
     Route::post('/employee-leaves', [EmployeeLeaveController::class, 'store'])->middleware('permission:employee-leaves.create')->name('employee-leaves.store');
@@ -71,6 +76,16 @@ Route::middleware(['auth', 'active'])->group(function (): void {
     Route::patch('/employee-leaves/{employeeLeave}/reject', [EmployeeLeaveController::class, 'reject'])->middleware('permission:employee-leaves.reject')->name('employee-leaves.reject');
     Route::get('/employee-leaves/{employeeLeave}/download', [EmployeeLeaveController::class, 'download'])->middleware('permission:employee-leaves.view-own|employee-leaves.view')->name('employee-leaves.download');
 
+
+    Route::get('/work-schedules', [WorkScheduleController::class, 'index'])->middleware('permission:work-schedules.view')->name('work-schedules.index');
+    Route::get('/work-schedules/create', [WorkScheduleController::class, 'create'])->middleware('permission:work-schedules.manage')->name('work-schedules.create');
+    Route::post('/work-schedules', [WorkScheduleController::class, 'store'])->middleware('permission:work-schedules.manage')->name('work-schedules.store');
+    Route::get('/work-schedules/{workSchedule}', [WorkScheduleController::class, 'show'])->middleware('permission:work-schedules.view')->name('work-schedules.show');
+    Route::get('/work-schedules/{workSchedule}/edit', [WorkScheduleController::class, 'edit'])->middleware('permission:work-schedules.manage')->name('work-schedules.edit');
+    Route::put('/work-schedules/{workSchedule}', [WorkScheduleController::class, 'update'])->middleware('permission:work-schedules.manage')->name('work-schedules.update');
+    Route::patch('/work-schedules/{workSchedule}/toggle', [WorkScheduleController::class, 'toggle'])->middleware('permission:work-schedules.manage')->name('work-schedules.toggle');
+    Route::get('/attendance-reports/export', [AttendanceReportController::class, 'export'])->middleware('permission:employee-attendances.export')->name('attendance-reports.export');
+    Route::get('/attendance-reports', [AttendanceReportController::class, 'index'])->middleware('permission:employee-attendances.view')->name('attendance-reports.index');
 
     Route::get('/employees/mine', [EmployeeController::class, 'mine'])->middleware('permission:employees.view-own')->name('employees.mine');
     Route::get('/employees/export', [EmployeeController::class, 'export'])->middleware('permission:employees.export')->name('employees.export');
