@@ -122,7 +122,7 @@ class RolePermissionSeeder extends Seeder
             ])->forceFill(['display_name' => $displayName])->save();
         }
 
-        Role::findByName('super-admin')->syncPermissions($permissions->values());
+        Role::findByName('super-admin')->syncPermissions(Permission::query()->where('guard_name', 'web')->pluck('name'));
         Role::findByName('admin-madrasah')->syncPermissions($permissions->except(['users.activate', 'users.reset-password', 'roles.manage'])->values());
         Role::findByName('kepala-madrasah')->syncPermissions($permissions->only(['dashboard.view', 'grade-levels.view', 'classrooms.view', 'subjects.view', 'employees.view', 'employees.export', 'teaching-assignments.view', 'schedules.view','students.view','students.export','students.view-sensitive','guardians.view','guardians.export','guardians.view-sensitive','student-guardians.view','student-enrollments.view','employee-attendances.view','employee-attendances.verify','employee-leaves.view','employee-leaves.approve','employee-leaves.reject','student-attendances.view','teaching-journals.view','teaching-journals.verify','teaching-journals.reject'])->values());
         Role::findByName('tata-usaha')->syncPermissions($permissions->only(['dashboard.view', 'grade-levels.view', 'classrooms.view', 'subjects.view', 'employees.view', 'employees.create', 'employees.update', 'employees.manage-documents', 'employees.export','students.view','students.create','students.update','students.change-status','students.manage-documents','students.export','students.view-sensitive','guardians.view','guardians.create','guardians.update','guardians.link-student','guardians.unlink-student','guardians.export','guardians.view-sensitive','student-guardians.view','student-guardians.create','student-guardians.update','student-enrollments.view','student-enrollments.create','student-enrollments.update','student-enrollments.transfer','employee-attendances.view','employee-attendances.update','employee-attendances.verify','employee-leaves.view','employee-leaves.approve','employee-leaves.reject','student-attendances.view','student-attendances.create','student-attendances.update','teaching-journals.view','teaching-journals.verify','teaching-journals.reject'])->values());
@@ -163,11 +163,14 @@ class RolePermissionSeeder extends Seeder
         $moduleFivePermissions = ['subjects.view','subjects.create','subjects.update','subjects.activate','subjects.export','teaching-assignments.view','teaching-assignments.view-own','teaching-assignments.create','teaching-assignments.update','teaching-assignments.change-teacher','teaching-assignments.activate','teaching-assignments.export','schedules.view','schedules.view-own','schedules.create','schedules.update','schedules.activate','schedules.export','schedules.print'];
         Role::findByName('super-admin')->givePermissionTo($moduleFivePermissions);
         Role::findByName('admin-madrasah')->givePermissionTo($moduleFivePermissions);
-        Role::findByName('operator')->givePermissionTo($moduleFivePermissions);
-        Role::findByName('tata-usaha')->givePermissionTo(['subjects.view','subjects.create','subjects.update','subjects.export','teaching-assignments.view','teaching-assignments.create','teaching-assignments.update','teaching-assignments.export','schedules.view','schedules.create','schedules.update','schedules.export','schedules.print']);
-        Role::findByName('kepala-madrasah')->givePermissionTo(['subjects.view','subjects.export','teaching-assignments.view','teaching-assignments.export','schedules.view','schedules.export','schedules.print']);
-        Role::findByName('guru-kelas')->givePermissionTo(['subjects.view','teaching-assignments.view-own','schedules.view-own']);
-        Role::findByName('guru-mata-pelajaran')->givePermissionTo(['subjects.view','teaching-assignments.view-own','schedules.view-own']);
+        Role::findByName('operator')->givePermissionTo(['subjects.view','subjects.create','subjects.update','subjects.activate','subjects.export','teaching-assignments.view','teaching-assignments.create','teaching-assignments.update','teaching-assignments.change-teacher','teaching-assignments.activate','teaching-assignments.export','schedules.view','schedules.create','schedules.update','schedules.activate','schedules.export','schedules.print']);
+        Role::findByName('tata-usaha')->givePermissionTo(['subjects.view','teaching-assignments.view','schedules.view','schedules.export','schedules.print']);
+        Role::findByName('kepala-madrasah')->givePermissionTo(['subjects.view','teaching-assignments.view','schedules.view','teaching-assignments.export','schedules.export','schedules.print']);
+        Role::findByName('guru-kelas')->givePermissionTo(['teaching-assignments.view-own','schedules.view-own','schedules.print']);
+        Role::findByName('guru-mata-pelajaran')->givePermissionTo(['teaching-assignments.view-own','schedules.view-own','schedules.print']);
+        Role::findByName('guru-btaq-murobi')->givePermissionTo(['teaching-assignments.view-own','schedules.view-own','schedules.print']);
+
+        Role::findByName('super-admin')->syncPermissions(Permission::query()->where('guard_name', 'web')->pluck('name'));
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
