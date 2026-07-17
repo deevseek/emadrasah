@@ -60,6 +60,7 @@ Route::middleware(['auth', 'active'])->group(function (): void {
     Route::get('/employee-attendances', [EmployeeAttendanceController::class, 'index'])->middleware('permission:employee-attendances.view')->name('employee-attendances.index');
     Route::get('/employee-attendances/{employeeAttendance}', [EmployeeAttendanceController::class, 'show'])->middleware('permission:employee-attendances.view')->name('employee-attendances.show');
     Route::patch('/employee-attendances/{employeeAttendance}/verify', [EmployeeAttendanceController::class, 'verify'])->middleware('permission:employee-attendances.verify')->name('employee-attendances.verify');
+    Route::patch('/employee-attendances/{employeeAttendance}/correct', [EmployeeAttendanceController::class, 'correct'])->middleware('permission:employee-attendances.correct')->name('employee-attendances.correct');
 
     Route::get('/employee-leaves', [EmployeeLeaveController::class, 'index'])->middleware('permission:employee-leaves.view-own')->name('employee-leaves.index');
     Route::get('/employee-leaves/create', [EmployeeLeaveController::class, 'create'])->middleware('permission:employee-leaves.create')->name('employee-leaves.create');
