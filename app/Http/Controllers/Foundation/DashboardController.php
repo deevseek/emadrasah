@@ -15,6 +15,7 @@ class DashboardController extends Controller
     {
         return view('dashboard', [
             'title' => 'Beranda e-Madrasah',
+            'moduleContext' => 'Ringkasan operasional e-Madrasah berdasarkan data madrasah terkini.',
             ...$metrics->summary($profiles),
         ]);
     }

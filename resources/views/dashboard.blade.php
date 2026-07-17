@@ -3,7 +3,7 @@
   <section class="rounded-3xl bg-emerald-950 p-6 text-white shadow-sm">
     <p class="text-sm text-emerald-100">Beranda e-Madrasah</p>
     <h2 class="mt-2 text-2xl font-black">{{ $profile->school_name }}</h2>
-    <p class="mt-2 max-w-3xl text-sm text-emerald-50">Ringkasan operasional e-Madrasah berdasarkan data madrasah terkini, termasuk Modul 1–6 dan layanan kehadiran pegawai.</p>
+    <p class="mt-2 max-w-3xl text-sm text-emerald-50">{{ $moduleContext }}</p>
   </section>
 
   <section class="grid gap-4 md:grid-cols-3 xl:grid-cols-4">
@@ -26,10 +26,16 @@
     <div class="card"><div class="card-body"><p class="text-sm text-slate-500">Izin/sakit hari ini</p><p class="mt-2 text-xl font-bold text-emerald-950">{{ number_format($employeesOnLeaveToday) }}</p></div></div>
     <div class="card"><div class="card-body"><p class="text-sm text-slate-500">Izin menunggu</p><p class="mt-2 text-xl font-bold text-emerald-950">{{ number_format($pendingEmployeeLeaves) }}</p><a class="mt-3 inline-block text-sm font-semibold text-emerald-700" href="{{ route('employee-leaves.approvals') }}">Buka Persetujuan</a></div></div>
     <div class="card"><div class="card-body"><p class="text-sm text-slate-500">Pegawai tanpa jadwal aktif</p><p class="mt-2 text-xl font-bold text-emerald-950">{{ number_format($employeesWithoutActiveWorkSchedule) }}</p><a class="mt-3 inline-block text-sm font-semibold text-emerald-700" href="{{ route('work-schedules.index') }}">Atur Jadwal</a></div></div>
+    <div class="card"><div class="card-body"><p class="text-sm text-slate-500">Jurnal menunggu verifikasi</p><p class="mt-2 text-xl font-bold text-emerald-950">{{ number_format($teachingJournalPendingVerification) }}</p><a class="mt-3 inline-block text-sm font-semibold text-emerald-700" href="{{ route('teaching-journals.index', ['status' => 'submitted']) }}">Buka Verifikasi</a></div></div>
+    <div class="card"><div class="card-body"><p class="text-sm text-slate-500">Jurnal perlu perbaikan</p><p class="mt-2 text-xl font-bold text-emerald-950">{{ number_format($teachingJournalNeedsRevision) }}</p><a class="mt-3 inline-block text-sm font-semibold text-emerald-700" href="{{ route('teaching-journals.index', ['status' => 'rejected']) }}">Buka Jurnal</a></div></div>
+    <div class="card"><div class="card-body"><p class="text-sm text-slate-500">Jurnal hari ini belum diisi</p><p class="mt-2 text-xl font-bold text-emerald-950">{{ number_format($teachingJournalUnfilledToday) }}</p><a class="mt-3 inline-block text-sm font-semibold text-emerald-700" href="{{ route('teaching-journals.index') }}">Isi Jurnal</a></div></div>
   </section>
 
   <section class="card"><div class="card-body"><h2 class="text-lg font-bold text-emerald-950">Tindakan yang perlu diperhatikan</h2><div class="mt-4 grid gap-3">
 
+    @if($teachingJournalUnfilledToday > 0)<a class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" href="{{ route('teaching-journals.index') }}">{{ $teachingJournalUnfilledToday }} jurnal hari ini belum diisi — Lengkapi jurnal</a>@endif
+    @if($teachingJournalPendingVerification > 0)<a class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" href="{{ route('teaching-journals.index', ['status' => 'submitted']) }}">{{ $teachingJournalPendingVerification }} jurnal menunggu verifikasi — Verifikasi sekarang</a>@endif
+    @if($teachingJournalNeedsRevision > 0)<a class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" href="{{ route('teaching-journals.index', ['status' => 'rejected']) }}">{{ $teachingJournalNeedsRevision }} jurnal perlu diperbaiki — Tindak lanjuti</a>@endif
     @if($pendingEmployeeLeaves > 0)<a class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" href="{{ route('employee-leaves.approvals') }}">{{ $pendingEmployeeLeaves }} pengajuan izin menunggu persetujuan — Proses sekarang</a>@endif
     @if($employeesNotCheckedOutToday > 0)<a class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" href="{{ route('employee-attendances.index', ['date' => now()->toDateString()]) }}">{{ $employeesNotCheckedOutToday }} pegawai belum check-out — Pantau kehadiran</a>@endif
     @if($employeesWithoutActiveWorkSchedule > 0)<a class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" href="{{ route('work-schedules.index') }}">{{ $employeesWithoutActiveWorkSchedule }} pegawai belum memiliki jadwal aktif — Atur jadwal kerja</a>@endif

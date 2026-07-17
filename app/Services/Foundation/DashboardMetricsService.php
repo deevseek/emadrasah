@@ -19,6 +19,8 @@ use App\Models\Semester;
 use App\Models\Student;
 use App\Models\Subject;
 use App\Models\TeachingAssignment;
+use App\Models\TeachingJournal;
+use App\Enums\TeachingJournalStatus;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\Models\Activity;
@@ -72,6 +74,11 @@ class DashboardMetricsService
             'pendingEmployeeLeaves' => EmployeeLeaveRequest::query()->where('status', LeaveStatus::Pending->value)->count(),
             'employeesWithoutActiveWorkSchedule' => Employee::query()->where('is_active', true)->whereDoesntHave('workScheduleAssignments', fn ($assignment) => $assignment->where('is_active', true))->count(),
             'unverifiedEmployeeAttendances' => EmployeeAttendance::query()->where('verification_status', AttendanceVerificationStatus::Pending->value)->count(),
+            'teachingJournalPendingVerification' => TeachingJournal::query()->where('status', TeachingJournalStatus::Submitted->value)->count(),
+            'teachingJournalNeedsRevision' => TeachingJournal::query()->where('status', TeachingJournalStatus::Rejected->value)->count(),
+            'teachingJournalDraftMine' => TeachingJournal::query()->where('employee_id', auth()->user()?->employee?->id)->where('status', TeachingJournalStatus::Draft->value)->count(),
+            'teachingJournalRevisionMine' => TeachingJournal::query()->where('employee_id', auth()->user()?->employee?->id)->where('status', TeachingJournalStatus::Rejected->value)->count(),
+            'teachingJournalUnfilledToday' => max(0, LessonSchedule::query()->where('is_active', true)->where('day_of_week', strtolower(today()->locale('id')->dayName))->count() - TeachingJournal::query()->whereDate('journal_date', today())->count()),
             'subjectsWithoutTeacher' => Subject::query()->where('is_active', true)->whereNotExists(function ($query) use ($activeYearId, $activeSemesterId): void {
                 $query->select(DB::raw(1))->from('teaching_assignments')->whereColumn('teaching_assignments.subject_id', 'subjects.id')->where('teaching_assignments.is_active', true);
                 if ($activeYearId !== null) { $query->where('teaching_assignments.academic_year_id', $activeYearId); }

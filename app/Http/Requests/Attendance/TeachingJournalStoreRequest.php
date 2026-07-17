@@ -4,38 +4,31 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Attendance;
 
-use App\Enums\AttendanceStatus;
 use App\Enums\TeachingJournalStatus;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 final class TeachingJournalStoreRequest extends FormRequest
 {
-    public function authorize(): bool
-    {
-        return $this->user()?->can('teaching-journals.create') || $this->user()?->can('teaching-journals.update');
-    }
-
+    public function authorize(): bool { return $this->user()?->can('teaching-journals.create') ?? false; }
     public function rules(): array
     {
         return [
-            'teaching_assignment_id' => ['required', 'exists:teaching_assignments,id'],
-            'lesson_schedule_id' => ['nullable', 'exists:lesson_schedules,id'],
-            'journal_date' => ['required', 'date'],
-            'starts_at' => ['required', 'date_format:H:i'],
-            'ends_at' => ['required', 'date_format:H:i', 'after:starts_at'],
-            'lesson_hours' => ['required', 'integer', 'min:1', 'max:12'],
-            'material' => ['required', 'string', 'max:5000'],
-            'learning_objectives' => ['nullable', 'string', 'max:5000'],
-            'method' => ['nullable', 'string', 'max:255'],
-            'media' => ['nullable', 'string', 'max:255'],
-            'assignment' => ['nullable', 'string', 'max:5000'],
-            'assessment' => ['nullable', 'string', 'max:5000'],
-            'teacher_notes' => ['nullable', 'string', 'max:5000'],
+            'lesson_schedule_id' => ['required','integer','exists:lesson_schedules,id'],
+            'journal_date' => ['required','date','before_or_equal:today'],
+            'learning_topic' => ['required','string','max:255'],
+            'learning_objectives' => ['required','string'],
+            'learning_material' => ['required','string'],
+            'learning_method' => ['nullable','string','max:255'],
+            'learning_media' => ['nullable','string','max:255'],
+            'learning_activity' => ['required','string'],
+            'assessment_activity' => ['nullable','string'],
+            'homework' => ['nullable','string'],
+            'teacher_notes' => ['nullable','string'],
+            'obstacles' => ['nullable','string'],
+            'follow_up' => ['nullable','string'],
             'status' => ['required', Rule::in([TeachingJournalStatus::Draft->value, TeachingJournalStatus::Submitted->value])],
-            'students' => ['nullable', 'array'],
-            'students.*.status' => ['required_with:students', Rule::enum(AttendanceStatus::class)],
-            'students.*.notes' => ['nullable', 'string', 'max:1000'],
         ];
     }
+    public function attributes(): array { return ['lesson_schedule_id'=>'jadwal mengajar','journal_date'=>'tanggal jurnal','learning_topic'=>'topik pembelajaran','learning_objectives'=>'tujuan pembelajaran','learning_material'=>'materi pembelajaran','learning_activity'=>'kegiatan pembelajaran']; }
 }
