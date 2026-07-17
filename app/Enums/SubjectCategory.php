@@ -7,7 +7,7 @@ namespace App\Enums;
 enum SubjectCategory: string
 {
     case General = 'umum';
-    case Religion = 'agama';
+    case Religion = 'keagamaan';
     case LocalContent = 'muatan_lokal';
     case SelfDevelopment = 'pengembangan_diri';
     case Other = 'lainnya';
