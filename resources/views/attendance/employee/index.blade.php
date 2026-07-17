@@ -1,7 +1,7 @@
-<x-app-layout title="Rekap Absensi Guru">
+<x-app-layout title="Kehadiran Pegawai">
     <div class="mb-6">
-        <p class="text-sm text-slate-500">Absensi / Rekap Guru</p>
-        <h1 class="text-2xl font-semibold text-emerald-950">Rekap Absensi Guru</h1>
+        <p class="text-sm text-slate-500">Kehadiran / Rekap Pegawai</p>
+        <h1 class="text-2xl font-semibold text-emerald-950">Kehadiran Pegawai</h1>
     </div>
 
     @if (session('status'))
@@ -31,7 +31,7 @@
                 Status
                 <select class="mt-1 w-full rounded-lg border-slate-300 focus:border-emerald-800 focus:ring-emerald-800" name="status">
                     <option value="">Semua status</option>
-                    @foreach (\App\Enums\AttendanceStatus::cases() as $status)
+                    @foreach ($statuses as $status)
                         <option value="{{ $status->value }}" @selected(request('status') === $status->value)>{{ $status->label() }}</option>
                     @endforeach
                 </select>

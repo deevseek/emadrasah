@@ -47,8 +47,8 @@ class RolePermissionSeeder extends Seeder
             'guardians.view','guardians.create','guardians.update','guardians.delete','guardians.link-student','guardians.unlink-student','guardians.view-sensitive','guardians.export',
             'student-guardians.view','student-guardians.create','student-guardians.update','student-guardians.delete',
             'student-enrollments.view','student-enrollments.create','student-enrollments.update','student-enrollments.delete','student-enrollments.transfer','student-enrollments.promote','student-enrollments.cancel','student-enrollments.override-capacity','student-enrollments.export',
-            'employee-attendances.view-own','employee-attendances.check-in','employee-attendances.check-out','employee-attendances.view','employee-attendances.update','employee-attendances.verify','employee-attendances.export',
-            'employee-leaves.view-own','employee-leaves.create','employee-leaves.cancel','employee-leaves.view','employee-leaves.approve','employee-leaves.reject',
+            'work-schedules.view','work-schedules.manage','employee-attendances.view-own','employee-attendances.check-in','employee-attendances.check-out','employee-attendances.view','employee-attendances.update','employee-attendances.verify','employee-attendances.correct','employee-attendances.export','employee-attendances.view-location','employee-attendances.view-photo',
+            'employee-leaves.view-own','employee-leaves.create','employee-leaves.cancel','employee-leaves.view','employee-leaves.approve','employee-leaves.reject','employee-leaves.export',
             'student-attendances.view','student-attendances.create','student-attendances.update','student-attendances.export',
             'teaching-journals.view-own','teaching-journals.create','teaching-journals.update','teaching-journals.submit','teaching-journals.view','teaching-journals.verify','teaching-journals.reject','teaching-journals.export',
             'btaq-levels.view',
@@ -171,6 +171,21 @@ class RolePermissionSeeder extends Seeder
         Role::findByName('guru-btaq-murobi')->givePermissionTo(['teaching-assignments.view-own','schedules.view-own','schedules.print']);
 
         Role::findByName('super-admin')->syncPermissions(Permission::query()->where('guard_name', 'web')->pluck('name'));
+
+
+
+        $moduleSixAdmin = ['work-schedules.view','work-schedules.manage','employee-attendances.view-own','employee-attendances.check-in','employee-attendances.check-out','employee-attendances.view','employee-attendances.verify','employee-attendances.correct','employee-attendances.export','employee-attendances.view-location','employee-attendances.view-photo','employee-leaves.view-own','employee-leaves.create','employee-leaves.cancel','employee-leaves.view','employee-leaves.approve','employee-leaves.reject','employee-leaves.export'];
+        $moduleSixPersonal = ['employee-attendances.view-own','employee-attendances.check-in','employee-attendances.check-out','employee-leaves.view-own','employee-leaves.create','employee-leaves.cancel'];
+        Role::findByName('super-admin')->givePermissionTo($moduleSixAdmin);
+        Role::findByName('admin-madrasah')->givePermissionTo($moduleSixAdmin);
+        Role::findByName('operator')->givePermissionTo(['work-schedules.view','employee-attendances.view','employee-attendances.verify','employee-attendances.correct','employee-attendances.export','employee-attendances.view-location','employee-attendances.view-photo','employee-leaves.view','employee-leaves.export']);
+        Role::findByName('tata-usaha')->givePermissionTo(['work-schedules.view','employee-attendances.view','employee-attendances.verify','employee-attendances.export','employee-attendances.view-location','employee-attendances.view-photo','employee-leaves.view','employee-leaves.export']);
+        Role::findByName('kepala-madrasah')->givePermissionTo(['employee-attendances.view','employee-attendances.verify','employee-attendances.export','employee-attendances.view-location','employee-attendances.view-photo','employee-leaves.view','employee-leaves.approve','employee-leaves.reject','employee-leaves.export']);
+        Role::findByName('guru-kelas')->givePermissionTo($moduleSixPersonal);
+        Role::findByName('guru-mata-pelajaran')->givePermissionTo($moduleSixPersonal);
+        Role::findByName('guru-btaq-murobi')->givePermissionTo($moduleSixPersonal);
+        Role::findByName('guru-full-day')->givePermissionTo($moduleSixPersonal);
+        Role::findByName('bendahara')->givePermissionTo($moduleSixPersonal);
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
