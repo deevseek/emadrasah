@@ -24,7 +24,10 @@ use App\Http\Controllers\Attendance\EmployeeAttendanceController;
 use App\Http\Controllers\Attendance\EmployeeLeaveController;
 use App\Http\Controllers\Attendance\WorkScheduleController;
 use App\Http\Controllers\Attendance\AttendanceReportController;
+use App\Http\Controllers\Attendance\StudentAttendanceAttachmentController;
 use App\Http\Controllers\Attendance\StudentAttendanceController;
+use App\Http\Controllers\Attendance\StudentAttendanceCorrectionController;
+use App\Http\Controllers\Attendance\StudentAttendanceReportController;
 use App\Http\Controllers\Attendance\TeachingJournalController;
 use App\Http\Controllers\StudentAffairs\EnrollmentController;
 use App\Http\Controllers\StudentAffairs\GuardianController;
@@ -104,9 +107,19 @@ Route::middleware(['auth', 'active'])->group(function (): void {
     Route::get('/employee-documents/{document}/download', [EmployeeController::class, 'downloadDocument'])->middleware('permission:employees.manage-documents|employees.view-own')->name('employee-documents.download');
     Route::delete('/employee-documents/{document}', [EmployeeController::class, 'destroyDocument'])->middleware('permission:employees.manage-documents')->name('employee-documents.destroy');
 
-    Route::get('/student-attendances', [StudentAttendanceController::class, 'index'])->middleware('permission:student-attendances.view')->name('student-attendances.index');
+    Route::get('/student-attendances/mine', [StudentAttendanceController::class, 'own'])->middleware('permission:student-attendances.view-own-class|student-attendances.view')->name('student-attendances.mine');
+    Route::get('/student-attendances/missing-classes', [StudentAttendanceController::class, 'missing'])->middleware('permission:student-attendances.view-missing-classes')->name('student-attendances.missing');
+    Route::get('/student-attendances/reports/export', [StudentAttendanceReportController::class, 'export'])->middleware('permission:student-attendances.export')->name('student-attendances.reports.export');
+    Route::get('/student-attendances/reports/print', [StudentAttendanceReportController::class, 'print'])->middleware('permission:student-attendances.print')->name('student-attendances.reports.print');
+    Route::get('/student-attendances/reports', [StudentAttendanceReportController::class, 'index'])->middleware('permission:student-attendances.report')->name('student-attendances.reports.index');
     Route::get('/student-attendances/create', [StudentAttendanceController::class, 'create'])->middleware('permission:student-attendances.create')->name('student-attendances.create');
     Route::post('/student-attendances', [StudentAttendanceController::class, 'store'])->middleware('permission:student-attendances.create')->name('student-attendances.store');
+    Route::get('/student-attendances/{studentAttendance}/edit', [StudentAttendanceController::class, 'edit'])->middleware('permission:student-attendances.update-draft')->name('student-attendances.edit');
+    Route::patch('/student-attendances/{studentAttendance}/finalize', [StudentAttendanceController::class, 'finalize'])->middleware('permission:student-attendances.finalize')->name('student-attendances.finalize');
+    Route::post('/student-attendance-records/{attendance}/corrections', [StudentAttendanceCorrectionController::class, 'store'])->middleware('permission:student-attendances.correct')->name('student-attendances.corrections.store');
+    Route::get('/student-attendance-records/{attendance}/attachment', StudentAttendanceAttachmentController::class)->middleware('permission:student-attendances.view-attachment|student-attendances.view-own-class')->name('student-attendances.attachments.show');
+    Route::get('/student-attendances/{studentAttendance}', [StudentAttendanceController::class, 'show'])->middleware('permission:student-attendances.view|student-attendances.view-own-class')->name('student-attendances.show');
+    Route::get('/student-attendances', [StudentAttendanceController::class, 'index'])->middleware('permission:student-attendances.view|student-attendances.view-own-class')->name('student-attendances.index');
 
     Route::get('/teaching-journals/export', [TeachingJournalController::class, 'export'])->middleware('permission:teaching-journals.export')->name('teaching-journals.export');
     Route::get('/teaching-journals', [TeachingJournalController::class, 'index'])->middleware('permission:teaching-journals.view-own|teaching-journals.view')->name('teaching-journals.index');

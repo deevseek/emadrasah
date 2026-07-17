@@ -17,6 +17,10 @@ use App\Enums\LeaveStatus;
 use App\Models\LessonSchedule;
 use App\Models\Semester;
 use App\Models\Student;
+use App\Models\StudentAttendance;
+use App\Models\StudentAttendanceSession;
+use App\Enums\StudentAttendanceSessionStatus;
+use App\Enums\StudentAttendanceStatus;
 use App\Models\Subject;
 use App\Models\TeachingAssignment;
 use App\Models\TeachingJournal;
@@ -67,6 +71,15 @@ class DashboardMetricsService
             'activeTeachingAssignments' => TeachingAssignment::query()->when($activeYearId, fn ($query) => $query->where('academic_year_id', $activeYearId))->when($activeSemesterId, fn ($query) => $query->where('semester_id', $activeSemesterId))->where('is_active', true)->count(),
             'assignmentsWithoutSchedule' => TeachingAssignment::query()->when($activeYearId, fn ($query) => $query->where('academic_year_id', $activeYearId))->when($activeSemesterId, fn ($query) => $query->where('semester_id', $activeSemesterId))->where('is_active', true)->whereDoesntHave('schedules', fn ($schedule) => $schedule->where('is_active', true))->count(),
             'activeSchedules' => LessonSchedule::query()->when($activeYearId, fn ($query) => $query->where('academic_year_id', $activeYearId))->when($activeSemesterId, fn ($query) => $query->where('semester_id', $activeSemesterId))->where('is_active', true)->count(),
+
+            'studentsPresentToday' => StudentAttendance::query()->whereDate('attendance_date', today())->where('status', StudentAttendanceStatus::Present->value)->count(),
+            'studentsPermissionToday' => StudentAttendance::query()->whereDate('attendance_date', today())->where('status', StudentAttendanceStatus::Permission->value)->count(),
+            'studentsSickToday' => StudentAttendance::query()->whereDate('attendance_date', today())->where('status', StudentAttendanceStatus::Sick->value)->count(),
+            'studentsAlphaToday' => StudentAttendance::query()->whereDate('attendance_date', today())->where('status', StudentAttendanceStatus::Alpha->value)->count(),
+            'studentsLateToday' => StudentAttendance::query()->whereDate('attendance_date', today())->where('status', StudentAttendanceStatus::Late->value)->count(),
+            'studentAttendanceDraftsToday' => StudentAttendanceSession::query()->whereDate('attendance_date', today())->where('status', StudentAttendanceSessionStatus::Draft->value)->count(),
+            'studentAttendanceMissingClassesToday' => Classroom::query()->when($activeYearId, fn ($query) => $query->where('academic_year_id', $activeYearId))->where('is_active', true)->whereHas('activeStudentEnrollments')->whereDoesntHave('studentAttendanceSessions', fn ($query) => $query->whereDate('attendance_date', today())->where('status', StudentAttendanceSessionStatus::Final->value))->count(),
+
             'employeesPresentToday' => EmployeeAttendance::query()->whereDate('attendance_date', today())->whereIn('status', [AttendanceStatus::Present->value, AttendanceStatus::Late->value])->count(),
             'employeesLateToday' => EmployeeAttendance::query()->whereDate('attendance_date', today())->where('status', AttendanceStatus::Late->value)->count(),
             'employeesNotCheckedOutToday' => EmployeeAttendance::query()->whereDate('attendance_date', today())->whereNotNull('checked_in_at')->whereNull('checked_out_at')->count(),
