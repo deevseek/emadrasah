@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Classroom extends Model
 {
-    protected $fillable = ['academic_year_id', 'grade_level_id', 'name', 'code', 'capacity', 'homeroom_teacher_id', 'room', 'is_active'];
+    protected $fillable = ['academic_year_id', 'grade_level_id', 'name', 'code', 'capacity', 'homeroom_teacher_id', 'room', 'description', 'is_active'];
 
     protected function casts(): array
     {
@@ -45,5 +45,31 @@ class Classroom extends Model
     public function studentEnrollments(): HasMany
     {
         return $this->hasMany(StudentEnrollment::class);
+    }
+
+    public function activeStudentEnrollments(): HasMany
+    {
+        return $this->hasMany(StudentEnrollment::class)->where('enrollment_status', \App\Enums\EnrollmentStatus::Active);
+    }
+
+    public function homeroomAssignments(): HasMany
+    {
+        return $this->hasMany(HomeroomAssignment::class);
+    }
+
+    public function activeHomeroomAssignment()
+    {
+        return $this->hasOne(HomeroomAssignment::class)->where('is_active', true)->latestOfMany();
+    }
+
+    public function remainingSeats(): ?int
+    {
+        if ($this->capacity === null) {
+            return null;
+        }
+
+        $count = $this->active_student_enrollments_count ?? $this->activeStudentEnrollments()->count();
+
+        return max(0, $this->capacity - $count);
     }
 }
