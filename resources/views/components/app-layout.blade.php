@@ -22,6 +22,14 @@
             ['label' => 'Penugasan Mengajar', 'route' => 'teaching-assignments.index', 'match' => 'teaching-assignments.*', 'permission' => ['teaching-assignments.view', 'teaching-assignments.view-own']],
             ['label' => 'Jadwal Pelajaran', 'route' => 'schedules.index', 'match' => 'schedules.*', 'permission' => ['schedules.view', 'schedules.view-own']],
         ]],
+        ['label' => 'Kehadiran', 'items' => [
+            ['label' => 'Absensi Saya', 'route' => 'employee-attendances.mine', 'match' => 'employee-attendances.mine', 'permission' => ['employee-attendances.view-own', 'employee-attendances.check-in', 'employee-attendances.check-out']],
+            ['label' => 'Perizinan Saya', 'route' => 'employee-leaves.index', 'match' => 'employee-leaves.index', 'permission' => ['employee-leaves.view-own', 'employee-leaves.create']],
+            ['label' => 'Kehadiran Pegawai', 'route' => 'employee-attendances.index', 'match' => 'employee-attendances.index', 'permission' => 'employee-attendances.view'],
+            ['label' => 'Persetujuan Perizinan', 'route' => 'employee-leaves.approvals', 'match' => 'employee-leaves.approvals', 'permission' => ['employee-leaves.approve', 'employee-leaves.reject']],
+            ['label' => 'Jadwal Kerja', 'route' => 'work-schedules.index', 'match' => 'work-schedules.*', 'permission' => ['work-schedules.view', 'work-schedules.manage']],
+            ['label' => 'Laporan Kehadiran', 'route' => 'attendance-reports.index', 'match' => 'attendance-reports.*', 'permission' => ['employee-attendances.view', 'employee-attendances.export']],
+        ]],
         ['label' => 'Akun & Akses', 'items' => [
             ['label' => 'Pengguna', 'route' => 'users.index', 'match' => 'users.*', 'permission' => 'users.view'],
         ]],
