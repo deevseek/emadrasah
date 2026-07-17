@@ -5,26 +5,25 @@ declare(strict_types=1);
 namespace App\Services\Academic;
 
 use App\Models\LessonSchedule;
-use App\Models\TeachingAssignment;
 use Illuminate\Validation\ValidationException;
 
 class ScheduleConflictService
 {
-    public function validate(array $data, ?LessonSchedule $ignore = null): void
+    public function assertNoConflict(array $data, ?LessonSchedule $ignore = null): void
     {
-        if (($data['ends_at'] ?? null) <= ($data['starts_at'] ?? null)) {
-            throw ValidationException::withMessages(['ends_at' => 'Waktu selesai harus setelah waktu mulai.']);
+        $base = LessonSchedule::with(['employee','classroom'])->where('is_active', true)->where('semester_id', $data['semester_id'])->where('day_of_week', $data['day_of_week'])->where('starts_at', '<', $data['ends_at'])->where('ends_at', '>', $data['starts_at']);
+        if ($ignore) $base->whereKeyNot($ignore->id);
+        $teacher = (clone $base)->where('employee_id', $data['employee_id'])->first();
+        if ($teacher) throw ValidationException::withMessages(['teaching_assignment_id' => 'Jadwal tidak dapat disimpan karena '.$teacher->employee?->name.' sudah mengajar '.$teacher->classroom?->name.' pada '.$this->time($teacher).'.']);
+        $class = (clone $base)->where('classroom_id', $data['classroom_id'])->first();
+        if ($class) throw ValidationException::withMessages(['teaching_assignment_id' => 'Jadwal tidak dapat disimpan karena '.$class->classroom?->name.' sudah memiliki pelajaran pada '.$this->time($class).'.']);
+        if (filled($data['room'] ?? null)) {
+            $room = (clone $base)->where('room', $data['room'])->first();
+            if ($room) throw ValidationException::withMessages(['room' => 'Ruangan '.$data['room'].' sudah digunakan pada '.$this->time($room).'.']);
         }
-        $assignment = TeachingAssignment::where('academic_year_id', $data['academic_year_id'])->where('semester_id', $data['semester_id'])->where('employee_id', $data['employee_id'])->where('classroom_id', $data['classroom_id'])->where('subject_id', $data['subject_id'])->where('is_active', true)->exists();
-        if (! $assignment) {
-            throw ValidationException::withMessages(['subject_id' => 'Jadwal harus sesuai penugasan mengajar aktif.']);
-        }
-        $overlap = fn ($q) => $q->where('day_of_week', $data['day_of_week'])->where('is_active', true)->where('starts_at', '<', $data['ends_at'])->where('ends_at', '>', $data['starts_at'])->when($ignore, fn ($q) => $q->whereKeyNot($ignore->id));
-        if (LessonSchedule::where('employee_id', $data['employee_id'])->where($overlap)->exists()) {
-            throw ValidationException::withMessages(['employee_id' => 'Guru memiliki jadwal lain pada waktu yang sama.']);
-        }
-        if (LessonSchedule::where('classroom_id', $data['classroom_id'])->where($overlap)->exists()) {
-            throw ValidationException::withMessages(['classroom_id' => 'Kelas memiliki pelajaran lain pada waktu yang sama.']);
-        }
+        $dup = LessonSchedule::where('is_active', true)->where('teaching_assignment_id', $data['teaching_assignment_id'])->where('day_of_week',$data['day_of_week'])->where('starts_at',$data['starts_at'])->where('ends_at',$data['ends_at']);
+        if ($ignore) $dup->whereKeyNot($ignore->id);
+        if ($dup->exists()) throw ValidationException::withMessages(['starts_at' => 'Penugasan ini sudah memiliki jadwal identik.']);
     }
+    private function time(LessonSchedule $s): string { return $s->day_of_week->label().' pukul '.substr((string)$s->starts_at,0,5).'–'.substr((string)$s->ends_at,0,5); }
 }
