@@ -160,6 +160,15 @@ class RolePermissionSeeder extends Seeder
         Role::findByName('kepala-madrasah')->givePermissionTo(['grade-levels.view','classrooms.view','classrooms.export','homeroom-assignments.view','student-enrollments.view','student-enrollments.export','student-enrollments.promote']);
         Role::findByName('guru-kelas')->givePermissionTo(['classrooms.view','homeroom-assignments.view','student-enrollments.view']);
 
+        $moduleFivePermissions = ['subjects.view','subjects.create','subjects.update','subjects.activate','subjects.export','teaching-assignments.view','teaching-assignments.view-own','teaching-assignments.create','teaching-assignments.update','teaching-assignments.change-teacher','teaching-assignments.activate','teaching-assignments.export','schedules.view','schedules.view-own','schedules.create','schedules.update','schedules.activate','schedules.export','schedules.print'];
+        Role::findByName('super-admin')->givePermissionTo($moduleFivePermissions);
+        Role::findByName('admin-madrasah')->givePermissionTo($moduleFivePermissions);
+        Role::findByName('operator')->givePermissionTo($moduleFivePermissions);
+        Role::findByName('tata-usaha')->givePermissionTo(['subjects.view','subjects.create','subjects.update','subjects.export','teaching-assignments.view','teaching-assignments.create','teaching-assignments.update','teaching-assignments.export','schedules.view','schedules.create','schedules.update','schedules.export','schedules.print']);
+        Role::findByName('kepala-madrasah')->givePermissionTo(['subjects.view','subjects.export','teaching-assignments.view','teaching-assignments.export','schedules.view','schedules.export','schedules.print']);
+        Role::findByName('guru-kelas')->givePermissionTo(['subjects.view','teaching-assignments.view-own','schedules.view-own']);
+        Role::findByName('guru-mata-pelajaran')->givePermissionTo(['subjects.view','teaching-assignments.view-own','schedules.view-own']);
+
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 }
