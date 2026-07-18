@@ -2,6 +2,14 @@
 
 ## 2026-07-18
 
+
+### Fixed
+- Menampilkan grup menu Inventaris pada sidebar global dengan route valid, permission granular, active state terpisah per submenu, dan breadcrumb Bahasa Indonesia untuk seluruh route `inventory.*`.
+- Membuat `InventoryPermissionSeeder` aman/idempotent ketika role tertentu belum tersedia dan tetap membersihkan cache permission setelah seeding.
+
+### Documentation
+- Menambahkan panduan lokasi menu sidebar, mapping route-permission, deployment production, quality gate, acceptance, dan troubleshooting jika menu Inventaris tidak muncul.
+
 ### Added
 - Dokumentasi database, ERD, deployment, testing, acceptance, dan modul untuk Penilaian/Rapor serta Keuangan Operasional.
 - Permission alias granular `assessment.*`, `report-card.*`, dan `finance.*` agar kompatibel dengan requirement end-to-end.
