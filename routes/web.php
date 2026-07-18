@@ -57,6 +57,12 @@ use App\Http\Controllers\Payroll\PayslipController;
 use App\Http\Controllers\Payroll\EmployeePayslipController;
 use App\Http\Controllers\Payroll\PayrollReportController;
 
+use App\Http\Controllers\Inventory\InventoryCrudController;
+use App\Http\Controllers\Inventory\InventoryDashboardController;
+use App\Http\Controllers\Inventory\InventoryReportController;
+use App\Http\Controllers\Inventory\InventoryStockOpnameController;
+use App\Http\Controllers\Inventory\InventoryTransactionController;
+
 
 Route::redirect('/', '/dashboard');
 
@@ -67,6 +73,8 @@ Route::middleware('guest')->group(function (): void {
     Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])->name('password.email');
     Route::get('/reset-password/{token}', [NewPasswordController::class, 'create'])->name('password.reset');
     Route::post('/reset-password', [NewPasswordController::class, 'store'])->name('password.store');
+
+
 });
 
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->middleware('auth')->name('logout');
@@ -413,6 +421,34 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         Route::get('reports', [PayrollReportController::class, 'index'])->middleware('permission:payroll-reports.view')->name('reports.index');
         Route::get('reports/export/csv', [PayrollReportController::class, 'export'])->middleware('permission:payroll-reports.export')->name('reports.export');
         Route::get('reports/print/recap', [PayrollReportController::class, 'print'])->middleware('permission:payroll-reports.print')->name('reports.print');
+    });
+
+    Route::prefix('inventory')->name('inventory.')->group(function (): void {
+        Route::get('/dashboard', InventoryDashboardController::class)->middleware('permission:inventory.view')->name('dashboard');
+        Route::get('/categories', [InventoryCrudController::class, 'categories'])->middleware('permission:inventory.manage-master')->name('categories.index');
+        Route::post('/categories', [InventoryCrudController::class, 'storeCategory'])->middleware('permission:inventory.manage-master')->name('categories.store');
+        Route::put('/categories/{category}', [InventoryCrudController::class, 'updateCategory'])->middleware('permission:inventory.manage-master')->name('categories.update');
+        Route::get('/locations', [InventoryCrudController::class, 'locations'])->middleware('permission:inventory.manage-master')->name('locations.index');
+        Route::post('/locations', [InventoryCrudController::class, 'storeLocation'])->middleware('permission:inventory.manage-master')->name('locations.store');
+        Route::put('/locations/{location}', [InventoryCrudController::class, 'updateLocation'])->middleware('permission:inventory.manage-master')->name('locations.update');
+        Route::get('/conditions', [InventoryCrudController::class, 'conditions'])->middleware('permission:inventory.manage-master')->name('conditions.index');
+        Route::put('/conditions/{condition}', [InventoryCrudController::class, 'updateCondition'])->middleware('permission:inventory.manage-master')->name('conditions.update');
+        Route::get('/items', [InventoryCrudController::class, 'items'])->middleware('permission:inventory.view')->name('items.index');
+        Route::get('/items/create', [InventoryCrudController::class, 'createItem'])->middleware('permission:inventory.create')->name('items.create');
+        Route::post('/items', [InventoryCrudController::class, 'storeItem'])->middleware('permission:inventory.create')->name('items.store');
+        Route::get('/items/{item}', [InventoryCrudController::class, 'showItem'])->middleware('permission:inventory.view')->name('items.show');
+        Route::get('/items/{item}/edit', [InventoryCrudController::class, 'editItem'])->middleware('permission:inventory.update')->name('items.edit');
+        Route::put('/items/{item}', [InventoryCrudController::class, 'updateItem'])->middleware('permission:inventory.update')->name('items.update');
+        Route::get('/transactions', [InventoryTransactionController::class, 'index'])->middleware('permission:inventory.view')->name('transactions.index');
+        Route::get('/transactions/create', [InventoryTransactionController::class, 'create'])->middleware('permission:inventory.adjust|inventory.transfer|inventory.change-condition')->name('transactions.create');
+        Route::post('/transactions', [InventoryTransactionController::class, 'store'])->middleware('permission:inventory.adjust|inventory.transfer|inventory.change-condition')->name('transactions.store');
+        Route::patch('/transactions/{transaction}/reverse', [InventoryTransactionController::class, 'reverse'])->middleware('permission:inventory.reverse')->name('transactions.reverse');
+        Route::resource('stock-opnames', InventoryStockOpnameController::class)->only(['index','create','store','show','update'])->middleware('permission:inventory.stock-opname');
+        Route::patch('/stock-opnames/{stockOpname}/post', [InventoryStockOpnameController::class, 'post'])->middleware('permission:inventory.stock-opname')->name('stock-opnames.post');
+        Route::get('/reports', [InventoryReportController::class, 'index'])->middleware('permission:inventory.report')->name('reports.index');
+        Route::get('/reports/print', [InventoryReportController::class, 'print'])->middleware('permission:inventory.print')->name('reports.print');
+        Route::get('/reports/pdf', [InventoryReportController::class, 'pdf'])->middleware('permission:inventory.export')->name('reports.pdf');
+        Route::get('/reports/export', [InventoryReportController::class, 'export'])->middleware('permission:inventory.export')->name('reports.export');
     });
 
     Route::patch('/users/{user}/toggle', [UserManagementController::class, 'toggle'])->middleware('permission:users.activate')->name('users.toggle');
