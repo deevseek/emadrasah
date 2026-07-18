@@ -42,6 +42,7 @@ use App\Http\Controllers\Btaq\BtaqSessionController;
 use App\Http\Controllers\Btaq\BtaqVerificationController;
 use App\Http\Controllers\Btaq\BtaqReportController;
 use App\Http\Controllers\Assessment\AssessmentController;
+use App\Http\Controllers\Assessment\Module10Controller;
 use App\Http\Controllers\ReportCard\ReportCardController;
 use Illuminate\Support\Facades\Route;
 
@@ -316,6 +317,27 @@ Route::middleware(['auth', 'active'])->group(function (): void {
     Route::patch('/btaq-journals/{btaqJournal}/submit', [BtaqJournalController::class, 'submit'])->middleware('permission:btaq-journals.submit')->name('btaq-journals.submit');
     Route::patch('/btaq-journals/{btaqJournal}/verify', [BtaqJournalController::class, 'verify'])->middleware('permission:btaq-journals.verify')->name('btaq-journals.verify');
     Route::patch('/btaq-journals/{btaqJournal}/reject', [BtaqJournalController::class, 'reject'])->middleware('permission:btaq-journals.reject')->name('btaq-journals.reject');
+
+
+
+    Route::prefix('penilaian-rapor')->name('assessments.')->group(function (): void {
+        Route::get('/', [Module10Controller::class, 'index'])->middleware('permission:grades.view-own|grade-books.view-own-class|assessments.view-configuration|assessment-reports.view')->name('index');
+        Route::get('/konfigurasi', [Module10Controller::class, 'configuration'])->middleware('permission:assessments.view-configuration')->name('configuration');
+        Route::get('/komponen', [Module10Controller::class, 'components'])->middleware('permission:assessments.manage-components|assessments.view-configuration')->name('components');
+        Route::get('/kkm', [Module10Controller::class, 'minimumCriteria'])->middleware('permission:assessments.manage-minimum-criteria')->name('minimum-criteria');
+        Route::get('/periode', [Module10Controller::class, 'periods'])->middleware('permission:assessments.manage-periods')->name('periods');
+        Route::get('/nilai-saya', [Module10Controller::class, 'myGrades'])->middleware('permission:grades.view-own')->name('my-grades');
+        Route::get('/input-nilai', [Module10Controller::class, 'input'])->middleware('permission:grades.create|grades.update-own')->name('input');
+        Route::get('/verifikasi-nilai', [Module10Controller::class, 'verification'])->middleware('permission:grades.verify|grades.reject')->name('grade-verification');
+        Route::get('/leger', [Module10Controller::class, 'leger'])->middleware('permission:grade-books.view|grade-books.view-own-class')->name('leger');
+        Route::get('/leger/export', [Module10Controller::class, 'exportLeger'])->middleware('permission:grade-books.export')->name('leger.export');
+        Route::get('/leger/print', [Module10Controller::class, 'printLeger'])->middleware('permission:grade-books.print|grade-books.print')->name('leger.print');
+        Route::get('/rapor-kelas-saya', [Module10Controller::class, 'reportClass'])->middleware('permission:report-cards.view-own-class')->name('report-class');
+        Route::get('/rapor/detail/{reportCard?}', [Module10Controller::class, 'reportDetail'])->middleware('permission:report-cards.view|report-cards.view-own-class')->name('report-detail');
+        Route::get('/verifikasi-rapor', [Module10Controller::class, 'reportVerification'])->middleware('permission:report-cards.verify|report-cards.finalize')->name('report-verification');
+        Route::get('/laporan', [Module10Controller::class, 'reports'])->middleware('permission:assessment-reports.view')->name('reports');
+        Route::get('/rapor/{reportCard?}/print', [Module10Controller::class, 'printReport'])->middleware('permission:report-cards.print|report-cards.print-own-class')->name('report.print');
+    });
 
     Route::get('/assessments/dashboard', [AssessmentController::class, 'dashboard'])->middleware('permission:assessment-reports.view')->name('assessments.dashboard');
     Route::get('/assessment-components', [AssessmentController::class, 'index'])->middleware('permission:assessments.view-own')->name('assessment-components.index');

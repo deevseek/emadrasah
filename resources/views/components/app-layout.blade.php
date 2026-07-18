@@ -23,6 +23,7 @@
             ['label' => 'Jadwal Pelajaran', 'route' => 'schedules.index', 'match' => 'schedules.*', 'permission' => ['schedules.view', 'schedules.view-own']],
             ['label' => 'Jurnal Mengajar', 'route' => 'teaching-journals.index', 'match' => 'teaching-journals.*', 'permission' => ['teaching-journals.view-own', 'teaching-journals.view']],
             ['label' => 'Absensi Siswa', 'route' => 'student-attendances.index', 'match' => 'student-attendances.*', 'permission' => ['student-attendances.view-own-class', 'student-attendances.view', 'student-attendances.report']],
+            ['label' => 'Penilaian & Rapor', 'route' => 'assessments.index', 'match' => 'assessments.*', 'permission' => ['grades.view-own', 'grade-books.view-own-class', 'grade-books.view', 'report-cards.view-own-class', 'report-cards.view', 'assessments.view-configuration', 'assessment-reports.view']],
         ]],
         ['label' => 'BTAQ', 'items' => [
             ['label' => 'Dashboard BTAQ', 'route' => 'btaq.index', 'match' => 'btaq.index', 'permission' => ['btaq-reports.view', 'btaq-sessions.view-own']],
