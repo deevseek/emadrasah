@@ -18,6 +18,25 @@ use Illuminate\View\View;
 
 class FinanceDashboardController extends Controller
 {
+    public function student(): View
+    {
+        $payments = StudentPayment::query()->where('status', 'posted');
+        $bills = StudentInvoice::query();
+
+        return view('finance.student.dashboard', [
+            'todayPayments' => (clone $payments)->whereDate('payment_date', today())->sum('total_amount'),
+            'todayTransactions' => (clone $payments)->whereDate('payment_date', today())->count(),
+            'monthPayments' => (clone $payments)->whereYear('payment_date', today()->year)->whereMonth('payment_date', today()->month)->sum('total_amount'),
+            'monthBills' => (clone $bills)->whereYear('created_at', today()->year)->whereMonth('created_at', today()->month)->sum('final_amount'),
+            'outstanding' => (clone $bills)->whereNotIn('status', ['cancelled', 'paid'])->sum('outstanding_amount'),
+            'arrearStudents' => (clone $bills)->where('outstanding_amount', '>', 0)->whereDate('due_on', '<', today())->distinct('student_id')->count('student_id'),
+            'dueToday' => (clone $bills)->whereDate('due_on', today())->where('outstanding_amount', '>', 0)->count(),
+            'dueSevenDays' => (clone $bills)->whereBetween('due_on', [today(), today()->addDays(7)])->where('outstanding_amount', '>', 0)->count(),
+            'cancelledThisMonth' => StudentPayment::query()->where('status', 'cancelled')->whereYear('cancelled_at', today()->year)->whereMonth('cancelled_at', today()->month)->count(),
+            'recentPayments' => StudentPayment::with('student')->latest('payment_date')->limit(8)->get(),
+        ]);
+    }
+
     public function payments(): View
     {
         return view('finance.dashboards.payments', [

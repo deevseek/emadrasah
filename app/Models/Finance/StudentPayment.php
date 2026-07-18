@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models\Finance;
 
 use App\Models\Student;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 
 class StudentPayment extends Model
@@ -30,5 +31,10 @@ class StudentPayment extends Model
     public function student()
     {
         return $this->belongsTo(Student::class);
+    }
+
+    public function receiver()
+    {
+        return $this->belongsTo(User::class, 'received_by');
     }
 }

@@ -36,6 +36,8 @@ use App\Models\TeachingAssignment;
 use App\Models\TeachingJournal;
 use App\Enums\TeachingJournalStatus;
 use App\Models\User;
+use App\Models\Finance\StudentInvoice;
+use App\Models\Finance\StudentPayment;
 use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\Models\Activity;
 
@@ -117,6 +119,13 @@ class DashboardMetricsService
             'reportCardsWaitingVerification' => ReportCard::query()->where('status', 'submitted')->count(),
             'reportCardsNeedsRevision' => ReportCard::query()->where('status', 'reopened')->count(),
             'reportCardsFinal' => ReportCard::query()->whereIn('status', ['approved', 'locked'])->count(),
+            'studentFinanceTodayPayments' => StudentPayment::query()->where('status', 'posted')->whereDate('payment_date', today())->sum('total_amount'),
+            'studentFinanceMonthPayments' => StudentPayment::query()->where('status', 'posted')->whereYear('payment_date', today()->year)->whereMonth('payment_date', today()->month)->sum('total_amount'),
+            'studentFinanceOutstanding' => StudentInvoice::query()->where('outstanding_amount', '>', 0)->where('status', '!=', 'cancelled')->sum('outstanding_amount'),
+            'studentFinanceArrearStudents' => StudentInvoice::query()->where('outstanding_amount', '>', 0)->whereDate('due_on', '<', today())->where('status', '!=', 'cancelled')->distinct('student_id')->count('student_id'),
+            'studentFinanceDueToday' => StudentInvoice::query()->where('outstanding_amount', '>', 0)->whereDate('due_on', today())->count(),
+            'studentFinanceDueSevenDays' => StudentInvoice::query()->where('outstanding_amount', '>', 0)->whereBetween('due_on', [today(), today()->addDays(7)])->count(),
+            'studentFinanceCancelledMonth' => StudentPayment::query()->where('status', 'cancelled')->whereYear('cancelled_at', today()->year)->whereMonth('cancelled_at', today()->month)->count(),
             'subjectsWithoutTeacher' => Subject::query()->where('is_active', true)->whereNotExists(function ($query) use ($activeYearId, $activeSemesterId): void {
                 $query->select(DB::raw(1))->from('teaching_assignments')->whereColumn('teaching_assignments.subject_id', 'subjects.id')->where('teaching_assignments.is_active', true);
                 if ($activeYearId !== null) { $query->where('teaching_assignments.academic_year_id', $activeYearId); }

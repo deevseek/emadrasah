@@ -42,6 +42,9 @@
             ['label' => 'Jadwal Kerja', 'route' => 'work-schedules.index', 'match' => 'work-schedules.*', 'permission' => ['work-schedules.view', 'work-schedules.manage']],
             ['label' => 'Laporan Kehadiran', 'route' => 'attendance-reports.index', 'match' => 'attendance-reports.*', 'permission' => ['employee-attendances.view', 'employee-attendances.export']],
         ]],
+        ['label' => 'Keuangan', 'items' => [
+            ['label' => 'Keuangan Siswa', 'route' => 'student-finance.dashboard', 'match' => 'student-finance.*', 'permission' => ['student-finance-dashboard.view', 'student-bills.view', 'student-payments.view', 'student-arrears.view', 'student-arrears.view-own-class', 'student-finance-reports.view']],
+        ]],
         ['label' => 'Akun & Akses', 'items' => [
             ['label' => 'Pengguna', 'route' => 'users.index', 'match' => 'users.*', 'permission' => 'users.view'],
         ]],

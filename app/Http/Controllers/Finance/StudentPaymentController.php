@@ -24,7 +24,8 @@ class StudentPaymentController extends Controller
         $data = $request->validate(['payment_date' => ['required','date'], 'student_id' => ['required','exists:students,id'], 'payment_method' => ['required','string'], 'reference_number' => ['nullable','string'], 'total_amount' => ['required','numeric','min:1'], 'notes' => ['nullable','string']]);
         $payment = $service->post($data + ['received_by' => $request->user()->id], $request->validate(['allocations' => ['required','array'], 'allocations.*.student_invoice_id' => ['required','exists:student_invoices,id'], 'allocations.*.amount' => ['required','numeric','min:1']])['allocations']);
 
-        return redirect()->route('finance.student-payments.show', $payment)->with('status', 'Pembayaran diposting.');
+        $route = $request->routeIs('student-finance.*') ? 'student-finance.payments.show' : 'finance.student-payments.show';
+        return redirect()->route($route, $payment)->with('status', 'Pembayaran diposting.');
     }
     public function cancel(Request $request, StudentPayment $studentPayment, StudentPaymentService $service): RedirectResponse { $service->cancel($studentPayment, $request->validate(['reason' => ['required','string']])['reason']); return back()->with('status', 'Pembayaran dibatalkan.'); }
 }
