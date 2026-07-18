@@ -21,3 +21,6 @@
 
 ### Known limitations
 - Quality gate penuh dan acceptance visual perlu dijalankan di CI/staging dengan dependency lengkap dan database yang tersedia.
+
+## Inventaris dan Aset
+- Modul inventaris menambahkan master kategori, lokasi, kondisi, satuan, barang, saldo ledger, transaksi, stock opname, laporan, print, PDF, CSV, permission, test, dan dokumentasi.

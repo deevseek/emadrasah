@@ -1,0 +1,3 @@
+<?php
+namespace App\Models\Inventory; use Illuminate\Database\Eloquent\{Factories\HasFactory,Model,SoftDeletes}; use Illuminate\Database\Eloquent\Relations\BelongsTo;
+class InventoryItemUnit extends Model{use HasFactory,SoftDeletes; protected $guarded=[]; protected function casts():array{return ['acquisition_date'=>'date'];} public function item():BelongsTo{return $this->belongsTo(InventoryItem::class,'inventory_item_id');} public function location():BelongsTo{return $this->belongsTo(InventoryLocation::class,'inventory_location_id');} public function condition():BelongsTo{return $this->belongsTo(InventoryCondition::class,'inventory_condition_id');}}
