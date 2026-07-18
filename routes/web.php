@@ -384,8 +384,12 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         Route::patch('components/{component}/toggle', [PayrollComponentController::class, 'toggle'])->middleware('permission:payroll-components.manage')->name('components.toggle');
         Route::get('salary-profiles/missing', [EmployeeSalaryProfileController::class, 'missing'])->middleware('permission:salary-profiles.view')->name('salary-profiles.missing');
         Route::get('salary-profiles/{employee}/history', [EmployeeSalaryProfileController::class, 'history'])->middleware('permission:salary-profiles.view')->name('salary-profiles.history');
-        Route::resource('salary-profiles', EmployeeSalaryProfileController::class)->only(['index','create','store','show'])->middleware('permission:salary-profiles.view');
-        Route::resource('periods', PayrollPeriodController::class)->only(['index','create','store','show'])->middleware('permission:payroll-periods.view');
+        Route::get('salary-profiles/create', [EmployeeSalaryProfileController::class, 'create'])->middleware('permission:salary-profiles.manage')->name('salary-profiles.create');
+        Route::post('salary-profiles', [EmployeeSalaryProfileController::class, 'store'])->middleware('permission:salary-profiles.manage')->name('salary-profiles.store');
+        Route::resource('salary-profiles', EmployeeSalaryProfileController::class)->only(['index','show'])->middleware('permission:salary-profiles.view');
+        Route::get('periods/create', [PayrollPeriodController::class, 'create'])->middleware('permission:payroll-periods.manage')->name('periods.create');
+        Route::post('periods', [PayrollPeriodController::class, 'store'])->middleware('permission:payroll-periods.manage')->name('periods.store');
+        Route::resource('periods', PayrollPeriodController::class)->only(['index','show'])->middleware('permission:payroll-periods.view');
         Route::get('periods/{period}/generate', [PayrollRunController::class, 'generate'])->middleware('permission:payroll-runs.generate')->name('runs.generate');
         Route::post('periods/{period}/generate', [PayrollRunController::class, 'store'])->middleware('permission:payroll-runs.generate')->name('runs.store');
         Route::get('runs', [PayrollRunController::class, 'index'])->middleware('permission:payroll-runs.view')->name('runs.index');

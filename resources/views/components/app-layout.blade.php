@@ -45,7 +45,7 @@
         ['label' => 'Keuangan', 'items' => [
             ['label' => 'Keuangan Siswa', 'route' => 'student-finance.dashboard', 'match' => 'student-finance.*', 'permission' => ['student-finance-dashboard.view', 'student-fee-types.view', 'student-bills.view', 'student-payments.view', 'student-arrears.view', 'student-arrears.view-own-class', 'student-finance-reports.view']],
             ['label' => 'Keuangan Operasional', 'route' => 'operational-finance.dashboard', 'match' => 'operational-finance.*', 'permission' => ['operational-finance-dashboard.view','cash-accounts.view','finance-categories.view','operational-incomes.view','operational-expenses.view','cash-transfers.view','finance-approvals.view','budgets.view','cash-books.view','cash-closings.view','operational-finance-reports.view']],
-            ['label' => 'Payroll Pegawai', 'route' => 'payroll.dashboard', 'match' => 'payroll.*', 'exclude' => 'payroll.payslips.*', 'permission' => ['payroll-dashboard.view','payroll-runs.view','payroll-components.view','salary-profiles.view','payroll-reports.view','payroll-payments.view']],
+            ['label' => 'Payroll Pegawai', 'route' => 'payroll.dashboard', 'match' => 'payroll.*', 'exclude' => 'payroll.payslips.*', 'permission' => ['payroll-dashboard.view','payroll-components.view','salary-profiles.view','payroll-periods.view','payroll-runs.view','payroll-payments.view','payroll-reports.view']],
             ['label' => 'Slip Gaji Saya', 'route' => 'payroll.payslips.mine', 'match' => 'payroll.payslips.mine*', 'permission' => ['payslips.view-own']],
         ]],
         ['label' => 'Akun & Akses', 'items' => [
@@ -63,6 +63,8 @@
         'assessments.*' => ['Beranda', 'Akademik', 'Penilaian dan Rapor'],
         'student-finance.*' => ['Beranda', 'Keuangan', 'Keuangan Siswa'],
         'payroll.components.*' => ['Beranda', 'Keuangan', 'Payroll Pegawai', 'Komponen Payroll'],
+        'payroll.salary-profiles.*' => ['Beranda', 'Keuangan', 'Payroll Pegawai', 'Profil Gaji'],
+        'payroll.periods.*' => ['Beranda', 'Keuangan', 'Payroll Pegawai', 'Periode Payroll'],
         'payroll.reports.*' => ['Beranda', 'Keuangan', 'Payroll Pegawai', 'Laporan'],
         'payroll.*' => ['Beranda', 'Keuangan', 'Payroll Pegawai'],
     ];
