@@ -1,1 +1,67 @@
-<?php declare(strict_types=1); namespace App\Http\Controllers\Payroll; use App\Http\Controllers\Controller; use App\Http\Requests\Payroll\StorePayrollComponentRequest; use App\Models\Payroll\PayrollComponent; use Illuminate\Http\RedirectResponse; use Illuminate\View\View; class PayrollComponentController extends Controller{public function index():View{return view('payroll.components.index',['title'=>'Komponen Payroll','components'=>PayrollComponent::latest()->paginate(15)]);} public function create():View{return view('payroll.components.form',['title'=>'Tambah Komponen Payroll','component'=>new PayrollComponent]);} public function store(StorePayrollComponentRequest $r):RedirectResponse{PayrollComponent::create($r->validated()+['created_by'=>$r->user()->id]);return redirect()->route('payroll.components.index')->with('status','Komponen Payroll disimpan.');} public function show(PayrollComponent $component):View{return view('payroll.components.show',['title'=>'Detail Komponen Payroll','component'=>$component]);} public function edit(PayrollComponent $component):View{return view('payroll.components.form',['title'=>'Edit Komponen Payroll','component'=>$component]);} public function update(StorePayrollComponentRequest $r,PayrollComponent $component):RedirectResponse{$component->update($r->validated()+['updated_by'=>$r->user()->id]);return back()->with('status','Komponen Payroll diperbarui.');} public function toggle(PayrollComponent $component):RedirectResponse{$component->update(['is_active'=>!$component->is_active]);return back()->with('status','Status komponen diubah.');}}
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Controllers\Payroll;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Payroll\StorePayrollComponentRequest;
+use App\Models\Payroll\PayrollComponent;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\View\View;
+
+class PayrollComponentController extends Controller
+{
+    public function index(): View
+    {
+        return view('payroll.components.index', [
+            'title' => 'Komponen Payroll',
+            'components' => PayrollComponent::latest()->paginate(15),
+        ]);
+    }
+
+    public function create(): View
+    {
+        return view('payroll.components.form', [
+            'title' => 'Tambah Komponen Payroll',
+            'payrollComponent' => new PayrollComponent,
+        ]);
+    }
+
+    public function store(StorePayrollComponentRequest $r): RedirectResponse
+    {
+        PayrollComponent::create($r->validated() + ['created_by' => $r->user()->id]);
+
+        return redirect()->route('payroll.components.index')->with('status', 'Komponen Payroll disimpan.');
+    }
+
+    public function show(PayrollComponent $component): View
+    {
+        return view('payroll.components.show', [
+            'title' => 'Detail Komponen Payroll',
+            'payrollComponent' => $component,
+        ]);
+    }
+
+    public function edit(PayrollComponent $component): View
+    {
+        return view('payroll.components.form', [
+            'title' => 'Edit Komponen Payroll',
+            'payrollComponent' => $component,
+        ]);
+    }
+
+    public function update(StorePayrollComponentRequest $r, PayrollComponent $component): RedirectResponse
+    {
+        $component->update($r->validated() + ['updated_by' => $r->user()->id]);
+
+        return back()->with('status', 'Komponen Payroll diperbarui.');
+    }
+
+    public function toggle(PayrollComponent $component): RedirectResponse
+    {
+        $component->update(['is_active' => ! $component->is_active]);
+
+        return back()->with('status', 'Status komponen diubah.');
+    }
+}
