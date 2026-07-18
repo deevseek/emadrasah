@@ -48,7 +48,9 @@ class ApplicationNavigationTest extends TestCase
             ->assertSee('Mata Pelajaran')
             ->assertSee('Penugasan Mengajar')
             ->assertSee('Jadwal Pelajaran')
-            ->assertDontSee('Absensi Siswa')
+            ->assertSee('Absensi Siswa')
+            ->assertSee('Keuangan Siswa')
+            ->assertSee('Payroll Pegawai')
             ->assertDontSee('Dashboard BTAQ')
             ->assertDontSee('Dashboard Penilaian')
             ->assertDontSee('Dashboard Rapor');
@@ -74,6 +76,40 @@ class ApplicationNavigationTest extends TestCase
 
             $this->assertSame(200, $response->getStatusCode(), "Route {$routeName} gagal dirender.");
         }
+    }
+
+    public function test_regression_pages_render_indonesian_titles_and_navigation(): void
+    {
+        foreach ([
+            'subjects.index' => 'Mata Pelajaran',
+            'teaching-journals.index' => 'Jurnal Mengajar',
+            'student-attendances.create' => 'Input Absensi Siswa',
+            'assessments.configuration' => 'Konfigurasi Penilaian',
+            'student-finance.fee-types.index' => 'Jenis Tagihan',
+            'payroll.components.index' => 'Komponen Payroll',
+            'payroll.reports.index' => 'Laporan Payroll',
+        ] as $routeName => $title) {
+            $response = $this->actingAs($this->admin)->get(route($routeName));
+
+            $response->assertOk()
+                ->assertSee($title)
+                ->assertDontSee('Subjects / Index')
+                ->assertDontSee('Student Finance / Fee Types / Index')
+                ->assertDontSee('Payroll / Components / Index');
+        }
+    }
+
+    public function test_user_without_finance_permission_does_not_see_finance_navigation_and_gets_403(): void
+    {
+        $user = User::factory()->create();
+        $user->givePermissionTo('dashboard.view');
+
+        $this->actingAs($user)->get(route('dashboard'))->assertOk()
+            ->assertDontSee('Keuangan Siswa')
+            ->assertDontSee('Payroll Pegawai');
+
+        $this->actingAs($user)->get(route('student-finance.fee-types.index'))->assertForbidden();
+        $this->actingAs($user)->get(route('payroll.components.index'))->assertForbidden();
     }
 
     public function test_dashboard_renders_real_database_metrics_and_actions(): void
