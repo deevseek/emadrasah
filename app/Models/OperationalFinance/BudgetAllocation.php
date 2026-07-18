@@ -1,0 +1,1 @@
+<?php declare(strict_types=1); namespace App\Models\OperationalFinance; use Illuminate\Database\Eloquent\Model; class BudgetAllocation extends Model { protected $guarded=[]; public function budgetPeriod(){return $this->belongsTo(BudgetPeriod::class);} public function financeCategory(){return $this->belongsTo(FinanceCategory::class);} }

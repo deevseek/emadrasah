@@ -95,4 +95,21 @@
 
   <section class="card"><div class="card-body"><h2 class="mb-4 text-lg font-bold text-emerald-950">Aktivitas fondasi terbaru</h2><div class="space-y-3">@forelse($latestActivities as $activity)<div class="rounded-xl bg-slate-50 p-3 text-sm"><p class="font-semibold text-slate-800">{{ $activity->description }}</p><p class="text-xs text-slate-500">{{ $activity->created_at?->diffForHumans() }}</p></div>@empty<div class="empty-state">Belum ada aktivitas perubahan fondasi.</div>@endforelse</div></div></section>
 </div>
+
+        <section class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+            <h2 class="text-lg font-bold text-emerald-950">Keuangan Operasional</h2>
+            <p class="mt-1 text-sm text-slate-600">Ringkasan operasional e-Madrasah berdasarkan data madrasah terkini.</p>
+            <div class="mt-4 grid gap-3 md:grid-cols-4">
+                <x-ui.stat-card title="Total Saldo Kas" :value="'Rp '.number_format((float) $operationalFinanceTotalBalance, 0, ',', '.')" />
+                <x-ui.stat-card title="Pemasukan Hari Ini" :value="'Rp '.number_format((float) $operationalFinanceTodayIncome, 0, ',', '.')" />
+                <x-ui.stat-card title="Pengeluaran Hari Ini" :value="'Rp '.number_format((float) $operationalFinanceTodayExpense, 0, ',', '.')" />
+                <x-ui.stat-card title="Arus Bersih Bulan Ini" :value="'Rp '.number_format((float) $operationalFinanceMonthNet, 0, ',', '.')" />
+            </div>
+            <div class="mt-4 flex flex-wrap gap-2 text-sm">
+                <a class="rounded-full bg-amber-50 px-3 py-1 font-semibold text-amber-700" href="{{ route('operational-finance.approvals.index') }}">{{ $operationalFinancePendingApproval }} transaksi menunggu persetujuan</a>
+                <a class="rounded-full bg-emerald-50 px-3 py-1 font-semibold text-emerald-700" href="{{ route('operational-finance.reconciliations.index') }}">{{ $operationalFinanceCashDifferences }} akun kas memiliki selisih</a>
+                <a class="rounded-full bg-rose-50 px-3 py-1 font-semibold text-rose-700" href="{{ route('operational-finance.reports.index') }}">{{ $operationalFinanceCancelled }} transaksi dibatalkan</a>
+            </div>
+        </section>
+
 </x-app-layout>

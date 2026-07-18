@@ -38,6 +38,9 @@ use App\Enums\TeachingJournalStatus;
 use App\Models\User;
 use App\Models\Finance\StudentInvoice;
 use App\Models\Finance\StudentPayment;
+use App\Models\Finance\CashAccount;
+use App\Models\OperationalFinance\OperationalTransaction;
+use App\Models\OperationalFinance\CashReconciliation;
 use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\Models\Activity;
 
@@ -126,6 +129,13 @@ class DashboardMetricsService
             'studentFinanceDueToday' => StudentInvoice::query()->where('outstanding_amount', '>', 0)->whereDate('due_on', today())->count(),
             'studentFinanceDueSevenDays' => StudentInvoice::query()->where('outstanding_amount', '>', 0)->whereBetween('due_on', [today(), today()->addDays(7)])->count(),
             'studentFinanceCancelledMonth' => StudentPayment::query()->where('status', 'cancelled')->whereYear('cancelled_at', today()->year)->whereMonth('cancelled_at', today()->month)->count(),
+            'operationalFinanceTotalBalance' => CashAccount::query()->sum('current_balance'),
+            'operationalFinanceTodayIncome' => OperationalTransaction::query()->where('status', 'posted')->where('transaction_type', 'income')->whereDate('transaction_date', today())->sum('amount'),
+            'operationalFinanceTodayExpense' => OperationalTransaction::query()->where('status', 'posted')->where('transaction_type', 'expense')->whereDate('transaction_date', today())->sum('amount'),
+            'operationalFinanceMonthNet' => OperationalTransaction::query()->where('status', 'posted')->whereYear('transaction_date', today()->year)->whereMonth('transaction_date', today()->month)->selectRaw("sum(case when transaction_type='income' then amount when transaction_type='expense' then -amount else 0 end) as total")->value('total') ?? 0,
+            'operationalFinancePendingApproval' => OperationalTransaction::query()->where('status', 'submitted')->count(),
+            'operationalFinanceCancelled' => OperationalTransaction::query()->where('status', 'cancelled')->count(),
+            'operationalFinanceCashDifferences' => CashReconciliation::query()->where('difference', '!=', 0)->count(),
             'subjectsWithoutTeacher' => Subject::query()->where('is_active', true)->whereNotExists(function ($query) use ($activeYearId, $activeSemesterId): void {
                 $query->select(DB::raw(1))->from('teaching_assignments')->whereColumn('teaching_assignments.subject_id', 'subjects.id')->where('teaching_assignments.is_active', true);
                 if ($activeYearId !== null) { $query->where('teaching_assignments.academic_year_id', $activeYearId); }
