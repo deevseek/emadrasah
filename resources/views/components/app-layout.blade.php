@@ -44,6 +44,7 @@
         ]],
         ['label' => 'Keuangan', 'items' => [
             ['label' => 'Keuangan Siswa', 'route' => 'student-finance.dashboard', 'match' => 'student-finance.*', 'permission' => ['student-finance-dashboard.view', 'student-bills.view', 'student-payments.view', 'student-arrears.view', 'student-arrears.view-own-class', 'student-finance-reports.view']],
+            ['label' => 'Keuangan Operasional', 'route' => 'operational-finance.dashboard', 'match' => 'operational-finance.*', 'permission' => ['operational-finance-dashboard.view','cash-accounts.view','finance-categories.view','operational-incomes.view','operational-expenses.view','cash-transfers.view','finance-approvals.view','budgets.view','cash-books.view','cash-closings.view','operational-finance-reports.view']],
         ]],
         ['label' => 'Akun & Akses', 'items' => [
             ['label' => 'Pengguna', 'route' => 'users.index', 'match' => 'users.*', 'permission' => 'users.view'],
