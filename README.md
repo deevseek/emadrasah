@@ -88,3 +88,6 @@ Secrets, `.env`, backup, dan file pengguna tidak boleh masuk Git. Semua route ba
 ## Deployment
 
 Lihat `docs/deployment.md` untuk panduan Ubuntu, Nginx, PHP-FPM, MySQL, Supervisor queue, scheduler cron, permission storage, dan prosedur backup/restore manual.
+
+### Modul Inventaris dan Aset
+Dokumentasi modul tersedia di `docs/modules/inventory-assets.md`.
