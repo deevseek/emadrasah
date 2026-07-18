@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
+        $this->dropPayrollTables();
+
         Schema::create('payroll_components', function (Blueprint $table): void { $table->id(); $table->string('name'); $table->string('code')->unique(); $table->string('component_type'); $table->string('calculation_type'); $table->bigInteger('default_amount')->default(0); $table->decimal('percentage', 8, 4)->nullable(); $table->string('formula_key')->nullable(); $table->boolean('is_tax_related')->default(false); $table->boolean('is_attendance_related')->default(false); $table->boolean('is_fixed')->default(true); $table->boolean('is_prorated')->default(false); $table->boolean('is_active')->default(true); $table->boolean('show_on_payslip')->default(true); $table->unsignedInteger('sort_order')->default(0); $table->text('notes')->nullable(); $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete(); $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete(); $table->softDeletes(); $table->timestamps(); });
         Schema::create('employee_salary_profiles', function (Blueprint $table): void { $table->id(); $table->foreignId('employee_id')->constrained()->cascadeOnDelete(); $table->date('effective_start_date'); $table->date('effective_end_date')->nullable(); $table->string('payroll_frequency')->default('monthly'); $table->bigInteger('base_salary')->default(0); $table->foreignId('default_cash_account_id')->nullable()->constrained('cash_accounts')->nullOnDelete(); $table->string('payment_method')->default('cash'); $table->text('bank_name')->nullable(); $table->text('bank_account_number')->nullable(); $table->text('bank_account_holder')->nullable(); $table->boolean('is_active')->default(true); $table->text('notes')->nullable(); $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete(); $table->foreignId('approved_by')->nullable()->constrained('users')->nullOnDelete(); $table->timestamp('approved_at')->nullable(); $table->timestamps(); $table->index(['employee_id','effective_start_date','effective_end_date'], 'salary_profiles_effective_idx'); });
         Schema::create('employee_salary_profile_components', function (Blueprint $table): void { $table->id(); $table->foreignId('employee_salary_profile_id')->constrained('employee_salary_profiles', 'id', 'esp_components_profile_fk')->cascadeOnDelete(); $table->foreignId('payroll_component_id')->constrained()->restrictOnDelete(); $table->bigInteger('amount')->default(0); $table->decimal('percentage', 8, 4)->nullable(); $table->string('calculation_basis')->nullable(); $table->boolean('is_active')->default(true); $table->date('effective_start_date'); $table->date('effective_end_date')->nullable(); $table->text('notes')->nullable(); $table->timestamps(); $table->unique(['employee_salary_profile_id','payroll_component_id','effective_start_date'], 'salary_component_version_unique'); });
@@ -27,6 +29,15 @@ return new class extends Migration {
     public function down(): void
     {
         Schema::table('operational_transactions', function (Blueprint $table): void { if (Schema::hasColumn('operational_transactions','source_type')) { $table->dropUnique(['source_type','source_id']); $table->dropColumn(['source_type','source_id']); } });
+        $this->dropPayrollTables();
+    }
+
+    private function dropPayrollTables(): void
+    {
+        Schema::disableForeignKeyConstraints();
+
         foreach (['payroll_attendance_rules','payroll_attendance_snapshots','payslip_sequences','payroll_payments','payroll_approvals','payroll_adjustments','payroll_item_components','payroll_items','payroll_runs','payroll_periods_v2','employee_salary_profile_components','employee_salary_profiles','payroll_components'] as $table) { Schema::dropIfExists($table); }
+
+        Schema::enableForeignKeyConstraints();
     }
 };
