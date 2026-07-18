@@ -28,6 +28,7 @@ use App\Models\Semester;
 use App\Models\Student;
 use App\Models\StudentAttendance;
 use App\Models\StudentAttendanceSession;
+use App\Models\StudentEnrollment;
 use App\Enums\StudentAttendanceSessionStatus;
 use App\Enums\StudentAttendanceStatus;
 use App\Models\Subject;
