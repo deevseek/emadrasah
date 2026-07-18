@@ -1,0 +1,1 @@
+<?php declare(strict_types=1); namespace App\Http\Requests\Payroll; use Illuminate\Foundation\Http\FormRequest; class GeneratePayrollRunRequest extends FormRequest{public function authorize():bool{return $this->user()->can('payroll-runs.generate');} public function rules():array{return ['employee_ids'=>'array','employee_ids.*'=>'exists:employees,id'];}}

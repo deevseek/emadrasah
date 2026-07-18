@@ -41,6 +41,10 @@ use App\Models\Finance\StudentPayment;
 use App\Models\Finance\CashAccount;
 use App\Models\OperationalFinance\OperationalTransaction;
 use App\Models\OperationalFinance\CashReconciliation;
+use App\Models\Payroll\EmployeeSalaryProfile;
+use App\Models\Payroll\PayrollRun;
+use App\Models\Payroll\PayrollItem;
+use App\Models\Payroll\PayrollPayment;
 use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\Models\Activity;
 
@@ -136,6 +140,16 @@ class DashboardMetricsService
             'operationalFinancePendingApproval' => OperationalTransaction::query()->where('status', 'submitted')->count(),
             'operationalFinanceCancelled' => OperationalTransaction::query()->where('status', 'cancelled')->count(),
             'operationalFinanceCashDifferences' => CashReconciliation::query()->where('difference', '!=', 0)->count(),
+            'payrollActivePeriod' => PayrollRun::query()->with('period')->whereIn('status', ['calculated','submitted','approved','final'])->latest()->first()?->period?->name ?? 'Tidak ada',
+            'payrollEmployeesWithoutProfile' => Employee::query()->where('is_active', true)->whereDoesntHave('salaryProfiles')->count(),
+            'payrollWaitingApproval' => PayrollRun::query()->where('status', 'submitted')->count(),
+            'payrollNeedsRevision' => PayrollRun::query()->where('status', 'revision')->count(),
+            'payrollMonthTotal' => PayrollRun::query()->whereIn('status', ['final','partially_paid','paid'])->whereYear('created_at', today()->year)->whereMonth('created_at', today()->month)->sum('total_net'),
+            'payrollUnpaidItems' => PayrollItem::query()->where('payment_status', 'unpaid')->count(),
+            'payrollPartiallyPaidItems' => PayrollItem::query()->where('payment_status', 'partial')->count(),
+            'payrollManualAdjustments' => \App\Models\Payroll\PayrollAdjustment::query()->count(),
+            'payrollPaymentsThisMonth' => PayrollPayment::query()->where('payment_status', 'paid')->whereYear('payment_date', today()->year)->whereMonth('payment_date', today()->month)->sum('amount'),
+            'employeeLatestPayslip' => auth()->user()?->employee ? PayrollItem::query()->where('employee_id', auth()->user()->employee->id)->latest()->first() : null,
             'subjectsWithoutTeacher' => Subject::query()->where('is_active', true)->whereNotExists(function ($query) use ($activeYearId, $activeSemesterId): void {
                 $query->select(DB::raw(1))->from('teaching_assignments')->whereColumn('teaching_assignments.subject_id', 'subjects.id')->where('teaching_assignments.is_active', true);
                 if ($activeYearId !== null) { $query->where('teaching_assignments.academic_year_id', $activeYearId); }

@@ -1,0 +1,1 @@
+<x-app-layout :title="$title"><div class="space-y-6">@include('payroll.partials.tabs')<div class="card"><div class="card-body">@forelse($employees as $e)<p>{{ $e->fullName() }} — {{ $e->position }}</p>@empty<div class="empty-state">Semua pegawai aktif sudah memiliki profil gaji.</div>@endforelse{{ $employees->links() }}</div></div></div></x-app-layout>
