@@ -68,6 +68,12 @@ class Employee extends Model
         return $this->hasMany(\App\Models\Finance\EmployeeSalaryComponent::class);
     }
 
+
+    public function salaryProfiles(): HasMany
+    {
+        return $this->hasMany(\App\Models\Payroll\EmployeeSalaryProfile::class);
+    }
+
     public function fullName(): string
     {
         return trim(collect([$this->front_title, $this->name, $this->back_title])->filter()->join(' '));

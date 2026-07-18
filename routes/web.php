@@ -45,6 +45,18 @@ use App\Http\Controllers\Assessment\AssessmentController;
 use App\Http\Controllers\Assessment\Module10Controller;
 use App\Http\Controllers\ReportCard\ReportCardController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Payroll\PayrollDashboardController;
+use App\Http\Controllers\Payroll\PayrollComponentController;
+use App\Http\Controllers\Payroll\EmployeeSalaryProfileController;
+use App\Http\Controllers\Payroll\PayrollPeriodController;
+use App\Http\Controllers\Payroll\PayrollRunController;
+use App\Http\Controllers\Payroll\PayrollAdjustmentController;
+use App\Http\Controllers\Payroll\PayrollApprovalController;
+use App\Http\Controllers\Payroll\PayrollPaymentController;
+use App\Http\Controllers\Payroll\PayslipController;
+use App\Http\Controllers\Payroll\EmployeePayslipController;
+use App\Http\Controllers\Payroll\PayrollReportController;
+
 
 Route::redirect('/', '/dashboard');
 
@@ -365,6 +377,40 @@ Route::middleware(['auth', 'active'])->group(function (): void {
     Route::patch('/report-cards/{reportCard}/lock', [ReportCardController::class, 'lock'])->middleware('permission:report-cards.lock')->name('report-cards.lock');
     Route::patch('/report-cards/{reportCard}/reopen', [ReportCardController::class, 'reopen'])->middleware('permission:report-cards.reopen')->name('report-cards.reopen');
     Route::get('/report-cards/{reportCard}/print', [ReportCardController::class, 'print'])->middleware('permission:report-cards.print')->name('report-cards.print');
+
+    Route::prefix('payroll-pegawai')->name('payroll.')->group(function (): void {
+        Route::get('/', PayrollDashboardController::class)->middleware('permission:payroll-dashboard.view')->name('dashboard');
+        Route::resource('components', PayrollComponentController::class)->parameters(['components' => 'component'])->except(['destroy'])->middleware(['permission:payroll-components.view']);
+        Route::patch('components/{component}/toggle', [PayrollComponentController::class, 'toggle'])->middleware('permission:payroll-components.manage')->name('components.toggle');
+        Route::get('salary-profiles/missing', [EmployeeSalaryProfileController::class, 'missing'])->middleware('permission:salary-profiles.view')->name('salary-profiles.missing');
+        Route::get('salary-profiles/{employee}/history', [EmployeeSalaryProfileController::class, 'history'])->middleware('permission:salary-profiles.view')->name('salary-profiles.history');
+        Route::resource('salary-profiles', EmployeeSalaryProfileController::class)->only(['index','create','store','show'])->middleware('permission:salary-profiles.view');
+        Route::resource('periods', PayrollPeriodController::class)->only(['index','create','store','show'])->middleware('permission:payroll-periods.view');
+        Route::get('periods/{period}/generate', [PayrollRunController::class, 'generate'])->middleware('permission:payroll-runs.generate')->name('runs.generate');
+        Route::post('periods/{period}/generate', [PayrollRunController::class, 'store'])->middleware('permission:payroll-runs.generate')->name('runs.store');
+        Route::get('runs', [PayrollRunController::class, 'index'])->middleware('permission:payroll-runs.view')->name('runs.index');
+        Route::get('runs/{run}', [PayrollRunController::class, 'show'])->middleware('permission:payroll-runs.view')->name('runs.show');
+        Route::get('runs/{run}/preview', [PayrollRunController::class, 'preview'])->middleware('permission:payroll-runs.view')->name('runs.preview');
+        Route::get('items/{item}', [PayrollRunController::class, 'item'])->middleware('permission:payroll-runs.view')->name('runs.items.show');
+        Route::post('items/{item}/adjustments', [PayrollAdjustmentController::class, 'store'])->middleware('permission:payroll-adjustments.create')->name('adjustments.store');
+        Route::get('adjustments', [PayrollAdjustmentController::class, 'index'])->middleware('permission:payroll-adjustments.view')->name('adjustments.index');
+        Route::get('approvals', [PayrollApprovalController::class, 'index'])->middleware('permission:payroll-runs.approve|payroll-runs.reject|payroll-runs.finalize')->name('approvals.index');
+        Route::patch('runs/{run}/submit', [PayrollApprovalController::class, 'submit'])->middleware('permission:payroll-runs.submit')->name('runs.submit');
+        Route::patch('runs/{run}/approve', [PayrollApprovalController::class, 'approve'])->middleware('permission:payroll-runs.approve')->name('runs.approve');
+        Route::patch('runs/{run}/reject', [PayrollApprovalController::class, 'reject'])->middleware('permission:payroll-runs.reject')->name('runs.reject');
+        Route::patch('runs/{run}/finalize', [PayrollApprovalController::class, 'finalize'])->middleware('permission:payroll-runs.finalize')->name('runs.finalize');
+        Route::get('payments', [PayrollPaymentController::class, 'index'])->middleware('permission:payroll-payments.view')->name('payments.index');
+        Route::post('runs/{run}/payments', [PayrollPaymentController::class, 'store'])->middleware('permission:payroll-payments.create')->name('payments.store');
+        Route::patch('payments/{payment}/cancel', [PayrollPaymentController::class, 'cancel'])->middleware('permission:payroll-payments.cancel')->name('payments.cancel');
+        Route::get('payslips/mine', [EmployeePayslipController::class, 'index'])->middleware('permission:payslips.view-own')->name('payslips.mine');
+        Route::get('payslips/mine/{item}', [EmployeePayslipController::class, 'show'])->middleware('permission:payslips.view-own')->name('payslips.mine.show');
+        Route::get('payslips/{item}', [PayslipController::class, 'show'])->middleware('permission:payslips.view')->name('payslips.show');
+        Route::get('payslips/{item}/print', [PayslipController::class, 'print'])->middleware('permission:payslips.print')->name('payslips.print');
+        Route::get('reports', [PayrollReportController::class, 'index'])->middleware('permission:payroll-reports.view')->name('reports.index');
+        Route::get('reports/export/csv', [PayrollReportController::class, 'export'])->middleware('permission:payroll-reports.export')->name('reports.export');
+        Route::get('reports/print/recap', [PayrollReportController::class, 'print'])->middleware('permission:payroll-reports.print')->name('reports.print');
+    });
+
     Route::patch('/users/{user}/toggle', [UserManagementController::class, 'toggle'])->middleware('permission:users.activate')->name('users.toggle');
 });
 

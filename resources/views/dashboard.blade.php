@@ -19,6 +19,36 @@
         </section>
     @endcan
 
+
+
+    @can('payroll-dashboard.view')
+        <section class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+            <div class="mb-4 flex items-center justify-between">
+                <div><h2 class="text-lg font-bold text-emerald-950">Payroll Pegawai</h2><p class="text-sm text-slate-600">Ringkasan operasional e-Madrasah berdasarkan data madrasah terkini.</p></div>
+                <a href="{{ route('payroll.dashboard') }}" class="rounded-xl bg-emerald-800 px-4 py-2 text-sm font-semibold text-white">Buka Payroll Pegawai</a>
+            </div>
+            <div class="grid gap-4 md:grid-cols-4">
+                <x-ui.stat-card title="Periode Payroll Aktif" :value="$payrollActivePeriod" />
+                <x-ui.stat-card title="Pegawai Belum Profil" :value="$payrollEmployeesWithoutProfile" />
+                <x-ui.stat-card title="Menunggu Persetujuan" :value="$payrollWaitingApproval" />
+                <x-ui.stat-card title="Perlu Perbaikan" :value="$payrollNeedsRevision" />
+                <x-ui.stat-card title="Payroll Bulan Ini" :value="'Rp '.number_format((int) $payrollMonthTotal, 0, ',', '.')" />
+                <x-ui.stat-card title="Belum Dibayar" :value="$payrollUnpaidItems" />
+                <x-ui.stat-card title="Dibayar Sebagian" :value="$payrollPartiallyPaidItems" />
+                <x-ui.stat-card title="Penyesuaian Manual" :value="$payrollManualAdjustments" />
+            </div>
+        </section>
+    @endcan
+
+    @can('payslips.view-own')
+        <section class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+            <h2 class="text-lg font-bold text-emerald-950">Slip Gaji Saya</h2>
+            <p class="text-sm text-slate-600">Ringkasan operasional e-Madrasah berdasarkan data madrasah terkini.</p>
+            <p class="mt-3">{{ $employeeLatestPayslip?->payslip_number ?? 'Belum ada slip gaji final.' }} — {{ $employeeLatestPayslip?->payment_status ?? '-' }}</p>
+            <a class="mt-3 inline-block rounded-xl bg-emerald-800 px-4 py-2 text-sm font-semibold text-white" href="{{ route('payroll.payslips.mine') }}">Lihat Slip</a>
+        </section>
+    @endcan
+
   <section class="rounded-3xl bg-emerald-950 p-6 text-white shadow-sm">
     <p class="text-sm text-emerald-100">Beranda e-Madrasah</p>
     <h2 class="mt-2 text-2xl font-black">{{ $profile->school_name }}</h2>

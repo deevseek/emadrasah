@@ -45,6 +45,8 @@
         ['label' => 'Keuangan', 'items' => [
             ['label' => 'Keuangan Siswa', 'route' => 'student-finance.dashboard', 'match' => 'student-finance.*', 'permission' => ['student-finance-dashboard.view', 'student-bills.view', 'student-payments.view', 'student-arrears.view', 'student-arrears.view-own-class', 'student-finance-reports.view']],
             ['label' => 'Keuangan Operasional', 'route' => 'operational-finance.dashboard', 'match' => 'operational-finance.*', 'permission' => ['operational-finance-dashboard.view','cash-accounts.view','finance-categories.view','operational-incomes.view','operational-expenses.view','cash-transfers.view','finance-approvals.view','budgets.view','cash-books.view','cash-closings.view','operational-finance-reports.view']],
+            ['label' => 'Payroll Pegawai', 'route' => 'payroll.dashboard', 'match' => 'payroll.*', 'permission' => ['payroll-dashboard.view','payroll-runs.view','payroll-components.view','salary-profiles.view']],
+            ['label' => 'Slip Gaji Saya', 'route' => 'payroll.payslips.mine', 'match' => 'payroll.payslips.mine*', 'permission' => ['payslips.view-own']],
         ]],
         ['label' => 'Akun & Akses', 'items' => [
             ['label' => 'Pengguna', 'route' => 'users.index', 'match' => 'users.*', 'permission' => 'users.view'],
