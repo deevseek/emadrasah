@@ -1,0 +1,5 @@
+<x-app-layout title="Tunggakan Siswa">
+@include('finance.student.tabs')
+<form class="mb-4 rounded-2xl bg-white p-4 ring-1 ring-slate-200"><x-ui.select name="classroom_id" label="Kelas" :options="$classrooms->pluck('name','id')"/><x-ui.button>Filter</x-ui.button><a href="{{ route('student-finance.arrears.export') }}" class="ml-2 text-emerald-700">Export CSV</a></form>
+<div class="overflow-x-auto rounded-2xl bg-white p-5 ring-1 ring-slate-200"><table class="min-w-full text-sm"><thead><tr><th>Siswa</th><th>Kelas</th><th>Tagihan</th><th>Jatuh Tempo</th><th class="text-right">Sisa</th></tr></thead><tbody>@forelse($items as $bill)<tr class="border-t"><td class="py-2">{{ $bill->student?->name }}</td><td>{{ $bill->student?->activeEnrollment?->classroom?->name }}</td><td>{{ $bill->invoice_number }}</td><td>{{ $bill->due_on?->format('d/m/Y') }}</td><td class="text-right">Rp {{ number_format((int)$bill->outstanding_amount,0,',','.') }}</td></tr>@empty<tr><td colspan="5" class="py-8 text-center text-slate-500">Tidak ada tunggakan.</td></tr>@endforelse</tbody></table>{{ $items->links() }}</div>
+</x-app-layout>

@@ -1,5 +1,24 @@
 <x-app-layout :title="$title">
 <div class="space-y-6">
+
+    @can('student-finance-dashboard.view')
+        <section class="mb-6 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+            <div class="mb-4 flex items-center justify-between">
+                <div><h2 class="text-lg font-bold text-emerald-950">Keuangan Siswa</h2><p class="text-sm text-slate-600">Ringkasan operasional e-Madrasah berdasarkan data madrasah terkini.</p></div>
+                <a href="{{ route('student-finance.dashboard') }}" class="rounded-xl bg-emerald-800 px-4 py-2 text-sm font-semibold text-white">Buka Keuangan Siswa</a>
+            </div>
+            <div class="grid gap-4 md:grid-cols-4">
+                <x-ui.stat-card title="Pembayaran Hari Ini" :value="'Rp '.number_format((int) $studentFinanceTodayPayments, 0, ',', '.')" />
+                <x-ui.stat-card title="Pemasukan Bulan Ini" :value="'Rp '.number_format((int) $studentFinanceMonthPayments, 0, ',', '.')" />
+                <x-ui.stat-card title="Total Tunggakan" :value="'Rp '.number_format((int) $studentFinanceOutstanding, 0, ',', '.')" />
+                <x-ui.stat-card title="Siswa Menunggak" :value="$studentFinanceArrearStudents" />
+                <x-ui.stat-card title="Jatuh Tempo Hari Ini" :value="$studentFinanceDueToday" />
+                <x-ui.stat-card title="Jatuh Tempo 7 Hari" :value="$studentFinanceDueSevenDays" />
+                <x-ui.stat-card title="Transaksi Dibatalkan" :value="$studentFinanceCancelledMonth" />
+            </div>
+        </section>
+    @endcan
+
   <section class="rounded-3xl bg-emerald-950 p-6 text-white shadow-sm">
     <p class="text-sm text-emerald-100">Beranda e-Madrasah</p>
     <h2 class="mt-2 text-2xl font-black">{{ $profile->school_name }}</h2>

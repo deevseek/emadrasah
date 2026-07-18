@@ -27,6 +27,19 @@ class RolePermissionSeeder extends Seeder
         Role::findByName('guru-mata-pelajaran')->givePermissionTo(['grades.view-own','grades.create','grades.update-own','grades.submit']);
         Role::findByName('guru-kelas')->givePermissionTo(['grade-books.view-own-class','report-cards.view-own-class','report-cards.compile','report-cards.update-own-class','report-cards.submit','report-cards.print-own-class']);
 
+
+        $module11All = ['student-fee-types.view','student-fee-types.manage','student-bills.view','student-bills.create','student-bills.update-draft','student-bills.generate-bulk','student-bills.cancel','student-bills.print','student-payments.view','student-payments.create','student-payments.cancel','student-payments.print-receipt','student-discounts.view','student-discounts.create','student-discounts.approve','student-discounts.cancel','student-arrears.view','student-arrears.view-own-class','student-arrears.export','student-arrears.print','student-finance-reports.view','student-finance-reports.export','student-finance-reports.print','student-finance-dashboard.view'];
+        foreach ($module11All as $permissionName) {
+            Permission::firstOrCreate(['name' => $permissionName, 'guard_name' => 'web']);
+        }
+        Role::findByName('super-admin')->givePermissionTo($module11All);
+        Role::findByName('admin-madrasah')->givePermissionTo($module11All);
+        Role::findByName('bendahara')->givePermissionTo(['student-fee-types.view','student-fee-types.manage','student-bills.view','student-bills.create','student-bills.update-draft','student-bills.generate-bulk','student-bills.print','student-payments.view','student-payments.create','student-payments.print-receipt','student-discounts.view','student-discounts.create','student-arrears.view','student-arrears.export','student-arrears.print','student-finance-reports.view','student-finance-reports.export','student-finance-reports.print','student-finance-dashboard.view']);
+        Role::findByName('operator')->givePermissionTo(['student-bills.view','student-bills.generate-bulk','student-payments.view','student-arrears.view','student-finance-reports.view','student-finance-dashboard.view']);
+        Role::findByName('tata-usaha')->givePermissionTo(['student-bills.view','student-payments.view','student-payments.create','student-payments.print-receipt','student-arrears.view','student-finance-reports.view','student-finance-dashboard.view']);
+        Role::findByName('kepala-madrasah')->givePermissionTo(['student-bills.view','student-bills.print','student-payments.view','student-payments.print-receipt','student-discounts.view','student-discounts.approve','student-arrears.view','student-arrears.export','student-arrears.print','student-finance-reports.view','student-finance-reports.export','student-finance-reports.print','student-finance-dashboard.view']);
+        Role::findByName('guru-kelas')->givePermissionTo(['student-arrears.view-own-class','student-arrears.print','student-finance-dashboard.view']);
+
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         $permissions = collect([
@@ -269,6 +282,19 @@ class RolePermissionSeeder extends Seeder
         Role::findByName('kepala-madrasah')->givePermissionTo(['grades.view','grades.verify','grades.reject','grades.reopen','grades.lock','grades.export','grade-books.view','grade-books.export','grade-books.print','report-cards.view','report-cards.verify','report-cards.reject','report-cards.finalize','report-cards.reopen','report-cards.print','report-cards.export','assessment-reports.view','assessment-reports.export','assessment-reports.print']);
         Role::findByName('guru-mata-pelajaran')->givePermissionTo(['grades.view-own','grades.create','grades.update-own','grades.submit']);
         Role::findByName('guru-kelas')->givePermissionTo(['grade-books.view-own-class','report-cards.view-own-class','report-cards.compile','report-cards.update-own-class','report-cards.submit','report-cards.print-own-class']);
+
+
+        $module11All = ['student-fee-types.view','student-fee-types.manage','student-bills.view','student-bills.create','student-bills.update-draft','student-bills.generate-bulk','student-bills.cancel','student-bills.print','student-payments.view','student-payments.create','student-payments.cancel','student-payments.print-receipt','student-discounts.view','student-discounts.create','student-discounts.approve','student-discounts.cancel','student-arrears.view','student-arrears.view-own-class','student-arrears.export','student-arrears.print','student-finance-reports.view','student-finance-reports.export','student-finance-reports.print','student-finance-dashboard.view'];
+        foreach ($module11All as $permissionName) {
+            Permission::firstOrCreate(['name' => $permissionName, 'guard_name' => 'web']);
+        }
+        Role::findByName('super-admin')->givePermissionTo($module11All);
+        Role::findByName('admin-madrasah')->givePermissionTo($module11All);
+        Role::findByName('bendahara')->givePermissionTo(['student-fee-types.view','student-fee-types.manage','student-bills.view','student-bills.create','student-bills.update-draft','student-bills.generate-bulk','student-bills.print','student-payments.view','student-payments.create','student-payments.print-receipt','student-discounts.view','student-discounts.create','student-arrears.view','student-arrears.export','student-arrears.print','student-finance-reports.view','student-finance-reports.export','student-finance-reports.print','student-finance-dashboard.view']);
+        Role::findByName('operator')->givePermissionTo(['student-bills.view','student-bills.generate-bulk','student-payments.view','student-arrears.view','student-finance-reports.view','student-finance-dashboard.view']);
+        Role::findByName('tata-usaha')->givePermissionTo(['student-bills.view','student-payments.view','student-payments.create','student-payments.print-receipt','student-arrears.view','student-finance-reports.view','student-finance-dashboard.view']);
+        Role::findByName('kepala-madrasah')->givePermissionTo(['student-bills.view','student-bills.print','student-payments.view','student-payments.print-receipt','student-discounts.view','student-discounts.approve','student-arrears.view','student-arrears.export','student-arrears.print','student-finance-reports.view','student-finance-reports.export','student-finance-reports.print','student-finance-dashboard.view']);
+        Role::findByName('guru-kelas')->givePermissionTo(['student-arrears.view-own-class','student-arrears.print','student-finance-dashboard.view']);
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }

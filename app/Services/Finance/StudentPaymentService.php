@@ -36,7 +36,7 @@ final class StudentPaymentService
             $cash = CashAccount::query()->where('is_active', true)->firstOrFail();
             array_unshift($lines, ['chart_account_id' => $cash->chart_account_id, 'cash_account_id' => $cash->id, 'debit' => $total, 'credit' => 0]);
             $trx = app(FinancialTransactionService::class)->createAndPost(['transaction_date' => $data['payment_date'], 'transaction_type' => TransactionType::CashIn->value, 'description' => 'Pembayaran siswa', 'reference_type' => StudentPayment::class, 'created_by' => auth()->id()], $lines);
-            $payment = StudentPayment::create($data + ['payment_number' => app(DocumentNumberService::class)->next('BYR', 'BYR/{YEAR}/{MONTH}/{SEQ}'), 'status' => PaymentStatus::Posted->value, 'financial_transaction_id' => $trx->id]);
+            $payment = StudentPayment::create($data + ['payment_number' => app(DocumentNumberService::class)->next('BYR', 'BYR/{YEAR}/{MONTH}/{SEQ}'), 'receipt_number' => app(DocumentNumberService::class)->next('KWT', 'KWT/{YEAR}/{MONTH}/{SEQ}'), 'status' => PaymentStatus::Posted->value, 'financial_transaction_id' => $trx->id]);
             $trx->update(['reference_id' => $payment->id]);
             foreach ($allocations as $allocation) {
                 $payment->allocations()->create($allocation);

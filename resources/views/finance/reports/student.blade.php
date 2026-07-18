@@ -1,0 +1,5 @@
+<x-app-layout title="Laporan Keuangan Siswa">
+@include('finance.student.tabs')
+<section class="mb-6 grid gap-4 md:grid-cols-4"><x-ui.stat-card title="Pembayaran Valid" :value="'Rp '.number_format((int)$summary['payments'],0,',','.')"/><x-ui.stat-card title="Outstanding" :value="'Rp '.number_format((int)$summary['outstanding'],0,',','.')"/><x-ui.stat-card title="Diskon" :value="'Rp '.number_format((int)$summary['discounts'],0,',','.')"/><x-ui.stat-card title="Dibatalkan" :value="'Rp '.number_format((int)$summary['cancelled'],0,',','.')"/></section>
+<a href="{{ route('student-finance.reports.export') }}" class="font-semibold text-emerald-700">Export CSV</a><div class="mt-4 rounded-2xl bg-white p-5 ring-1 ring-slate-200"><table class="min-w-full text-sm"><tbody>@forelse($payments as $payment)<tr class="border-t"><td class="py-2">{{ $payment->payment_number }}</td><td>{{ $payment->student?->name }}</td><td>Rp {{ number_format((int)$payment->total_amount,0,',','.') }}</td><td>{{ $payment->status }}</td></tr>@empty<tr><td class="py-8 text-center text-slate-500">Belum ada data.</td></tr>@endforelse</tbody></table>{{ $payments->links() }}</div>
+</x-app-layout>
