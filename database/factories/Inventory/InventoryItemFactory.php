@@ -1,0 +1,3 @@
+<?php
+namespace Database\Factories\Inventory; use App\Models\Inventory\{InventoryCategory,InventoryItem,InventoryMeasurementUnit}; use Illuminate\Database\Eloquent\Factories\Factory;
+class InventoryItemFactory extends Factory{protected $model=InventoryItem::class; public function definition():array{return ['code'=>'BRG-'.$this->faker->unique()->numberBetween(1000,9999),'name'=>$this->faker->words(3,true),'inventory_category_id'=>InventoryCategory::query()->first()?->id ?? InventoryCategory::factory(),'inventory_measurement_unit_id'=>InventoryMeasurementUnit::query()->first()?->id,'tracking_type'=>'quantity','is_active'=>true];}}
