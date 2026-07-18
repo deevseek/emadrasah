@@ -21,3 +21,21 @@ window.previewImage = (event, targetId) => {
   target.src = URL.createObjectURL(file);
   target.classList.remove('hidden');
 };
+
+
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+    window.closeMobileSidebar();
+  }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('form').forEach((form) => {
+    form.addEventListener('submit', () => {
+      form.querySelectorAll('button[type="submit"]').forEach((button) => {
+        button.disabled = true;
+        button.setAttribute('aria-busy', 'true');
+      });
+    });
+  });
+});

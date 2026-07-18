@@ -126,6 +126,7 @@
   <section class="card"><div class="card-body"><h2 class="mb-4 text-lg font-bold text-emerald-950">Aktivitas fondasi terbaru</h2><div class="space-y-3">@forelse($latestActivities as $activity)<div class="rounded-xl bg-slate-50 p-3 text-sm"><p class="font-semibold text-slate-800">{{ $activity->description }}</p><p class="text-xs text-slate-500">{{ $activity->created_at?->diffForHumans() }}</p></div>@empty<div class="empty-state">Belum ada aktivitas perubahan fondasi.</div>@endforelse</div></div></section>
 </div>
 
+    @can('operational-finance-dashboard.view')
         <section class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
             <h2 class="text-lg font-bold text-emerald-950">Keuangan Operasional</h2>
             <p class="mt-1 text-sm text-slate-600">Ringkasan operasional e-Madrasah berdasarkan data madrasah terkini.</p>
@@ -141,5 +142,6 @@
                 <a class="rounded-full bg-rose-50 px-3 py-1 font-semibold text-rose-700" href="{{ route('operational-finance.reports.index') }}">{{ $operationalFinanceCancelled }} transaksi dibatalkan</a>
             </div>
         </section>
+    @endcan
 
 </x-app-layout>
