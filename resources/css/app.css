@@ -44,3 +44,19 @@
   .progress { @apply h-2 overflow-hidden rounded-full bg-slate-100; }
   .progress > span { @apply block h-full rounded-full bg-emerald-600; }
 }
+
+@layer components {
+  .app-sidebar-overlay { @apply fixed inset-0 z-30 hidden bg-slate-950/50 lg:hidden; }
+  .mobile-sidebar-open .app-sidebar-overlay { @apply block; }
+  .page-container { @apply mx-auto w-full max-w-[1600px] min-w-0; }
+  .card, .rounded-2xl, .rounded-3xl { overflow-wrap: anywhere; }
+  .data-table { @apply whitespace-normal; }
+  .data-table td, .data-table th { @apply max-w-xs break-words; }
+  .pagination, nav[role="navigation"] { @apply max-w-full overflow-x-auto; }
+}
+
+@media print {
+  .app-sidebar, .app-sidebar-overlay, .app-main > header { display: none !important; }
+  .app-main { padding-left: 0 !important; }
+  body { background: #fff !important; }
+}
