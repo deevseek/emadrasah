@@ -6,6 +6,9 @@ namespace App\Services\Foundation;
 
 use App\Enums\EnrollmentStatus;
 use App\Models\AcademicYear;
+use App\Models\StudentScore;
+use App\Models\ReportCard;
+use App\Models\AssessmentComponent;
 use App\Models\BtaqGroupStudent;
 use App\Models\BtaqProgressHistory;
 use App\Models\BtaqStudentProgress;
@@ -105,6 +108,14 @@ class DashboardMetricsService
             'btaqPendingVerification' => BtaqSession::query()->where('status', 'submitted')->count(),
             'btaqStudentsNeedGuidance' => BtaqStudentProgress::query()->where('achievement_status', 'perlu_bimbingan')->distinct('student_id')->count('student_id'),
             'btaqLevelPromotionsThisMonth' => BtaqProgressHistory::query()->whereMonth('created_at', today()->month)->count(),
+            'assessmentAssignmentsUnfilled' => max(0, TeachingAssignment::query()->when($activeYearId, fn ($query) => $query->where('academic_year_id', $activeYearId))->when($activeSemesterId, fn ($query) => $query->where('semester_id', $activeSemesterId))->where('is_active', true)->count() - AssessmentComponent::query()->when($activeYearId, fn ($query) => $query->where('academic_year_id', $activeYearId))->when($activeSemesterId, fn ($query) => $query->where('semester_id', $activeSemesterId))->distinct('teaching_assignment_id')->count('teaching_assignment_id')),
+            'assessmentDraftScores' => StudentScore::query()->whereHas('component', fn ($query) => $query->where('status', 'draft'))->count(),
+            'assessmentNeedsRevision' => AssessmentComponent::query()->where('status', 'revision')->count(),
+            'assessmentWaitingVerification' => AssessmentComponent::query()->where('status', 'published')->count(),
+            'reportCardsUncompiled' => max(0, StudentEnrollment::query()->where('enrollment_status', 'active')->count() - ReportCard::query()->when($activeSemesterId, fn ($query) => $query->where('semester_id', $activeSemesterId))->count()),
+            'reportCardsWaitingVerification' => ReportCard::query()->where('status', 'submitted')->count(),
+            'reportCardsNeedsRevision' => ReportCard::query()->where('status', 'reopened')->count(),
+            'reportCardsFinal' => ReportCard::query()->whereIn('status', ['approved', 'locked'])->count(),
             'subjectsWithoutTeacher' => Subject::query()->where('is_active', true)->whereNotExists(function ($query) use ($activeYearId, $activeSemesterId): void {
                 $query->select(DB::raw(1))->from('teaching_assignments')->whereColumn('teaching_assignments.subject_id', 'subjects.id')->where('teaching_assignments.is_active', true);
                 if ($activeYearId !== null) { $query->where('teaching_assignments.academic_year_id', $activeYearId); }

@@ -13,6 +13,20 @@ class RolePermissionSeeder extends Seeder
 {
     public function run(): void
     {
+
+
+        $module10All = ['assessments.view-configuration','assessments.manage-configuration','assessments.manage-components','assessments.manage-periods','assessments.manage-minimum-criteria','grades.view-own','grades.create','grades.update-own','grades.submit','grades.view','grades.verify','grades.reject','grades.reopen','grades.lock','grades.export','grade-books.view-own-class','grade-books.view','grade-books.export','grade-books.print','report-cards.view-own-class','report-cards.compile','report-cards.update-own-class','report-cards.submit','report-cards.view','report-cards.verify','report-cards.reject','report-cards.finalize','report-cards.reopen','report-cards.print-own-class','report-cards.print','report-cards.export','assessment-reports.view','assessment-reports.export','assessment-reports.print'];
+        foreach ($module10All as $permissionName) {
+            Permission::firstOrCreate(['name' => $permissionName, 'guard_name' => 'web']);
+        }
+        Role::findByName('super-admin')->givePermissionTo($module10All);
+        Role::findByName('admin-madrasah')->givePermissionTo($module10All);
+        Role::findByName('operator')->givePermissionTo(['assessments.view-configuration','assessments.manage-configuration','assessments.manage-components','assessments.manage-periods','assessments.manage-minimum-criteria','grades.view','grades.export','grade-books.view','grade-books.export','grade-books.print','report-cards.view','report-cards.print','report-cards.export','assessment-reports.view','assessment-reports.export','assessment-reports.print']);
+        Role::findByName('tata-usaha')->givePermissionTo(['grades.view','grades.export','grade-books.view','grade-books.export','grade-books.print','report-cards.view','report-cards.print','report-cards.export','assessment-reports.view','assessment-reports.export','assessment-reports.print']);
+        Role::findByName('kepala-madrasah')->givePermissionTo(['grades.view','grades.verify','grades.reject','grades.reopen','grades.lock','grades.export','grade-books.view','grade-books.export','grade-books.print','report-cards.view','report-cards.verify','report-cards.reject','report-cards.finalize','report-cards.reopen','report-cards.print','report-cards.export','assessment-reports.view','assessment-reports.export','assessment-reports.print']);
+        Role::findByName('guru-mata-pelajaran')->givePermissionTo(['grades.view-own','grades.create','grades.update-own','grades.submit']);
+        Role::findByName('guru-kelas')->givePermissionTo(['grade-books.view-own-class','report-cards.view-own-class','report-cards.compile','report-cards.update-own-class','report-cards.submit','report-cards.print-own-class']);
+
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         $permissions = collect([
@@ -72,6 +86,35 @@ class RolePermissionSeeder extends Seeder
             'assessments.unlock',
             'assessments.view',
             'assessment-reports.view',
+            'assessments.view-configuration',
+            'assessments.manage-configuration',
+            'assessments.manage-components',
+            'assessments.manage-periods',
+            'assessments.manage-minimum-criteria',
+            'grades.view-own',
+            'grades.create',
+            'grades.update-own',
+            'grades.submit',
+            'grades.view',
+            'grades.verify',
+            'grades.reject',
+            'grades.reopen',
+            'grades.lock',
+            'grades.export',
+            'grade-books.view-own-class',
+            'grade-books.view',
+            'grade-books.export',
+            'grade-books.print',
+            'report-cards.view-own-class',
+            'report-cards.compile',
+            'report-cards.update-own-class',
+            'report-cards.verify',
+            'report-cards.reject',
+            'report-cards.finalize',
+            'report-cards.print-own-class',
+            'report-cards.export',
+            'assessment-reports.export',
+            'assessment-reports.print',
             'predicate-ranges.manage',
             'report-cards.view-class',
             'report-cards.generate',
@@ -212,6 +255,20 @@ class RolePermissionSeeder extends Seeder
         Role::findByName('tata-usaha')->givePermissionTo(['student-attendances.view','student-attendances.create','student-attendances.update-draft','student-attendances.finalize','student-attendances.view-attachment','student-attendances.export','student-attendances.print','student-attendances.report','student-attendances.view-missing-classes']);
         Role::findByName('kepala-madrasah')->givePermissionTo(['student-attendances.view','student-attendances.view-attachment','student-attendances.export','student-attendances.print','student-attendances.report','student-attendances.view-missing-classes']);
         Role::findByName('guru-kelas')->givePermissionTo(['student-attendances.view-own-class','student-attendances.create','student-attendances.update-draft','student-attendances.finalize','student-attendances.print']);
+
+
+
+        $module10All = ['assessments.view-configuration','assessments.manage-configuration','assessments.manage-components','assessments.manage-periods','assessments.manage-minimum-criteria','grades.view-own','grades.create','grades.update-own','grades.submit','grades.view','grades.verify','grades.reject','grades.reopen','grades.lock','grades.export','grade-books.view-own-class','grade-books.view','grade-books.export','grade-books.print','report-cards.view-own-class','report-cards.compile','report-cards.update-own-class','report-cards.submit','report-cards.view','report-cards.verify','report-cards.reject','report-cards.finalize','report-cards.reopen','report-cards.print-own-class','report-cards.print','report-cards.export','assessment-reports.view','assessment-reports.export','assessment-reports.print'];
+        foreach ($module10All as $permissionName) {
+            Permission::firstOrCreate(['name' => $permissionName, 'guard_name' => 'web']);
+        }
+        Role::findByName('super-admin')->givePermissionTo($module10All);
+        Role::findByName('admin-madrasah')->givePermissionTo($module10All);
+        Role::findByName('operator')->givePermissionTo(['assessments.view-configuration','assessments.manage-configuration','assessments.manage-components','assessments.manage-periods','assessments.manage-minimum-criteria','grades.view','grades.export','grade-books.view','grade-books.export','grade-books.print','report-cards.view','report-cards.print','report-cards.export','assessment-reports.view','assessment-reports.export','assessment-reports.print']);
+        Role::findByName('tata-usaha')->givePermissionTo(['grades.view','grades.export','grade-books.view','grade-books.export','grade-books.print','report-cards.view','report-cards.print','report-cards.export','assessment-reports.view','assessment-reports.export','assessment-reports.print']);
+        Role::findByName('kepala-madrasah')->givePermissionTo(['grades.view','grades.verify','grades.reject','grades.reopen','grades.lock','grades.export','grade-books.view','grade-books.export','grade-books.print','report-cards.view','report-cards.verify','report-cards.reject','report-cards.finalize','report-cards.reopen','report-cards.print','report-cards.export','assessment-reports.view','assessment-reports.export','assessment-reports.print']);
+        Role::findByName('guru-mata-pelajaran')->givePermissionTo(['grades.view-own','grades.create','grades.update-own','grades.submit']);
+        Role::findByName('guru-kelas')->givePermissionTo(['grade-books.view-own-class','report-cards.view-own-class','report-cards.compile','report-cards.update-own-class','report-cards.submit','report-cards.print-own-class']);
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
