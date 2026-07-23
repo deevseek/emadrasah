@@ -73,15 +73,20 @@ class StoreEmployeeRequest extends FormRequest
 
     protected function employmentTypeFromPosition(string $position): string
     {
-        $position = Str::lower($position);
+        $position = $this->normalizedPosition($position);
 
         return match (true) {
-            str_contains($position, 'kepala') => EmploymentType::Principal->value,
-            str_contains($position, 'kelas') => EmploymentType::ClassTeacher->value,
+            in_array($position, ['kepala madrasah', 'kepala sekolah'], true) => EmploymentType::Principal->value,
+            str_contains($position, 'guru kelas') => EmploymentType::ClassTeacher->value,
             str_contains($position, 'btaq') => EmploymentType::BtaqTeacher->value,
-            str_contains($position, 'usaha') => EmploymentType::Administration->value,
+            str_contains($position, 'tata usaha') || $position === 'tu' => EmploymentType::Administration->value,
             str_contains($position, 'bersih') => EmploymentType::EducationStaff->value,
             default => EmploymentType::SubjectTeacher->value,
         };
+    }
+
+    private function normalizedPosition(string $position): string
+    {
+        return trim(preg_replace('/[^a-z0-9]+/', ' ', Str::lower($position)));
     }
 }

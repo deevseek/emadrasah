@@ -117,15 +117,63 @@ class EmployeeImportService
 
     private function findEmployee(array $payload): ?Employee
     {
-        return Employee::query()
-            ->where(function ($query) use ($payload): void {
-                foreach (['employee_number', 'peg_id', 'email'] as $field) {
-                    if (! empty($payload[$field])) {
-                        $query->orWhere($field, $payload[$field]);
-                    }
+        $query = Employee::query();
+        $hasIdentifier = false;
+
+        $query->where(function ($query) use ($payload, &$hasIdentifier): void {
+            foreach (['employee_number', 'peg_id', 'email'] as $field) {
+                if (! empty($payload[$field])) {
+                    $hasIdentifier = true;
+                    $query->orWhere($field, $payload[$field]);
                 }
-            })
-            ->first();
+            }
+        });
+
+        $employee = $hasIdentifier ? $query->first() : null;
+        if ($employee) {
+            return $employee;
+        }
+
+        if ($hasIdentifier) {
+            $employee = Employee::query()
+                ->get()
+                ->first(fn (Employee $employee): bool => $this->matchesNormalizedIdentifier($employee, $payload));
+
+            if ($employee) {
+                return $employee;
+            }
+        }
+
+        if (empty($payload['name'])) {
+            return null;
+        }
+
+        $normalizedName = $this->normalizedName($payload['name']);
+
+        return Employee::query()
+            ->get()
+            ->first(fn (Employee $employee): bool => $this->normalizedName($employee->name) === $normalizedName);
+    }
+
+    private function matchesNormalizedIdentifier(Employee $employee, array $payload): bool
+    {
+        foreach (['employee_number', 'peg_id', 'email'] as $field) {
+            if (! empty($payload[$field]) && $this->normalizedIdentifier($employee->{$field}) === $this->normalizedIdentifier($payload[$field])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function normalizedIdentifier(?string $value): string
+    {
+        return preg_replace('/[^a-z0-9]+/', '', Str::lower((string) $value));
+    }
+
+    private function normalizedName(?string $value): string
+    {
+        return trim(preg_replace('/[^a-z0-9]+/', ' ', Str::lower((string) $value)));
     }
 
     private function detectColumns(array $sheet): array
@@ -272,16 +320,21 @@ class EmployeeImportService
 
     private function type(?string $value): string
     {
-        $position = Str::lower((string) $value);
+        $position = $this->normalizedPosition($value);
 
         return match (true) {
-            str_contains($position, 'kepala') => EmploymentType::Principal->value,
-            str_contains($position, 'kelas') => EmploymentType::ClassTeacher->value,
+            in_array($position, ['kepala madrasah', 'kepala sekolah'], true) => EmploymentType::Principal->value,
+            str_contains($position, 'guru kelas') => EmploymentType::ClassTeacher->value,
             str_contains($position, 'btaq') => EmploymentType::BtaqTeacher->value,
-            str_contains($position, 'usaha') => EmploymentType::Administration->value,
+            str_contains($position, 'tata usaha') || $position === 'tu' => EmploymentType::Administration->value,
             str_contains($position, 'bersih') => EmploymentType::EducationStaff->value,
             default => EmploymentType::SubjectTeacher->value,
         };
+    }
+
+    private function normalizedPosition(?string $value): string
+    {
+        return trim(preg_replace('/[^a-z0-9]+/', ' ', Str::lower((string) $value)));
     }
 
     private function birthPlace(?string $combinedValue, ?string $placeValue = null): ?string
