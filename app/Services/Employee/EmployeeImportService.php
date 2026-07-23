@@ -12,6 +12,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use SimpleXMLElement;
 use ZipArchive;
 
 class EmployeeImportService
@@ -218,31 +219,96 @@ class EmployeeImportService
         }
 
         $shared = $this->sharedStrings($zip);
-        $xml = simplexml_load_string($zip->getFromName('xl/worksheets/sheet1.xml') ?: '');
-        $rows = [];
+        $fallbackRows = [];
 
-        foreach ($xml->sheetData->row ?? [] as $row) {
-            $rowNumber = (int) $row['r'];
-            $rows[$rowNumber] = [];
+        foreach ($this->worksheetNames($zip) as $worksheetName) {
+            $rows = $this->readWorksheetRows($zip, $worksheetName, $shared);
 
-            foreach ($row->c as $cell) {
-                $column = $this->columnIndex((string) $cell['r']);
-                $rows[$rowNumber][$column] = $this->cellValue($cell, $shared);
+            if ($fallbackRows === [] && $rows !== []) {
+                $fallbackRows = $rows;
+            }
+
+            if ($this->containsHeader($rows)) {
+                $zip->close();
+
+                return $rows;
             }
         }
 
         $zip->close();
 
+        return $fallbackRows;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function worksheetNames(ZipArchive $zip): array
+    {
+        $names = [];
+
+        for ($index = 0; $index < $zip->numFiles; $index++) {
+            $name = $zip->getNameIndex($index);
+            if (is_string($name) && preg_match('#^xl/worksheets/[^/]+\.xml$#', $name) === 1) {
+                $names[] = $name;
+            }
+        }
+
+        usort($names, fn (string $left, string $right): int => strnatcmp($left, $right));
+
+        return $names;
+    }
+
+    private function readWorksheetRows(ZipArchive $zip, string $worksheetName, array $shared): array
+    {
+        $content = $zip->getFromName($worksheetName);
+        if (! is_string($content) || $content === '') {
+            return [];
+        }
+
+        $xml = simplexml_load_string($content);
+        if (! $xml instanceof SimpleXMLElement) {
+            return [];
+        }
+
+        $rows = [];
+
+        foreach ($this->xmlNodes($xml, '//*[local-name()="sheetData"]/*[local-name()="row"]') as $row) {
+            $rowNumber = (int) $row['r'];
+            $rows[$rowNumber] = [];
+
+            foreach ($this->xmlNodes($row, '*[local-name()="c"]') as $cell) {
+                $column = $this->columnIndex((string) $cell['r']);
+                $rows[$rowNumber][$column] = $this->cellValue($cell, $shared);
+            }
+        }
+
         return $rows;
+    }
+
+    private function containsHeader(array $rows): bool
+    {
+        foreach ($rows as $row) {
+            $normalizedCells = array_map(fn ($value) => $this->normalizeHeader((string) $value), $row);
+            if (in_array('nama lengkap', $normalizedCells, true)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function sharedStrings(ZipArchive $zip): array
     {
         $xml = simplexml_load_string($zip->getFromName('xl/sharedStrings.xml') ?: '<sst/>');
+        if (! $xml instanceof SimpleXMLElement) {
+            return [];
+        }
+
         $strings = [];
 
-        foreach ($xml->si ?? [] as $item) {
-            $strings[] = isset($item->t) ? (string) $item->t : trim(implode('', array_map('strval', iterator_to_array($item->xpath('.//t')))));
+        foreach ($this->xmlNodes($xml, '//*[local-name()="si"]') as $item) {
+            $strings[] = $this->xmlText($item, './/*[local-name()="t"]');
         }
 
         return $strings;
@@ -252,14 +318,33 @@ class EmployeeImportService
     {
         $type = (string) $cell['t'];
         if ($type === 's') {
-            return $shared[(int) $cell->v] ?? null;
+            $sharedIndex = $this->xmlText($cell, '*[local-name()="v"]');
+
+            return $shared[(int) $sharedIndex] ?? null;
         }
 
         if ($type === 'inlineStr') {
-            return trim(implode('', array_map('strval', iterator_to_array($cell->xpath('.//t')))));
+            return $this->xmlText($cell, './/*[local-name()="t"]');
         }
 
-        return isset($cell->v) ? (string) $cell->v : null;
+        $value = $this->xmlText($cell, '*[local-name()="v"]');
+
+        return $value === '' ? null : $value;
+    }
+
+    /**
+     * @return list<SimpleXMLElement>
+     */
+    private function xmlNodes(SimpleXMLElement $xml, string $xpath): array
+    {
+        $nodes = $xml->xpath($xpath);
+
+        return $nodes === false ? [] : array_values($nodes);
+    }
+
+    private function xmlText(SimpleXMLElement $xml, string $xpath): string
+    {
+        return trim(implode('', array_map('strval', $this->xmlNodes($xml, $xpath))));
     }
 
     private function columnIndex(string $cell): int
