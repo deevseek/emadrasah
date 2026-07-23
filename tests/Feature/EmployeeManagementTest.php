@@ -127,6 +127,27 @@ class EmployeeManagementTest extends TestCase
         $this->assertSame('USWATUN KHASANAH, S.Pd.I., M.Pd.', $rows[2][1]);
     }
 
+
+    public function test_employee_import_reads_headers_from_rich_text_shared_strings(): void
+    {
+        $service = new EmployeeImportService();
+        $path = tempnam(sys_get_temp_dir(), 'employee-import-rich-strings-');
+
+        $zip = new ZipArchive();
+        $this->assertTrue($zip->open($path, ZipArchive::OVERWRITE) === true);
+        $zip->addFromString('xl/sharedStrings.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><si><r><t>NAMA </t></r><r><t>LENGKAP</t></r></si><si><t>L/P</t></si><si><t>STATUS</t></si><si><t>NOMOR INDUK YAYASAN (NIY)</t></si><si><t>JABATAN</t></si></sst>');
+        $zip->addFromString('xl/worksheets/sheet1.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData><row r="1"><c r="A1" t="s"><v>0</v></c><c r="B1" t="s"><v>1</v></c><c r="C1" t="s"><v>2</v></c><c r="D1" t="s"><v>3</v></c><c r="E1" t="s"><v>4</v></c></row></sheetData></worksheet>');
+        $zip->close();
+
+        $readRows = new ReflectionMethod($service, 'readRows');
+        $readRows->setAccessible(true);
+        $rows = $readRows->invoke($service, $path);
+
+        @unlink($path);
+
+        $this->assertSame('NAMA LENGKAP', $rows[1][0]);
+    }
+
     public function test_employee_import_maps_principal_only_from_exact_school_head_position(): void
     {
         $service = new EmployeeImportService();

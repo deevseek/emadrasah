@@ -273,11 +273,11 @@ class EmployeeImportService
 
         $rows = [];
 
-        foreach ($xml->sheetData->row ?? [] as $row) {
+        foreach ($this->xmlNodes($xml, '//*[local-name()="sheetData"]/*[local-name()="row"]') as $row) {
             $rowNumber = (int) $row['r'];
             $rows[$rowNumber] = [];
 
-            foreach ($row->c as $cell) {
+            foreach ($this->xmlNodes($row, '*[local-name()="c"]') as $cell) {
                 $column = $this->columnIndex((string) $cell['r']);
                 $rows[$rowNumber][$column] = $this->cellValue($cell, $shared);
             }
@@ -301,10 +301,14 @@ class EmployeeImportService
     private function sharedStrings(ZipArchive $zip): array
     {
         $xml = simplexml_load_string($zip->getFromName('xl/sharedStrings.xml') ?: '<sst/>');
+        if (! $xml instanceof SimpleXMLElement) {
+            return [];
+        }
+
         $strings = [];
 
-        foreach ($xml->si ?? [] as $item) {
-            $strings[] = isset($item->t) ? (string) $item->t : trim(implode('', array_map('strval', iterator_to_array($item->xpath('.//t')))));
+        foreach ($this->xmlNodes($xml, '//*[local-name()="si"]') as $item) {
+            $strings[] = $this->xmlText($item, './/*[local-name()="t"]');
         }
 
         return $strings;
@@ -314,14 +318,33 @@ class EmployeeImportService
     {
         $type = (string) $cell['t'];
         if ($type === 's') {
-            return $shared[(int) $cell->v] ?? null;
+            $sharedIndex = $this->xmlText($cell, '*[local-name()="v"]');
+
+            return $shared[(int) $sharedIndex] ?? null;
         }
 
         if ($type === 'inlineStr') {
-            return trim(implode('', array_map('strval', iterator_to_array($cell->xpath('.//t')))));
+            return $this->xmlText($cell, './/*[local-name()="t"]');
         }
 
-        return isset($cell->v) ? (string) $cell->v : null;
+        $value = $this->xmlText($cell, '*[local-name()="v"]');
+
+        return $value === '' ? null : $value;
+    }
+
+    /**
+     * @return list<SimpleXMLElement>
+     */
+    private function xmlNodes(SimpleXMLElement $xml, string $xpath): array
+    {
+        $nodes = $xml->xpath($xpath);
+
+        return $nodes === false ? [] : array_values($nodes);
+    }
+
+    private function xmlText(SimpleXMLElement $xml, string $xpath): string
+    {
+        return trim(implode('', array_map('strval', $this->xmlNodes($xml, $xpath))));
     }
 
     private function columnIndex(string $cell): int
