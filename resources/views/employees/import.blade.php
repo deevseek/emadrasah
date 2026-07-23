@@ -3,7 +3,7 @@
         <div class="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
             <p class="text-sm font-semibold text-emerald-700">Guru & Pegawai</p>
             <h1 class="mt-1 text-2xl font-bold text-emerald-950">Import Data Personalia XLSX</h1>
-            <p class="mt-2 text-sm text-slate-600">Unggah berkas Excel seperti screenshot: header tabel berada di baris 10 dan data mulai baris 11 dengan kolom NO sampai E-MAIL AKTIF.</p>
+            <p class="mt-2 text-sm text-slate-600">Unggah berkas Excel Data Personalia sesuai file yang diunggah: kolom yang dibaca adalah NAMA LENGKAP, L/P, TEMPAT TGL LAHIR, STATUS, NOMOR INDUK YAYASAN (NIY), NIP, PANGKAT/GOLONGAN RUANG, Peg.ID, PENDIDIKAN TERAKHIR, JABATAN, SERTIFIKASI-IMPASSING, MAPEL SERTIFIKASI, JUMLAH JPL, JENIS REKENING, NO. REKENING, NO. HP/WA AKTIF, dan E-MAIL AKTIF.</p>
         </div>
         <form method="post" action="{{ route('employees.import') }}" enctype="multipart/form-data" class="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
             @csrf
