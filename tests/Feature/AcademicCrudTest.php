@@ -5,6 +5,10 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Enums\DayOfWeek;
+use App\Enums\EmployeeStatus;
+use App\Enums\EmploymentType;
+use App\Enums\Gender;
+use App\Models\Employee;
 use App\Models\LessonSchedule;
 use App\Models\TeachingAssignment;
 use App\Models\User;
@@ -84,6 +88,37 @@ final class AcademicCrudTest extends TestCase
             ->assertSee(route($updateRouteName, $record), false)
             ->assertSee('name="_method" value="PUT"', false)
             ->assertSee('Batal');
+    }
+
+
+    public function test_homeroom_form_only_lists_class_teachers_and_rejects_principal(): void
+    {
+        $classroom = $this->records['classroom'];
+        $classTeacher = Employee::query()->create([
+            'name' => 'Guru Kelas Validasi',
+            'gender' => Gender::Female,
+            'employment_type' => EmploymentType::ClassTeacher,
+            'employee_status' => EmployeeStatus::Permanent,
+            'is_active' => true,
+        ]);
+        $principal = Employee::query()->create([
+            'name' => 'Kepala Madrasah Validasi',
+            'gender' => Gender::Female,
+            'employment_type' => EmploymentType::Principal,
+            'employee_status' => EmployeeStatus::Permanent,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get(route('classrooms.homeroom.edit', $classroom))
+            ->assertOk()
+            ->assertSee($classTeacher->name)
+            ->assertDontSee($principal->name);
+
+        $this->put(route('classrooms.homeroom.update', $classroom), [
+            'employee_id' => $principal->id,
+            'started_at' => '2026-07-23',
+        ])->assertSessionHasErrors('employee_id');
     }
 
     public static function academicCreateRoutes(): array
