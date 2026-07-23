@@ -100,6 +100,36 @@ class EmployeeManagementTest extends TestCase
         $this->assertNull($payload['birth_date']);
     }
 
+
+    public function test_employee_import_maps_principal_only_from_exact_school_head_position(): void
+    {
+        $service = new EmployeeImportService();
+        $detectColumns = new ReflectionMethod($service, 'detectColumns');
+        $detectColumns->setAccessible(true);
+        $mapRow = new ReflectionMethod($service, 'mapRow');
+        $mapRow->setAccessible(true);
+
+        [, $columns] = $detectColumns->invoke($service, [
+            10 => ['Nama Lengkap', 'L/P', 'Status', 'Nomor Induk Yayasan (NIY)', 'Peg.ID', 'Jabatan'],
+        ]);
+
+        $principalPayload = $mapRow->invoke($service, [
+            'USWATUN KHASANAH, S.Pd.I., M.Pd.', 'P', 'GTY', '620.0720.001', '20367380193001', 'KEPALA MADRASAH',
+        ], $columns);
+        $classTeacherPayload = $mapRow->invoke($service, [
+            'RO’IS RO’DATUL URBAH, S.Pd.', 'P', 'GTY', '620.0723.022', '20367380197004', 'GURU KELAS 2',
+        ], $columns);
+        $libraryHeadPayload = $mapRow->invoke($service, [
+            'DEWI SHOFIYAH, S.Pd.', 'P', 'GTY', '620.0124.029', '20367380197005', 'KEPALA PERPUSTAKAAN',
+        ], $columns);
+
+        $this->assertSame(EmploymentType::Principal->value, $principalPayload['employment_type']);
+        $this->assertSame(EmploymentType::ClassTeacher->value, $classTeacherPayload['employment_type']);
+        $this->assertSame(EmploymentType::SubjectTeacher->value, $libraryHeadPayload['employment_type']);
+        $this->assertSame('KEPALA MADRASAH', $principalPayload['position']);
+        $this->assertSame('GURU KELAS 2', $classTeacherPayload['position']);
+    }
+
     public function test_validation_rejects_duplicate_numbers_and_invalid_dates(): void
     {
         $admin = $this->userWith(['employees.create']);
