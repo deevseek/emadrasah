@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace App\Services\StudentAffairs;
 
 use App\Enums\AdmissionType;
+use App\Enums\EnrollmentStatus;
 use App\Enums\Gender;
 use App\Enums\StudentStatus;
+use App\Models\AcademicYear;
 use App\Models\Classroom;
 use App\Models\Guardian;
+use App\Models\GradeLevel;
 use App\Models\Student;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\UploadedFile;
@@ -99,10 +102,93 @@ class StudentImportService
 
     private function syncClassroom(Student $student, ?string $classroomName): void
     {
-        if (! $classroomName) { return; }
-        $classroom = Classroom::query()->where('name', $classroomName)->first();
-        if (! $classroom) { return; }
-        $student->enrollments()->updateOrCreate(['academic_year_id' => $classroom->academic_year_id, 'classroom_id' => $classroom->id], ['enrolled_at' => now()->toDateString(), 'enrollment_status' => 'active']);
+        $classroomName = $this->noneNull($classroomName);
+        if (! $classroomName || Str::contains(Str::lower($classroomName), 'tanpa kelas')) {
+            return;
+        }
+
+        $academicYear = AcademicYear::query()->where('is_active', true)->first() ?? AcademicYear::query()->latest('starts_on')->first();
+        if (! $academicYear) {
+            return;
+        }
+
+        $classroom = $this->findClassroom($classroomName, $academicYear) ?? $this->createClassroom($classroomName, $academicYear);
+
+        $student->enrollments()
+            ->where('academic_year_id', $academicYear->id)
+            ->where('classroom_id', '!=', $classroom->id)
+            ->where('enrollment_status', EnrollmentStatus::Active->value)
+            ->update(['enrollment_status' => EnrollmentStatus::Transferred->value, 'completed_at' => now()->toDateString()]);
+
+        $student->enrollments()->updateOrCreate(
+            ['academic_year_id' => $classroom->academic_year_id, 'classroom_id' => $classroom->id],
+            ['enrolled_at' => now()->toDateString(), 'enrollment_status' => EnrollmentStatus::Active->value]
+        );
+    }
+
+    private function findClassroom(string $classroomName, AcademicYear $academicYear): ?Classroom
+    {
+        $candidates = array_unique(array_filter([$classroomName, $this->rombelName($classroomName)]));
+
+        $classrooms = Classroom::query()
+            ->where('academic_year_id', $academicYear->id)
+            ->with('gradeLevel')
+            ->get();
+
+        foreach ($classrooms as $classroom) {
+            foreach ($candidates as $candidate) {
+                if ($this->normalizeClassroomText($classroom->name) === $this->normalizeClassroomText($candidate)
+                    || $this->normalizeClassroomText($classroom->code) === $this->normalizeClassroomText($candidate)) {
+                    return $classroom;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function createClassroom(string $classroomName, AcademicYear $academicYear): Classroom
+    {
+        $level = $this->gradeLevelNumber($classroomName);
+        $gradeLevel = GradeLevel::firstOrCreate(
+            ['level' => $level],
+            ['name' => 'Kelas '.$level, 'code' => 'K'.$level, 'is_active' => true]
+        );
+
+        $rombelName = $this->rombelName($classroomName) ?? $classroomName;
+        $code = Str::of($rombelName)->replaceMatches('/[^A-Za-z0-9]+/', '-')->trim('-')->upper()->limit(50, '')->toString();
+
+        return Classroom::create([
+            'academic_year_id' => $academicYear->id,
+            'grade_level_id' => $gradeLevel->id,
+            'name' => $classroomName,
+            'code' => $code !== '' ? $code : 'K'.$level.'-IMPORT',
+            'capacity' => null,
+            'is_active' => true,
+        ]);
+    }
+
+    private function gradeLevelNumber(string $classroomName): int
+    {
+        if (preg_match('/kelas\s*(\d+)/i', $classroomName, $matches)) {
+            return max(1, min(6, (int) $matches[1]));
+        }
+
+        return 1;
+    }
+
+    private function rombelName(string $classroomName): ?string
+    {
+        if (! str_contains($classroomName, '-')) {
+            return null;
+        }
+
+        return $this->clean(Str::after($classroomName, '-'));
+    }
+
+    private function normalizeClassroomText(?string $value): string
+    {
+        return Str::of((string) $value)->lower()->replaceMatches('/[^a-z0-9]+/', '')->toString();
     }
 
     private function detectColumns(array $sheet): array
