@@ -10,9 +10,11 @@ use App\Enums\GuardianRelationship;
 use App\Enums\StudentDocumentType;
 use App\Enums\StudentStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StudentAffairs\BulkDeleteStudentsRequest;
 use App\Http\Requests\StudentAffairs\GuardianStudentRequest;
 use App\Http\Requests\StudentAffairs\StatusChangeRequest;
 use App\Http\Requests\StudentAffairs\StudentDocumentRequest;
+use App\Http\Requests\StudentAffairs\ImportStudentsRequest;
 use App\Http\Requests\StudentAffairs\StudentRequest;
 use App\Models\AcademicYear;
 use App\Models\Classroom;
@@ -22,6 +24,7 @@ use App\Models\StudentDocument;
 use App\Models\User;
 use App\Services\StudentAffairs\GuardianAssignmentService;
 use App\Services\StudentAffairs\StudentDocumentService;
+use App\Services\StudentAffairs\StudentImportService;
 use App\Services\StudentAffairs\StudentService;
 use App\Services\StudentAffairs\StudentStatusService;
 use Illuminate\Http\RedirectResponse;
@@ -62,6 +65,20 @@ class StudentController extends Controller
             'academicYears' => AcademicYear::all(),
             'classrooms' => Classroom::with('academicYear')->get(),
         ]);
+    }
+
+    public function importForm(): View
+    {
+        return view('student-affairs.students.import', ['title' => 'Import Data Siswa']);
+    }
+
+    public function import(ImportStudentsRequest $request, StudentImportService $service): RedirectResponse
+    {
+        $result = $service->import($request->file('file'));
+
+        return redirect()->route('students.index')
+            ->with('status', "Import selesai. Baru: {$result['created']}, diperbarui: {$result['updated']}, dilewati: {$result['skipped']}.")
+            ->with('import_errors', array_slice($result['errors'], 0, 10));
     }
 
     public function create(): View
@@ -107,6 +124,13 @@ class StudentController extends Controller
         $service->delete($student);
 
         return redirect()->route('students.index')->with('status', 'Data siswa dinonaktifkan.');
+    }
+
+    public function bulkDestroy(BulkDeleteStudentsRequest $request, StudentService $service): RedirectResponse
+    {
+        $deleted = $service->deleteMany($request->validated('student_ids'));
+
+        return redirect()->route('students.index')->with('status', $deleted.' data siswa berhasil dinonaktifkan.');
     }
 
     public function attachGuardian(GuardianStudentRequest $request, Student $student, GuardianAssignmentService $service): RedirectResponse

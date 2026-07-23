@@ -38,7 +38,7 @@ class StudentRequest extends FormRequest
             'photo' => ['nullable', 'file', 'mimetypes:image/jpeg,image/png,image/webp', 'extensions:jpg,jpeg,png,webp', 'max:2048'],
             'notes' => ['nullable', 'string'], 'is_active' => ['nullable', 'boolean'],
             'blood_type' => ['nullable', Rule::in(['A','B','AB','O'])], 'weight_kg' => ['nullable', 'numeric', 'min:1', 'max:200'], 'height_cm' => ['nullable', 'numeric', 'min:30', 'max:250'],
-            'special_needs' => ['nullable', 'string'], 'medical_history' => ['nullable', 'string'], 'allergies' => ['nullable', 'string'], 'bpjs_number' => ['nullable', 'string', 'max:50'],
+            'special_needs' => ['nullable', 'string'], 'disability' => ['nullable', 'string', 'max:255'], 'medical_history' => ['nullable', 'string'], 'allergies' => ['nullable', 'string'], 'bpjs_number' => ['nullable', 'string', 'max:50'], 'kip_pip_number' => ['nullable', 'string', 'max:100'],
             'residence_type' => ['nullable', 'string', 'max:50'], 'transportation_mode' => ['nullable', 'string', 'max:50'], 'distance_to_school_km' => ['nullable', 'numeric', 'min:0', 'max:999'], 'travel_time_minutes' => ['nullable', 'integer', 'min:0', 'max:1440'],
         ];
     }
