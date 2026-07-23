@@ -5,7 +5,7 @@
 <x-ui.card>
   <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
     <div>
-      <h2 class="font-bold text-emerald-950">Cetak Jurnal Akademik Bulanan</h2>
+      <h2 class="font-bold text-emerald-950">Export Jurnal Akademik Bulanan</h2>
       <p class="mt-1 text-sm text-slate-600">Tersedia dua format seperti buku administrasi: <strong>Jurnal Guru</strong> per guru mapel dan <strong>Jurnal Kelas</strong> per wali kelas/rombel.</p>
     </div>
     <div class="grid gap-3 lg:min-w-[34rem]">
@@ -17,12 +17,22 @@
         </select>
         <x-ui.button>Export Word</x-ui.button>
       </form>
-      <a class="text-sm font-semibold text-emerald-800" href="{{ route('teaching-journals.print-monthly', ['month' => request('month', today()->format('Y-m')), 'type' => 'teacher']) }}">Preview memakai template Word yang diunggah</a>
     </div>
   </div>
   <div class="mt-4 grid gap-3 text-sm md:grid-cols-2">
     <div class="rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-emerald-950"><strong>Jurnal Guru</strong> memuat kelas, guru mapel, bulan, semester, uraian mengajar, metode, jumlah hadir/tidak hadir, dan kolom paraf.</div>
     <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-slate-700"><strong>Jurnal Kelas</strong> memakai tabel yang sama, tetapi identitas sampul dan tanda tangan diarahkan ke wali kelas.</div>
+  </div>
+  <div class="mt-4 rounded-2xl border border-emerald-100 bg-white p-4 text-sm text-slate-700">
+    <h3 class="font-bold text-emerald-950">Cara mengisi jurnal</h3>
+    <ol class="mt-2 list-decimal space-y-1 pl-5">
+      <li>Pastikan guru sudah memiliki <strong>Penugasan Mengajar</strong> dan <strong>Jadwal Pelajaran</strong> aktif pada tahun ajaran serta semester berjalan.</li>
+      <li>Pada bagian <strong>Jadwal Hari Ini</strong>, klik tombol <strong>Isi Jurnal</strong> pada kartu jadwal yang muncul.</li>
+      <li>Lengkapi topik, tujuan, materi, metode, media, kegiatan pembelajaran, penilaian, catatan, lalu pilih <strong>Simpan Draft</strong> atau <strong>Simpan dan Kirim</strong>.</li>
+      <li>Jurnal yang sudah dikirim akan masuk daftar dan dapat diverifikasi oleh kepala madrasah atau petugas yang berwenang.</li>
+      <li>Setelah data jurnal tersedia, pilih bulan dan jenis jurnal, lalu klik <strong>Export Word</strong> untuk mengunduh file sesuai template Word yang sudah diunggah.</li>
+    </ol>
+    <p class="mt-2 text-amber-700">Jika bagian Jadwal Hari Ini kosong, isi atau aktifkan dahulu jadwal pelajaran guru pada menu Akademik.</p>
   </div>
 
   @can('teaching-journals.print')
