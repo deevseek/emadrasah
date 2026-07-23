@@ -17,7 +17,7 @@
         </select>
         <x-ui.button>Export Word</x-ui.button>
       </form>
-      <a class="text-sm font-semibold text-emerald-800" href="{{ route('teaching-journals.print-monthly', ['month' => request('month', today()->format('Y-m')), 'type' => 'teacher']) }}" target="_blank">Preview cetak HTML tetap tersedia</a>
+      <a class="text-sm font-semibold text-emerald-800" href="{{ route('teaching-journals.print-monthly', ['month' => request('month', today()->format('Y-m')), 'type' => 'teacher']) }}">Preview memakai template Word yang diunggah</a>
     </div>
   </div>
   <div class="mt-4 grid gap-3 text-sm md:grid-cols-2">
