@@ -128,6 +128,11 @@ class EmployeeManagementTest extends TestCase
         $this->assertNotNull($user);
         $this->assertTrue(Hash::check('not-the-password', $user->password) === false);
         $this->assertDatabaseHas('activity_log', ['event' => 'employee.account-created']);
+        $existing = User::factory()->create(['email' => 'existing@example.test']);
+        $otherEmployee = Employee::create($this->payload(['employee_number' => 'NIY2', 'email' => 'existing@example.test']));
+        $this->post(route('employees.create-account', $otherEmployee), ['email' => 'existing@example.test', 'role' => 'operator'])->assertSessionHas('status');
+        $this->assertSame($existing->id, $otherEmployee->refresh()->user_id);
+        $this->assertDatabaseHas('activity_log', ['event' => 'employee.account-linked']);
     }
 
     public function test_view_own_cannot_open_other_employee(): void

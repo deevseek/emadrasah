@@ -101,7 +101,10 @@
                     <form class="mt-4 space-y-2" method="post" action="{{ route('employees.create-account', $employee) }}">
                         @csrf
                         <input name="email" value="{{ old('email', $employee->email) }}" class="w-full rounded-xl border-slate-300" placeholder="Email akun baru">
-                        <select name="role" class="w-full rounded-xl border-slate-300">@foreach($roles as $role)<option value="{{ $role->name }}">{{ $role->display_name ?? $role->name }}</option>@endforeach</select>
+                        @error('email')<p class="text-xs font-semibold text-rose-600">{{ $message }}</p>@enderror
+                        <select name="role" class="w-full rounded-xl border-slate-300">@foreach($roles as $role)<option value="{{ $role->name }}" @selected(old('role') === $role->name)>{{ $role->display_name ?? $role->name }}</option>@endforeach</select>
+                        @error('role')<p class="text-xs font-semibold text-rose-600">{{ $message }}</p>@enderror
+                        <p class="text-xs text-slate-500">Jika email sudah ada dan belum terhubung dengan pegawai lain, sistem akan menghubungkannya otomatis.</p>
                         <button class="rounded-xl border px-3 py-2 text-sm font-semibold">Buat Akun</button>
                     </form>
                 @endcan
