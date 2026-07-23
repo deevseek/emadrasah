@@ -118,6 +118,8 @@ Route::middleware(['auth', 'active'])->group(function (): void {
 
     Route::get('/employees/mine', [EmployeeController::class, 'mine'])->middleware('permission:employees.view-own')->name('employees.mine');
     Route::get('/employees/export', [EmployeeController::class, 'export'])->middleware('permission:employees.export')->name('employees.export');
+    Route::get('/employees/import', [EmployeeController::class, 'importForm'])->middleware('permission:employees.create')->name('employees.import.form');
+    Route::post('/employees/import', [EmployeeController::class, 'import'])->middleware('permission:employees.create')->name('employees.import');
     Route::get('/employees', [EmployeeController::class, 'index'])->middleware('permission:employees.view')->name('employees.index');
     Route::get('/employees/create', [EmployeeController::class, 'create'])->middleware('permission:employees.create')->name('employees.create');
     Route::post('/employees', [EmployeeController::class, 'store'])->middleware('permission:employees.create')->name('employees.store');

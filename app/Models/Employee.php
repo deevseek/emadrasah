@@ -16,7 +16,7 @@ class Employee extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['user_id', 'front_title', 'employee_number', 'nip', 'nuptk', 'national_identity_number', 'name', 'back_title', 'gender', 'birth_place', 'birth_date', 'religion', 'address', 'village', 'district', 'city', 'province', 'postal_code', 'phone', 'whatsapp', 'email', 'employment_type', 'employee_status', 'position', 'joined_at', 'left_at', 'notes', 'last_education', 'major', 'education_institution', 'graduation_year', 'photo_path', 'is_active'];
+    protected $fillable = ['user_id', 'front_title', 'employee_number', 'nip', 'nuptk', 'national_identity_number', 'name', 'back_title', 'gender', 'birth_place', 'birth_date', 'religion', 'address', 'village', 'district', 'city', 'province', 'postal_code', 'phone', 'whatsapp', 'email', 'employment_type', 'employee_status', 'position', 'rank_grade', 'peg_id', 'certification_status', 'certification_subject', 'weekly_teaching_hours', 'bank_name', 'bank_account_number', 'joined_at', 'left_at', 'notes', 'last_education', 'major', 'education_institution', 'graduation_year', 'photo_path', 'is_active'];
 
     protected function casts(): array
     {
