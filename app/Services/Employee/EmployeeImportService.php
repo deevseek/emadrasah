@@ -152,6 +152,10 @@ class EmployeeImportService
                 }
             }
 
+            if (! array_key_exists('birth', $columns) && (! array_key_exists('birth_place', $columns) || ! array_key_exists('birth_date', $columns))) {
+                throw new \RuntimeException('Kolom wajib pada XLS tidak ditemukan: tempat/tanggal lahir');
+            }
+
             return [$rowNumber, $columns];
         }
 
