@@ -126,7 +126,7 @@ class ScheduleController extends Controller
         return $employeeId ? $query->where('employee_id', $employeeId) : $query->whereRaw('1 = 0');
     }
 
-    private function abortUnlessCanView(Request $request, int $employeeId): void
+    private function abortUnlessCanView(Request $request, ?int $employeeId): void
     {
         if ($request->user()?->can('schedules.view')) {
             return;
