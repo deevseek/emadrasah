@@ -6,7 +6,7 @@
             <p class="text-sm text-slate-500">Kelola identitas siswa, wali, dokumen, dan riwayat status. Daftar awal menampilkan siswa aktif.</p>
         </div>
         <div class="flex flex-wrap gap-2">
-            @can('students.export')<a href="{{ route('students.export', request()->query()) }}" class="btn btn-secondary">Export CSV</a>@endcan
+            @can('students.export')<a href="{{ route('students.export', request()->query()) }}" class="btn btn-secondary">Export XLSX</a>@endcan
             @can('students.create')<a href="{{ route('students.import.form') }}" class="btn btn-secondary">Upload XLSX</a><a href="{{ route('students.create') }}" class="btn btn-primary">Tambah Siswa</a>@endcan
         </div>
     </div>

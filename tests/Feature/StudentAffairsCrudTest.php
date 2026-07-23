@@ -139,6 +139,25 @@ final class StudentAffairsCrudTest extends TestCase
         $this->assertNotNull($classroom);
     }
 
+    public function test_student_export_returns_formatted_xlsx_workbook(): void
+    {
+        [$year] = $this->createActiveAcademicPeriod('XLSX');
+        $teacher = $this->createTeacher(suffix: 'XLSX');
+        $classroom = $this->createClassroom($year, $this->createGradeLevel('XLSX'), $teacher, '2A-XLSX');
+        $student = $this->createActiveStudent('XLSX');
+        $this->createEnrollment($student, $year, $classroom);
+
+        $response = $this->actingAs($this->admin)->get(route('students.export', [
+            'academic_year_id' => $year->id,
+            'classroom_id' => $classroom->id,
+        ]));
+
+        $response->assertOk();
+        $response->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        $this->assertStringStartsWith('attachment; filename=rekap-data-siswa-', $response->headers->get('content-disposition'));
+        $this->assertStringContainsString('PK', $response->baseResponse->getFile()->getContent());
+    }
+
     public function test_student_affairs_routes_forbid_users_without_permission(): void
     {
         $user = User::factory()->create();
