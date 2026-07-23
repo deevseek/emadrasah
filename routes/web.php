@@ -202,6 +202,8 @@ Route::middleware(['auth', 'active'])->group(function (): void {
     Route::patch('/users/{user}/reset-password', [UserManagementController::class, 'resetPassword'])->middleware('permission:users.reset-password')->name('users.reset-password');
 
     Route::get('/students/export', [StudentController::class, 'export'])->middleware('permission:students.export')->name('students.export');
+    Route::get('/students/import', [StudentController::class, 'importForm'])->middleware('permission:students.create')->name('students.import.form');
+    Route::post('/students/import', [StudentController::class, 'import'])->middleware('permission:students.create')->name('students.import');
     Route::get('/students', [StudentController::class, 'index'])->middleware('permission:students.view')->name('students.index');
     Route::get('/students/create', [StudentController::class, 'create'])->middleware('permission:students.create')->name('students.create');
     Route::post('/students', [StudentController::class, 'store'])->middleware('permission:students.create')->name('students.store');
