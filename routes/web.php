@@ -151,6 +151,9 @@ Route::middleware(['auth', 'active'])->group(function (): void {
     Route::get('/student-attendances', [StudentAttendanceController::class, 'index'])->middleware('permission:student-attendances.view|student-attendances.view-own-class')->name('student-attendances.index');
 
     Route::get('/teaching-journals/export', [TeachingJournalController::class, 'export'])->middleware('permission:teaching-journals.export')->name('teaching-journals.export');
+    Route::get('/teaching-journals/print-monthly', [TeachingJournalController::class, 'printMonthly'])->middleware('permission:teaching-journals.print-own|teaching-journals.print')->name('teaching-journals.print-monthly');
+    Route::post('/teaching-journals/templates', [TeachingJournalController::class, 'uploadTemplate'])->middleware('permission:teaching-journals.print')->name('teaching-journals.templates.store');
+    Route::get('/teaching-journals/templates/export', [TeachingJournalController::class, 'exportTemplate'])->middleware('permission:teaching-journals.print-own|teaching-journals.print')->name('teaching-journals.templates.export');
     Route::get('/teaching-journals', [TeachingJournalController::class, 'index'])->middleware('permission:teaching-journals.view-own|teaching-journals.view')->name('teaching-journals.index');
     Route::get('/teaching-journals/create', [TeachingJournalController::class, 'create'])->middleware('permission:teaching-journals.create')->name('teaching-journals.create');
     Route::post('/teaching-journals', [TeachingJournalController::class, 'store'])->middleware('permission:teaching-journals.create')->name('teaching-journals.store');
