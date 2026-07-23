@@ -9,10 +9,12 @@ use App\Enums\EmploymentType;
 use App\Enums\Gender;
 use App\Models\Employee;
 use App\Models\User;
+use App\Services\Employee\EmployeeImportService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use ReflectionMethod;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -34,6 +36,68 @@ class EmployeeManagementTest extends TestCase
         $this->get(route('employees.export', ['search' => '198001']))->assertOk()->assertDontSee('password')->assertDontSee('employee-documents');
         $this->get(route('employees.show', $employee))->assertOk()->assertSee('Guru Tes');
         $this->get(route('employees.edit', $employee))->assertOk()->assertSee('Guru Tes');
+    }
+
+    public function test_employee_import_accepts_common_birth_header_variations(): void
+    {
+        $service = new EmployeeImportService();
+        $detectColumns = new ReflectionMethod($service, 'detectColumns');
+        $detectColumns->setAccessible(true);
+        $mapRow = new ReflectionMethod($service, 'mapRow');
+        $mapRow->setAccessible(true);
+
+        [, $combinedColumns] = $detectColumns->invoke($service, [
+            1 => ['Nama Lengkap', 'L/P', "Tempat,\nTgl. Lahir", 'Status', 'Nomor Induk Yayasan (NIY)', 'Jabatan'],
+        ]);
+
+        $combinedPayload = $mapRow->invoke($service, [
+            'Guru Format Gabungan', 'L', 'Demak, 1 Januari 1990', 'GTY', 'NIY-001', 'Guru Kelas',
+        ], $combinedColumns);
+
+        $this->assertSame('Demak', $combinedPayload['birth_place']);
+        $this->assertSame('1990-01-01', $combinedPayload['birth_date']);
+
+        [, $slashColumns] = $detectColumns->invoke($service, [
+            1 => ['Nama Lengkap', 'L/P', 'Tempat/Tanggal Lahir', 'Status', 'Nomor Induk Yayasan (NIY)', 'Jabatan'],
+        ]);
+
+        $slashPayload = $mapRow->invoke($service, [
+            'Guru Format Garis Miring', 'L', 'Demak, 2 Januari 1990', 'GTY', 'NIY-004', 'Guru Kelas',
+        ], $slashColumns);
+
+        $this->assertSame('Demak', $slashPayload['birth_place']);
+        $this->assertSame('1990-01-02', $slashPayload['birth_date']);
+
+        [, $splitColumns] = $detectColumns->invoke($service, [
+            1 => ['Nama Lengkap', 'L/P', 'Tempat Lahir', 'Tanggal Lahir', 'Status', 'Nomor Induk Yayasan (NIY)', 'Jabatan'],
+        ]);
+
+        $splitPayload = $mapRow->invoke($service, [
+            'Guru Format Terpisah', 'P', 'Demak', '1 Januari 1990', 'GTY', 'NIY-002', 'Guru Kelas',
+        ], $splitColumns);
+
+        $this->assertSame('Demak', $splitPayload['birth_place']);
+        $this->assertSame('1990-01-01', $splitPayload['birth_date']);
+    }
+
+    public function test_employee_import_does_not_require_birth_columns(): void
+    {
+        $service = new EmployeeImportService();
+        $detectColumns = new ReflectionMethod($service, 'detectColumns');
+        $detectColumns->setAccessible(true);
+        $mapRow = new ReflectionMethod($service, 'mapRow');
+        $mapRow->setAccessible(true);
+
+        [, $columns] = $detectColumns->invoke($service, [
+            1 => ['Nama Lengkap', 'L/P', 'Status', 'Nomor Induk Yayasan (NIY)', 'Jabatan'],
+        ]);
+
+        $payload = $mapRow->invoke($service, [
+            'Guru Tanpa Data Lahir', 'L', 'GTY', 'NIY-003', 'Guru Kelas',
+        ], $columns);
+
+        $this->assertNull($payload['birth_place']);
+        $this->assertNull($payload['birth_date']);
     }
 
     public function test_validation_rejects_duplicate_numbers_and_invalid_dates(): void
