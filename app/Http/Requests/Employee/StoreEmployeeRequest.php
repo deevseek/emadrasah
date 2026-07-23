@@ -8,22 +8,80 @@ use App\Enums\EmployeeStatus;
 use App\Enums\EmploymentType;
 use App\Enums\Gender;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class StoreEmployeeRequest extends FormRequest
 {
     public function authorize(): bool { return $this->user()?->can('employees.create') ?? false; }
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge(['employment_type' => $this->employmentTypeFromPosition((string) $this->input('position'))]);
+    }
+
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'], 'front_title' => ['nullable', 'string', 'max:50'], 'back_title' => ['nullable', 'string', 'max:50'],
-            'employee_number' => ['nullable', 'string', 'max:100', 'unique:employees,employee_number'], 'nip' => ['nullable', 'string', 'max:100', 'unique:employees,nip'], 'nuptk' => ['nullable', 'string', 'max:100', 'unique:employees,nuptk'], 'national_identity_number' => ['nullable', 'string', 'max:100', 'unique:employees,national_identity_number'],
-            'gender' => ['required', Rule::enum(Gender::class)], 'birth_place' => ['nullable', 'string', 'max:100'], 'birth_date' => ['nullable', 'date', 'before_or_equal:today'], 'religion' => ['nullable', 'string', 'max:50'],
-            'phone' => ['nullable', 'string', 'max:30'], 'whatsapp' => ['nullable', 'string', 'max:30'], 'email' => ['nullable', 'email', 'max:255', 'unique:employees,email'], 'address' => ['nullable', 'string'], 'village' => ['nullable', 'string', 'max:100'], 'district' => ['nullable', 'string', 'max:100'], 'city' => ['nullable', 'string', 'max:100'], 'province' => ['nullable', 'string', 'max:100'], 'postal_code' => ['nullable', 'string', 'max:20'],
-            'employment_type' => ['required', Rule::enum(EmploymentType::class)], 'employee_status' => ['required', Rule::enum(EmployeeStatus::class)], 'position' => ['required', 'string', 'max:150'], 'joined_at' => ['nullable', 'date', 'before_or_equal:left_at'], 'left_at' => ['nullable', 'date', 'after_or_equal:joined_at'], 'is_active' => ['nullable', 'boolean'], 'notes' => ['nullable', 'string'],
-            'last_education' => ['nullable', 'string', 'max:100'], 'major' => ['nullable', 'string', 'max:150'], 'education_institution' => ['nullable', 'string', 'max:150'], 'graduation_year' => ['nullable', 'integer', 'min:1900', 'max:'.((int) date('Y') + 1)],
-            'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'name' => ['required', 'string', 'max:255'],
+            'gender' => ['required', Rule::enum(Gender::class)],
+            'birth_place' => ['nullable', 'string', 'max:100'],
+            'birth_date' => ['nullable', 'date', 'before_or_equal:today'],
+            'employee_status' => ['required', Rule::enum(EmployeeStatus::class)],
+            'employee_number' => ['nullable', 'string', 'max:100', 'unique:employees,employee_number'],
+            'nip' => ['nullable', 'string', 'max:100', 'unique:employees,nip'],
+            'rank_grade' => ['nullable', 'string', 'max:150'],
+            'peg_id' => ['nullable', 'string', 'max:100'],
+            'last_education' => ['nullable', 'string', 'max:100'],
+            'position' => ['required', 'string', 'max:150'],
+            'employment_type' => ['required', Rule::enum(EmploymentType::class)],
+            'certification_status' => ['nullable', 'string', 'max:150'],
+            'certification_subject' => ['nullable', 'string', 'max:150'],
+            'weekly_teaching_hours' => ['nullable', 'integer', 'min:0', 'max:80'],
+            'bank_name' => ['nullable', 'string', 'max:100'],
+            'bank_account_number' => ['nullable', 'string', 'max:100'],
+            'whatsapp' => ['nullable', 'string', 'max:30'],
+            'phone' => ['nullable', 'string', 'max:30'],
+            'email' => ['nullable', 'email', 'max:255', 'unique:employees,email'],
+            'is_active' => ['nullable', 'boolean'],
         ];
     }
-    public function attributes(): array { return ['name'=>'nama lengkap','employee_number'=>'NIY/nomor pegawai yayasan','national_identity_number'=>'NIK','employment_type'=>'kategori pegawai','employee_status'=>'status kepegawaian','position'=>'jabatan di madrasah','joined_at'=>'tanggal mulai bekerja','left_at'=>'tanggal selesai bekerja','photo'=>'foto pegawai']; }
+
+    public function attributes(): array
+    {
+        return [
+            'name' => 'nama lengkap',
+            'gender' => 'L/P',
+            'birth_place' => 'tempat lahir',
+            'birth_date' => 'tanggal lahir',
+            'employee_status' => 'status',
+            'employee_number' => 'nomor induk yayasan (NIY)',
+            'nip' => 'NIP',
+            'rank_grade' => 'pangkat/golongan ruang',
+            'peg_id' => 'Peg.ID',
+            'last_education' => 'pendidikan terakhir',
+            'position' => 'jabatan',
+            'certification_status' => 'sertifikasi-impassing',
+            'certification_subject' => 'mapel sertifikasi',
+            'weekly_teaching_hours' => 'jumlah JPL',
+            'bank_name' => 'jenis rekening',
+            'bank_account_number' => 'nomor rekening',
+            'whatsapp' => 'nomor HP/WA aktif',
+            'email' => 'e-mail aktif',
+        ];
+    }
+
+    protected function employmentTypeFromPosition(string $position): string
+    {
+        $position = Str::lower($position);
+
+        return match (true) {
+            str_contains($position, 'kepala') => EmploymentType::Principal->value,
+            str_contains($position, 'kelas') => EmploymentType::ClassTeacher->value,
+            str_contains($position, 'btaq') => EmploymentType::BtaqTeacher->value,
+            str_contains($position, 'usaha') => EmploymentType::Administration->value,
+            str_contains($position, 'bersih') => EmploymentType::EducationStaff->value,
+            default => EmploymentType::SubjectTeacher->value,
+        };
+    }
 }
