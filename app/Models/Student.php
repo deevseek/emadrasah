@@ -18,7 +18,7 @@ class Student extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['user_id', 'student_number', 'national_student_number', 'national_identity_number', 'family_card_number', 'name', 'nickname', 'gender', 'birth_place', 'birth_date', 'religion', 'citizenship', 'child_order', 'siblings_count', 'family_status', 'address', 'rt', 'rw', 'village', 'district', 'city', 'province', 'postal_code', 'phone', 'email', 'previous_school', 'previous_exam_number', 'previous_diploma_number', 'admission_date', 'admission_type', 'student_status', 'graduation_date', 'photo_path', 'notes', 'blood_type', 'weight_kg', 'height_cm', 'special_needs', 'medical_history', 'allergies', 'bpjs_number', 'residence_type', 'transportation_mode', 'distance_to_school_km', 'travel_time_minutes', 'is_active'];
+    protected $fillable = ['user_id', 'student_number', 'national_student_number', 'national_identity_number', 'family_card_number', 'name', 'nickname', 'gender', 'birth_place', 'birth_date', 'religion', 'citizenship', 'child_order', 'siblings_count', 'family_status', 'address', 'rt', 'rw', 'village', 'district', 'city', 'province', 'postal_code', 'phone', 'email', 'previous_school', 'previous_exam_number', 'previous_diploma_number', 'admission_date', 'admission_type', 'student_status', 'graduation_date', 'photo_path', 'notes', 'blood_type', 'weight_kg', 'height_cm', 'special_needs', 'disability', 'medical_history', 'allergies', 'bpjs_number', 'kip_pip_number', 'residence_type', 'transportation_mode', 'distance_to_school_km', 'travel_time_minutes', 'is_active'];
 
     protected function casts(): array
     {
