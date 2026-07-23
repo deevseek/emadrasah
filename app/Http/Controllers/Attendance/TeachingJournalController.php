@@ -34,6 +34,7 @@ final class TeachingJournalController extends Controller
     public function create(Request $request, TeachingJournalService $service): View
     {
         $schedule = LessonSchedule::with('employee','classroom','subject','academicYear','semester','teachingAssignment')->findOrFail($request->integer('lesson_schedule_id'));
+        abort_if(! $schedule->employee_id || ! $schedule->teaching_assignment_id, 422, 'Guru pengampu belum ditetapkan pada jadwal ini. Tetapkan penugasan mengajar terlebih dahulu sebelum mengisi jurnal.');
         $this->authorizeSchedule($schedule);
         return view('attendance.journals.form', ['journal'=>null,'schedule'=>$schedule,'meetingNumber'=>$service->nextMeetingNumber((int)$schedule->teaching_assignment_id),'date'=>$request->input('date', today()->toDateString())]);
     }

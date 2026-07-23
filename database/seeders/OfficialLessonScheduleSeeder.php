@@ -15,7 +15,6 @@ use App\Models\GradeLevel;
 use App\Models\LessonSchedule;
 use App\Models\Semester;
 use App\Models\Subject;
-use App\Models\TeachingAssignment;
 use Illuminate\Database\Seeder;
 
 final class OfficialLessonScheduleSeeder extends Seeder
@@ -40,7 +39,7 @@ final class OfficialLessonScheduleSeeder extends Seeder
 
         foreach ($this->classSchedules() as $classData) {
             $grade = GradeLevel::firstOrCreate(['level' => $classData['grade']], ['name' => 'Kelas '.$classData['grade'], 'code' => 'K'.$classData['grade'], 'is_active' => true]);
-            $teacher = Employee::updateOrCreate(['employee_number' => 'WK-'.str($classData['code'])->slug('-')->upper()], [
+            $homeroomTeacher = Employee::updateOrCreate(['employee_number' => 'WK-'.str($classData['code'])->slug('-')->upper()], [
                 'name' => $classData['homeroom'],
                 'gender' => Gender::Female->value,
                 'employment_type' => EmploymentType::ClassTeacher->value,
@@ -51,7 +50,7 @@ final class OfficialLessonScheduleSeeder extends Seeder
                 'grade_level_id' => $grade->id,
                 'name' => $classData['name'],
                 'capacity' => 28,
-                'homeroom_teacher_id' => $teacher->id,
+                'homeroom_teacher_id' => $homeroomTeacher->id,
                 'room' => 'Ruang '.$classData['name'],
                 'is_active' => true,
             ]);
@@ -63,14 +62,6 @@ final class OfficialLessonScheduleSeeder extends Seeder
                         continue;
                     }
                     $subject = $subjects[$code];
-                    $assignment = TeachingAssignment::updateOrCreate([
-                        'academic_year_id' => $year->id,
-                        'semester_id' => $semester->id,
-                        'employee_id' => $teacher->id,
-                        'classroom_id' => $classroom->id,
-                        'subject_id' => $subject->id,
-                    ], ['weekly_hours' => 1, 'is_active' => true, 'starts_on' => '2026-07-13']);
-
                     LessonSchedule::updateOrCreate([
                         'semester_id' => $semester->id,
                         'classroom_id' => $classroom->id,
@@ -78,14 +69,14 @@ final class OfficialLessonScheduleSeeder extends Seeder
                         'starts_at' => $start,
                         'ends_at' => $end,
                     ], [
-                        'teaching_assignment_id' => $assignment->id,
+                        'teaching_assignment_id' => null,
                         'academic_year_id' => $year->id,
                         'subject_id' => $subject->id,
-                        'employee_id' => $teacher->id,
+                        'employee_id' => null,
                         'lesson_hours' => 1,
                         'room' => $classroom->room,
                         'is_active' => true,
-                        'notes' => 'Diimpor dari jadwal resmi MI Muslimat NU Demak TA 2026/2027 semester ganjil.',
+                        'notes' => 'Diimpor dari jadwal resmi MI Muslimat NU Demak TA 2026/2027 semester ganjil. Guru pengampu belum ditetapkan karena dokumen jadwal hanya memuat mata pelajaran.',
                     ]);
                 }
             }
