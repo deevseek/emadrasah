@@ -19,7 +19,9 @@ class EmployeeImportService
     private const COLUMN_ALIASES = [
         'nama_lengkap' => ['nama lengkap'],
         'gender' => ['l/p', 'lp'],
-        'birth' => ['tempat tgl lahir', 'tempat, tgl lahir', 'tempat tanggal lahir'],
+        'birth' => ['tempat tgl lahir', 'tempat, tgl lahir', 'tempat tanggal lahir', 'tempat/tgl lahir', 'tempat/tanggal lahir', 'tempat dan tanggal lahir', 'ttl'],
+        'birth_place' => ['tempat lahir'],
+        'birth_date' => ['tanggal lahir', 'tgl lahir'],
         'employee_status' => ['status'],
         'employee_number' => ['nomor induk yayasan niy', 'nomor induk yayasan', 'niy'],
         'nip' => ['nip'],
@@ -82,6 +84,8 @@ class EmployeeImportService
     private function mapRow(array $row, array $columns): array
     {
         $birth = $this->value($row, $columns, 'birth');
+        $birthPlace = $this->value($row, $columns, 'birth_place');
+        $birthDate = $this->value($row, $columns, 'birth_date');
         $whatsapp = $this->normalizePhone($this->value($row, $columns, 'whatsapp'));
         $email = $this->email($this->value($row, $columns, 'email'));
         $position = $this->value($row, $columns, 'position') ?: 'Pegawai';
@@ -89,8 +93,8 @@ class EmployeeImportService
         return [
             'name' => $this->value($row, $columns, 'nama_lengkap'),
             'gender' => $this->gender($this->value($row, $columns, 'gender')),
-            'birth_place' => $this->birthPlace($birth),
-            'birth_date' => $this->birthDate($birth),
+            'birth_place' => $this->birthPlace($birth, $birthPlace),
+            'birth_date' => $this->birthDate($birth, $birthDate),
             'employee_status' => $this->status($this->value($row, $columns, 'employee_status')),
             'employee_number' => $this->dashNull($this->value($row, $columns, 'employee_number')),
             'nip' => $this->dashNull($this->value($row, $columns, 'nip')),
@@ -142,10 +146,14 @@ class EmployeeImportService
                 }
             }
 
-            foreach (['nama_lengkap', 'gender', 'birth', 'employee_status', 'employee_number', 'position'] as $required) {
+            foreach (['nama_lengkap', 'gender', 'employee_status', 'employee_number', 'position'] as $required) {
                 if (! array_key_exists($required, $columns)) {
                     throw new \RuntimeException('Kolom wajib pada XLS tidak ditemukan: '.$required);
                 }
+            }
+
+            if (! array_key_exists('birth', $columns) && (! array_key_exists('birth_place', $columns) || ! array_key_exists('birth_date', $columns))) {
+                throw new \RuntimeException('Kolom wajib pada XLS tidak ditemukan: tempat/tanggal lahir');
             }
 
             return [$rowNumber, $columns];
@@ -276,21 +284,37 @@ class EmployeeImportService
         };
     }
 
-    private function birthPlace(?string $value): ?string
+    private function birthPlace(?string $combinedValue, ?string $placeValue = null): ?string
     {
-        $parts = explode(',', (string) $value, 2);
+        if ($placeValue !== null) {
+            return $this->clean($placeValue);
+        }
+
+        $parts = explode(',', (string) $combinedValue, 2);
 
         return $this->clean($parts[0] ?? null);
     }
 
-    private function birthDate(?string $value): ?string
+    private function birthDate(?string $combinedValue, ?string $dateValue = null): ?string
     {
-        $parts = explode(',', (string) $value, 2);
-        if (! isset($parts[1])) {
-            return null;
+        $date = $dateValue;
+
+        if ($date === null) {
+            $parts = explode(',', (string) $combinedValue, 2);
+            if (! isset($parts[1])) {
+                return null;
+            }
+
+            $date = trim($parts[1]);
         }
 
-        $date = $this->normalizeIndonesianDate(trim($parts[1]));
+        if (is_numeric($date)) {
+            return CarbonImmutable::create(1899, 12, 30, 0, 0, 0, 'Asia/Jakarta')
+                ->addDays((int) $date)
+                ->toDateString();
+        }
+
+        $date = $this->normalizeIndonesianDate(trim($date));
 
         try {
             return CarbonImmutable::parse($date, 'Asia/Jakarta')->toDateString();
