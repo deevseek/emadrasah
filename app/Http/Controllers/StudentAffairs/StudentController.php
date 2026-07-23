@@ -25,6 +25,7 @@ use App\Models\User;
 use App\Services\StudentAffairs\GuardianAssignmentService;
 use App\Services\StudentAffairs\StudentDocumentService;
 use App\Services\StudentAffairs\StudentImportService;
+use App\Services\StudentAffairs\StudentRecapWorkbookService;
 use App\Services\StudentAffairs\StudentService;
 use App\Services\StudentAffairs\StudentStatusService;
 use Illuminate\Http\RedirectResponse;
@@ -183,28 +184,16 @@ class StudentController extends Controller
     }
 
 
-    public function export(Request $request): StreamedResponse
+    public function export(Request $request, StudentRecapWorkbookService $workbook): \Symfony\Component\HttpFoundation\BinaryFileResponse
     {
-        $fileName = 'data-siswa-'.now()->format('Ymd-His').'.csv';
+        $path = $workbook->stream($request);
+        $fileName = 'rekap-data-siswa-'.now()->format('Ymd-His').'.xlsx';
 
-        return response()->streamDownload(function () use ($request): void {
-            $handle = fopen('php://output', 'w');
-            fputcsv($handle, ['Nama', 'NIS', 'NISN', 'Jenis Kelamin', 'Status', 'Tanggal Masuk', 'Kontak Utama', 'WhatsApp Wali']);
-            Student::with('guardians')
-                ->when(! $request->filled('status'), fn ($query) => $query->where('student_status', StudentStatus::Active->value))
-                ->when($request->status, fn ($query, $status) => $query->where('student_status', $status))
-                ->when($request->gender, fn ($query, $gender) => $query->where('gender', $gender))
-                ->when($request->search, fn ($query, $search) => $query->where(fn ($where) => $where->where('name', 'like', "%{$search}%")->orWhere('student_number', 'like', "%{$search}%")->orWhere('national_student_number', 'like', "%{$search}%")))
-                ->orderBy('name')
-                ->chunk(200, function ($students) use ($handle): void {
-                    foreach ($students as $student) {
-                        $primary = $student->guardians->first(fn ($guardian) => (bool) $guardian->pivot->is_primary) ?? $student->guardians->first();
-                        fputcsv($handle, [$student->name, $student->student_number, $student->national_student_number, $student->gender?->label(), $student->student_status?->label(), $student->admission_date?->format('Y-m-d'), $primary?->name, $primary?->whatsapp]);
-                    }
-                });
-            fclose($handle);
-        }, $fileName, ['Content-Type' => 'text/csv']);
+        return response()->download($path, $fileName, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ])->deleteFileAfterSend(true);
     }
+
 
     private function refs(): array
     {

@@ -15,6 +15,7 @@ use App\Models\GradeLevel;
 use App\Models\Student;
 use App\Models\StudentEnrollment;
 use App\Services\ActivityLogger;
+use App\Services\StudentAffairs\StudentRecapWorkbookService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -48,5 +49,5 @@ class ClassroomController extends Controller
     public function toggle(Classroom $classroom): RedirectResponse { $old=$classroom->getAttributes(); $classroom->update(['is_active'=>!$classroom->is_active]); $this->logger->log('classroom.status',$classroom,$old,$classroom->getAttributes(),'Status kelas diubah.'); return back()->with('status','Status kelas diperbarui.'); }
     public function destroy(Classroom $classroom): RedirectResponse { if($classroom->studentEnrollments()->exists() || $classroom->homeroomAssignments()->exists()){ $classroom->update(['is_active'=>false]); return back()->with('status','Kelas memiliki riwayat sehingga dinonaktifkan, bukan dihapus.'); } $classroom->delete(); return redirect()->route('classrooms.index')->with('status','Kelas dihapus.'); }
     public function export(Request $request): StreamedResponse { $rows=Classroom::with(['academicYear','gradeLevel','homeroomTeacher'])->withCount('activeStudentEnrollments')->get(); return response()->streamDownload(function() use($rows){ $f=fopen('php://output','w'); fputcsv($f,['Kode Rombel','Tingkat','Tahun Ajaran','Wali Kelas','Kapasitas','Jumlah Siswa','Status']); foreach($rows as $c) fputcsv($f,[$c->code,$c->gradeLevel?->name,$c->academicYear?->name,$c->homeroomTeacher?->name,$c->capacity,$c->active_student_enrollments_count,$c->is_active?'Aktif':'Nonaktif']); fclose($f); },'kelas-rombel.csv',['Content-Type'=>'text/csv']); }
-    public function exportStudents(Classroom $classroom): StreamedResponse { $rows=$classroom->studentEnrollments()->with('student')->get(); return response()->streamDownload(function() use($rows){ $f=fopen('php://output','w'); fputcsv($f,['Nama','NIS','NISN','Jenis Kelamin','Status Penempatan','Tanggal Mulai']); foreach($rows as $e) fputcsv($f,[$e->student?->name,$e->student?->student_number,$e->student?->national_student_number,$e->student?->gender?->label(),$e->enrollment_status?->label(),optional($e->enrolled_at)->format('Y-m-d')]); fclose($f); },'siswa-kelas.csv',['Content-Type'=>'text/csv']); }
+    public function exportStudents(Request $request, Classroom $classroom, StudentRecapWorkbookService $workbook): \Symfony\Component\HttpFoundation\BinaryFileResponse { $request->merge(['classroom_id'=>$classroom->id, 'academic_year_id'=>$classroom->academic_year_id]); $path=$workbook->stream($request); return response()->download($path, 'data-siswa-'.str($classroom->code)->slug().'.xlsx', ['Content-Type'=>'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'])->deleteFileAfterSend(true); }
 }
