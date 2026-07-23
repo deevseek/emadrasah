@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Storage;
 use Spatie\Activitylog\Models\Activity;
 use Tests\Support\CreatesAcademicTestData;
 use Tests\TestCase;
+use ZipArchive;
 
 final class StudentAffairsCrudTest extends TestCase
 {
@@ -155,7 +156,18 @@ final class StudentAffairsCrudTest extends TestCase
         $response->assertOk();
         $response->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         $this->assertStringStartsWith('attachment; filename=rekap-data-siswa-', $response->headers->get('content-disposition'));
-        $this->assertStringContainsString('PK', $response->baseResponse->getFile()->getContent());
+        $content = $response->baseResponse->getFile()->getContent();
+        $this->assertStringContainsString('PK', $content);
+
+        $path = tempnam(sys_get_temp_dir(), 'xlsx-test-').'.xlsx';
+        file_put_contents($path, $content);
+        $zip = new ZipArchive();
+        $this->assertTrue($zip->open($path) === true);
+        $this->assertStringContainsString('showGridLines="0"', $zip->getFromName('xl/worksheets/sheet1.xml'));
+        $this->assertStringContainsString('<pageSetup paperSize="9"', $zip->getFromName('xl/worksheets/sheet1.xml'));
+        $this->assertStringContainsString('style="thin"', $zip->getFromName('xl/styles.xml'));
+        $zip->close();
+        @unlink($path);
     }
 
     public function test_student_affairs_routes_forbid_users_without_permission(): void
