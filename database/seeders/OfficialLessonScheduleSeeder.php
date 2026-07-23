@@ -16,6 +16,8 @@ use App\Models\LessonSchedule;
 use App\Models\Semester;
 use App\Models\Subject;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 final class OfficialLessonScheduleSeeder extends Seeder
 {
@@ -23,6 +25,8 @@ final class OfficialLessonScheduleSeeder extends Seeder
 
     public function run(): void
     {
+        $this->ensureUnassignedSchedulesSupported();
+
         $year = AcademicYear::firstOrCreate(['name' => '2026/2027'], ['starts_on' => '2026-07-01', 'ends_on' => '2027-06-30', 'is_active' => true]);
         $semester = Semester::firstOrCreate(['academic_year_id' => $year->id, 'term' => 1], ['name' => 'Ganjil', 'starts_on' => '2026-07-01', 'ends_on' => '2026-12-31', 'is_active' => true]);
 
@@ -81,6 +85,23 @@ final class OfficialLessonScheduleSeeder extends Seeder
                 }
             }
         }
+    }
+
+    private function ensureUnassignedSchedulesSupported(): void
+    {
+        $column = collect(Schema::getColumns('lesson_schedules'))->firstWhere('name', 'employee_id');
+        $nullable = $column['nullable'] ?? true;
+        if ($nullable === true || $nullable === 'YES' || $nullable === 'yes') {
+            return;
+        }
+
+        $driver = DB::connection()->getDriverName();
+        if (in_array($driver, ['mysql', 'mariadb'], true)) {
+            DB::statement('ALTER TABLE lesson_schedules MODIFY employee_id BIGINT UNSIGNED NULL');
+            return;
+        }
+
+        throw new \RuntimeException('Kolom lesson_schedules.employee_id belum nullable. Jalankan php artisan migrate sebelum menjalankan OfficialLessonScheduleSeeder.');
     }
 
     private function subjects(): array
