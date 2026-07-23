@@ -12,6 +12,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use SimpleXMLElement;
 use ZipArchive;
 
 class EmployeeImportService
@@ -218,7 +219,58 @@ class EmployeeImportService
         }
 
         $shared = $this->sharedStrings($zip);
-        $xml = simplexml_load_string($zip->getFromName('xl/worksheets/sheet1.xml') ?: '');
+        $fallbackRows = [];
+
+        foreach ($this->worksheetNames($zip) as $worksheetName) {
+            $rows = $this->readWorksheetRows($zip, $worksheetName, $shared);
+
+            if ($fallbackRows === [] && $rows !== []) {
+                $fallbackRows = $rows;
+            }
+
+            if ($this->containsHeader($rows)) {
+                $zip->close();
+
+                return $rows;
+            }
+        }
+
+        $zip->close();
+
+        return $fallbackRows;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function worksheetNames(ZipArchive $zip): array
+    {
+        $names = [];
+
+        for ($index = 0; $index < $zip->numFiles; $index++) {
+            $name = $zip->getNameIndex($index);
+            if (is_string($name) && preg_match('#^xl/worksheets/[^/]+\.xml$#', $name) === 1) {
+                $names[] = $name;
+            }
+        }
+
+        usort($names, fn (string $left, string $right): int => strnatcmp($left, $right));
+
+        return $names;
+    }
+
+    private function readWorksheetRows(ZipArchive $zip, string $worksheetName, array $shared): array
+    {
+        $content = $zip->getFromName($worksheetName);
+        if (! is_string($content) || $content === '') {
+            return [];
+        }
+
+        $xml = simplexml_load_string($content);
+        if (! $xml instanceof SimpleXMLElement) {
+            return [];
+        }
+
         $rows = [];
 
         foreach ($xml->sheetData->row ?? [] as $row) {
@@ -231,9 +283,19 @@ class EmployeeImportService
             }
         }
 
-        $zip->close();
-
         return $rows;
+    }
+
+    private function containsHeader(array $rows): bool
+    {
+        foreach ($rows as $row) {
+            $normalizedCells = array_map(fn ($value) => $this->normalizeHeader((string) $value), $row);
+            if (in_array('nama lengkap', $normalizedCells, true)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function sharedStrings(ZipArchive $zip): array
