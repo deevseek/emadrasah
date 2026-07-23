@@ -43,7 +43,11 @@ class StudentImportService
                     $payload = $this->mapStudent($row, $columns);
                     $student = $this->findStudent($payload);
                     if ($student) {
-                        $student->update($payload);
+                        if ($student->trashed()) {
+                            $student->restore();
+                        }
+
+                        $student->update($payload + ['is_active' => true]);
                         $updated++;
                     } else {
                         $student = Student::create($payload);
@@ -84,11 +88,18 @@ class StudentImportService
 
     private function findStudent(array $payload): ?Student
     {
-        return Student::query()->where(function ($query) use ($payload): void {
-            foreach (['national_student_number', 'national_identity_number'] as $field) {
-                if (! empty($payload[$field])) { $query->orWhere($field, $payload[$field]); }
+        foreach (['national_student_number', 'national_identity_number'] as $field) {
+            if (empty($payload[$field])) {
+                continue;
             }
-        })->first();
+
+            $student = Student::withTrashed()->where($field, $payload[$field])->first();
+            if ($student) {
+                return $student;
+            }
+        }
+
+        return null;
     }
 
     private function syncGuardians(Student $student, array $row, array $columns): void
