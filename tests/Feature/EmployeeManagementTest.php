@@ -10,6 +10,7 @@ use App\Enums\Gender;
 use App\Models\Employee;
 use App\Models\User;
 use App\Services\Employee\EmployeeImportService;
+use App\Services\Employee\EmployeeImportTemplateService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
@@ -18,6 +19,7 @@ use ReflectionMethod;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
+use ZipArchive;
 
 class EmployeeManagementTest extends TestCase
 {
@@ -100,6 +102,30 @@ class EmployeeManagementTest extends TestCase
         $this->assertNull($payload['birth_date']);
     }
 
+
+    public function test_employee_import_reads_data_personalia_when_it_is_not_the_first_worksheet(): void
+    {
+        $service = new EmployeeImportService();
+        $template = new EmployeeImportTemplateService();
+        $path = tempnam(sys_get_temp_dir(), 'employee-import-multisheet-');
+        file_put_contents($path, $template->content());
+
+        $zip = new ZipArchive();
+        $this->assertTrue($zip->open($path) === true);
+        $dataSheet = $zip->getFromName('xl/worksheets/sheet1.xml');
+        $zip->addFromString('xl/worksheets/sheet1.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData><row r="1"><c r="A1" t="inlineStr"><is><t>Sheet Pembuka</t></is></c></row></sheetData></worksheet>');
+        $zip->addFromString('xl/worksheets/sheet2.xml', $dataSheet);
+        $zip->close();
+
+        $readRows = new ReflectionMethod($service, 'readRows');
+        $readRows->setAccessible(true);
+        $rows = $readRows->invoke($service, $path);
+
+        @unlink($path);
+
+        $this->assertSame('NAMA LENGKAP', $rows[1][1]);
+        $this->assertSame('USWATUN KHASANAH, S.Pd.I., M.Pd.', $rows[2][1]);
+    }
 
     public function test_employee_import_maps_principal_only_from_exact_school_head_position(): void
     {
