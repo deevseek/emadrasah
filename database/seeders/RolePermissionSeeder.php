@@ -13,7 +13,28 @@ class RolePermissionSeeder extends Seeder
 {
     public function run(): void
     {
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
 
+        $roles = [
+            'super-admin' => 'Super Admin',
+            'admin-madrasah' => 'Admin Madrasah',
+            'kepala-madrasah' => 'Kepala Madrasah',
+            'bendahara' => 'Bendahara',
+            'tata-usaha' => 'Tata Usaha',
+            'operator' => 'Operator',
+            'guru-kelas' => 'Guru Kelas',
+            'guru-mata-pelajaran' => 'Guru Mata Pelajaran',
+            'guru-btaq-murobi' => 'Guru BTAQ/Murobi',
+            'guru-full-day' => 'Guru Full Day',
+            'wali-murid' => 'Wali Murid',
+        ];
+
+        foreach ($roles as $name => $displayName) {
+            Role::firstOrCreate([
+                'name' => $name,
+                'guard_name' => 'web',
+            ])->forceFill(['display_name' => $displayName])->save();
+        }
 
         $module10All = ['assessment.view','assessment.create','assessment.update','assessment.delete','assessment.submit','assessment.verify','assessment.publish','assessment.lock','assessment.unlock','report-card.view','report-card.print','report-card.export','assessments.view-configuration','assessments.manage-configuration','assessments.manage-components','assessments.manage-periods','assessments.manage-minimum-criteria','grades.view-own','grades.create','grades.update-own','grades.submit','grades.view','grades.verify','grades.reject','grades.reopen','grades.lock','grades.export','grade-books.view-own-class','grade-books.view','grade-books.export','grade-books.print','report-cards.view-own-class','report-cards.compile','report-cards.update-own-class','report-cards.submit','report-cards.view','report-cards.verify','report-cards.reject','report-cards.finalize','report-cards.reopen','report-cards.print-own-class','report-cards.print','report-cards.export','assessment-reports.view','assessment-reports.export','assessment-reports.print'];
         foreach ($module10All as $permissionName) {
