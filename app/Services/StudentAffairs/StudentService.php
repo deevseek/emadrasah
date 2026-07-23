@@ -65,6 +65,28 @@ class StudentService
         return $student;
     }
 
+    public function deleteMany(array $studentIds): int
+    {
+        return DB::transaction(function () use ($studentIds): int {
+            $deleted = 0;
+
+            Student::query()
+                ->whereIn('id', $studentIds)
+                ->lockForUpdate()
+                ->get()
+                ->each(function (Student $student) use (&$deleted): void {
+                    $old = $student->getOriginal();
+                    $student->forceFill(['is_active' => false])->save();
+                    $student->delete();
+
+                    $this->logger->log('student.deleted', $student, $old, [], 'Data siswa dinonaktifkan melalui hapus massal.');
+                    $deleted++;
+                });
+
+            return $deleted;
+        });
+    }
+
     public function delete(Student $student): void
     {
         DB::transaction(function () use ($student): void {

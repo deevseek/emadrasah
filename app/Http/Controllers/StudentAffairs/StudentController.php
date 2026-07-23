@@ -10,6 +10,7 @@ use App\Enums\GuardianRelationship;
 use App\Enums\StudentDocumentType;
 use App\Enums\StudentStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StudentAffairs\BulkDeleteStudentsRequest;
 use App\Http\Requests\StudentAffairs\GuardianStudentRequest;
 use App\Http\Requests\StudentAffairs\StatusChangeRequest;
 use App\Http\Requests\StudentAffairs\StudentDocumentRequest;
@@ -123,6 +124,13 @@ class StudentController extends Controller
         $service->delete($student);
 
         return redirect()->route('students.index')->with('status', 'Data siswa dinonaktifkan.');
+    }
+
+    public function bulkDestroy(BulkDeleteStudentsRequest $request, StudentService $service): RedirectResponse
+    {
+        $deleted = $service->deleteMany($request->validated('student_ids'));
+
+        return redirect()->route('students.index')->with('status', $deleted.' data siswa berhasil dinonaktifkan.');
     }
 
     public function attachGuardian(GuardianStudentRequest $request, Student $student, GuardianAssignmentService $service): RedirectResponse
