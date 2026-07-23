@@ -19,7 +19,7 @@ class EmployeeImportService
     private const COLUMN_ALIASES = [
         'nama_lengkap' => ['nama lengkap'],
         'gender' => ['l/p', 'lp'],
-        'birth' => ['tempat tgl lahir', 'tempat, tgl lahir', 'tempat tanggal lahir', 'tempat/tgl lahir', 'tempat/tanggal lahir', 'tempat dan tanggal lahir', 'ttl'],
+        'birth' => ['tempat tgl lahir', 'tempat tgl. lahir', 'tempat, tgl lahir', 'tempat, tgl. lahir', 'tempat tanggal lahir', 'tempat/tgl lahir', 'tempat/tgl. lahir', 'tempat/tanggal lahir', 'tempat dan tanggal lahir', 'ttl'],
         'birth_place' => ['tempat lahir'],
         'birth_date' => ['tanggal lahir', 'tgl lahir'],
         'employee_status' => ['status'],
