@@ -130,6 +130,31 @@ class EmployeeManagementTest extends TestCase
         $this->assertSame('GURU KELAS 2', $classTeacherPayload['position']);
     }
 
+
+    public function test_employee_import_matches_existing_employee_by_normalized_identifiers(): void
+    {
+        $existing = Employee::create($this->payload([
+            'name' => 'RO’IS RO’DATUL URBAH, S.Pd.',
+            'employee_number' => '6200723022',
+            'peg_id' => '20367380197004',
+            'position' => 'Kepala Madrasah',
+            'employment_type' => EmploymentType::Principal->value,
+        ]));
+
+        $service = new EmployeeImportService();
+        $findEmployee = new ReflectionMethod($service, 'findEmployee');
+        $findEmployee->setAccessible(true);
+
+        $matched = $findEmployee->invoke($service, [
+            'name' => 'RO’IS RO’DATUL URBAH, S.Pd.',
+            'employee_number' => '620.0723.022',
+            'peg_id' => '20367380197004',
+            'email' => null,
+        ]);
+
+        $this->assertTrue($existing->is($matched));
+    }
+
     public function test_validation_rejects_duplicate_numbers_and_invalid_dates(): void
     {
         $admin = $this->userWith(['employees.create']);

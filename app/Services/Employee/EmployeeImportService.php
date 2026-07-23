@@ -130,8 +130,22 @@ class EmployeeImportService
         });
 
         $employee = $hasIdentifier ? $query->first() : null;
-        if ($employee || empty($payload['name'])) {
+        if ($employee) {
             return $employee;
+        }
+
+        if ($hasIdentifier) {
+            $employee = Employee::query()
+                ->get()
+                ->first(fn (Employee $employee): bool => $this->matchesNormalizedIdentifier($employee, $payload));
+
+            if ($employee) {
+                return $employee;
+            }
+        }
+
+        if (empty($payload['name'])) {
+            return null;
         }
 
         $normalizedName = $this->normalizedName($payload['name']);
@@ -139,6 +153,22 @@ class EmployeeImportService
         return Employee::query()
             ->get()
             ->first(fn (Employee $employee): bool => $this->normalizedName($employee->name) === $normalizedName);
+    }
+
+    private function matchesNormalizedIdentifier(Employee $employee, array $payload): bool
+    {
+        foreach (['employee_number', 'peg_id', 'email'] as $field) {
+            if (! empty($payload[$field]) && $this->normalizedIdentifier($employee->{$field}) === $this->normalizedIdentifier($payload[$field])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function normalizedIdentifier(?string $value): string
+    {
+        return preg_replace('/[^a-z0-9]+/', '', Str::lower((string) $value));
     }
 
     private function normalizedName(?string $value): string
