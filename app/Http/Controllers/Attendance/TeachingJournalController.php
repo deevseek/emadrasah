@@ -8,10 +8,13 @@ use App\Enums\TeachingJournalStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Attendance\TeachingJournalRejectRequest;
 use App\Http\Requests\Attendance\TeachingJournalStoreRequest;
+use App\Http\Requests\Attendance\TeachingJournalTemplateUploadRequest;
 use App\Http\Requests\Attendance\TeachingJournalUpdateRequest;
 use App\Models\LessonSchedule;
 use App\Models\TeachingJournal;
 use App\Services\Attendance\TeachingJournalService;
+use App\Services\Attendance\TeachingJournalTemplateService;
+use App\Services\Foundation\SchoolProfileService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
@@ -19,14 +22,14 @@ use Illuminate\View\View;
 
 final class TeachingJournalController extends Controller
 {
-    public function index(Request $request, TeachingJournalService $service): View
+    public function index(Request $request, TeachingJournalService $service, TeachingJournalTemplateService $templates): View
     {
         $user = $request->user(); $employeeId = $user->employee?->id;
         $journals = TeachingJournal::with('employee','classroom','subject','lessonSchedule')->when(! $user->can('teaching-journals.view'), fn ($q) => $q->where('employee_id',$employeeId))
             ->when($request->filled('status'), fn ($q) => $q->where('status',$request->status))->when($request->filled('date'), fn ($q) => $q->whereDate('journal_date',$request->date))->latest('journal_date')->paginate(15)->withQueryString();
         $todaySchedules = LessonSchedule::with('classroom','subject','teachingAssignment.employee')->where('is_active',true)->when(! $user->can('teaching-journals.view'), fn ($q) => $q->where('employee_id',$employeeId))->where('day_of_week', $this->dayValue(today()->dayOfWeekIso))->orderBy('starts_at')->get();
         $todayJournals = TeachingJournal::whereDate('journal_date', today())->whereIn('lesson_schedule_id', $todaySchedules->pluck('id'))->get()->keyBy('lesson_schedule_id');
-        return view('attendance.journals.index', compact('journals','todaySchedules','todayJournals'));
+        return view('attendance.journals.index', compact('journals','todaySchedules','todayJournals') + ['templatePaths' => ['teacher' => $templates->templatePath('teacher'), 'class' => $templates->templatePath('class')]]);
     }
     public function create(Request $request, TeachingJournalService $service): View
     {
@@ -44,6 +47,80 @@ final class TeachingJournalController extends Controller
     { $this->authorizeOwnership($teachingJournal); return view('attendance.journals.show', ['journal'=>$teachingJournal->load('employee','classroom','subject','academicYear','semester','lessonSchedule','verifier','rejector')]); }
     public function print(TeachingJournal $teachingJournal): View
     { $this->authorizePrint($teachingJournal); return view('attendance.journals.print', ['journal'=>$teachingJournal->load('employee','classroom','subject','academicYear','semester','verifier')]); }
+
+    public function printMonthly(Request $request, SchoolProfileService $profiles): View
+    {
+        abort_unless($request->user()->can('teaching-journals.print') || $request->user()->can('teaching-journals.print-own'), 403);
+
+        $validated = $request->validate([
+            'type' => ['nullable', 'in:teacher,class'],
+            'month' => ['nullable', 'date_format:Y-m'],
+            'classroom_id' => ['nullable', 'integer', 'exists:classrooms,id'],
+            'employee_id' => ['nullable', 'integer', 'exists:employees,id'],
+        ]);
+
+        $type = $validated['type'] ?? 'teacher';
+        $month = now()->parse(($validated['month'] ?? today()->format('Y-m')).'-01');
+        $user = $request->user();
+        $employeeId = $user->employee?->id;
+
+        $journals = TeachingJournal::with('employee','classroom.homeroomTeacher','subject','academicYear','semester')
+            ->when(! $user->can('teaching-journals.print'), fn ($q) => $q->where('employee_id', $employeeId))
+            ->when($type === 'teacher' && ! empty($validated['employee_id']) && $user->can('teaching-journals.print'), fn ($q) => $q->where('employee_id', $validated['employee_id']))
+            ->when($type === 'class' && ! empty($validated['classroom_id']), fn ($q) => $q->where('classroom_id', $validated['classroom_id']))
+            ->whereBetween('journal_date', [$month->copy()->startOfMonth()->toDateString(), $month->copy()->endOfMonth()->toDateString()])
+            ->orderBy('journal_date')
+            ->orderBy('scheduled_start_time')
+            ->get();
+
+        return view('attendance.journals.print-monthly', [
+            'journals' => $journals,
+            'profile' => $profiles->current(),
+            'type' => $type,
+            'month' => $month,
+            'selectedClassroom' => $journals->first()?->classroom,
+            'selectedEmployee' => $journals->first()?->employee,
+            'academicYear' => $journals->first()?->academicYear,
+            'semester' => $journals->first()?->semester,
+        ]);
+    }
+    public function uploadTemplate(TeachingJournalTemplateUploadRequest $request, TeachingJournalTemplateService $templates): RedirectResponse
+    {
+        $templates->storeTemplate($request->validated('type'), $request->file('template'));
+
+        return back()->with('status', 'Template Word jurnal berhasil diunggah.');
+    }
+
+    public function exportTemplate(Request $request, SchoolProfileService $profiles, TeachingJournalTemplateService $templates)
+    {
+        abort_unless($request->user()->can('teaching-journals.print') || $request->user()->can('teaching-journals.print-own'), 403);
+
+        $validated = $request->validate([
+            'type' => ['required', 'in:teacher,class'],
+            'month' => ['nullable', 'date_format:Y-m'],
+            'classroom_id' => ['nullable', 'integer', 'exists:classrooms,id'],
+            'employee_id' => ['nullable', 'integer', 'exists:employees,id'],
+        ]);
+
+        $type = $validated['type'];
+        $month = now()->parse(($validated['month'] ?? today()->format('Y-m')).'-01');
+        $user = $request->user();
+        $employeeId = $user->employee?->id;
+        $journals = TeachingJournal::with('employee','classroom.homeroomTeacher','subject','academicYear','semester')
+            ->when(! $user->can('teaching-journals.print'), fn ($q) => $q->where('employee_id', $employeeId))
+            ->when($type === 'teacher' && ! empty($validated['employee_id']) && $user->can('teaching-journals.print'), fn ($q) => $q->where('employee_id', $validated['employee_id']))
+            ->when($type === 'class' && ! empty($validated['classroom_id']), fn ($q) => $q->where('classroom_id', $validated['classroom_id']))
+            ->whereBetween('journal_date', [$month->copy()->startOfMonth()->toDateString(), $month->copy()->endOfMonth()->toDateString()])
+            ->orderBy('journal_date')
+            ->orderBy('scheduled_start_time')
+            ->get();
+
+        $path = $templates->render($type, $journals, $profiles->current(), $month);
+        $filename = 'jurnal-'.($type === 'class' ? 'kelas' : 'guru').'-'.$month->format('Y-m').'.docx';
+
+        return response()->download($path, $filename)->deleteFileAfterSend(true);
+    }
+
     public function submit(TeachingJournal $teachingJournal, TeachingJournalService $service): RedirectResponse
     { $this->authorizeOwnership($teachingJournal); $service->submit($teachingJournal); return back()->with('status','Jurnal dikirim.'); }
     public function verify(TeachingJournal $teachingJournal, TeachingJournalService $service): RedirectResponse
