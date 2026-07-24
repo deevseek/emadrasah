@@ -139,6 +139,40 @@ final class OfficialLessonScheduleSeeder extends Seeder
         return array_values(array_unique(array_map(fn (string $alias): string => $this->normalize($alias), $aliases)));
     }
 
+
+    /**
+     * @return \Illuminate\Support\Collection<string, Subject>
+     */
+    private function existingSubjects(): \Illuminate\Support\Collection
+    {
+        $codes = collect($this->subjects())->pluck(0);
+        $subjects = Subject::query()->whereIn('code', $codes)->get()->keyBy('code');
+        $missing = $codes->diff($subjects->keys())->values();
+
+        if ($missing->isNotEmpty()) {
+            throw new \RuntimeException('Mata pelajaran belum tersedia: '.$missing->implode(', ').'. Seeder ini tidak membuat mata pelajaran baru.');
+        }
+
+        return $subjects;
+    }
+
+    private function existingClassroom(AcademicYear $year, array $classData): Classroom
+    {
+        $classroom = Classroom::query()
+            ->where('academic_year_id', $year->id)
+            ->where(function ($query) use ($classData): void {
+                $query->where('code', $classData['code'])
+                    ->orWhere('name', $classData['name']);
+            })
+            ->first();
+
+        if (! $classroom) {
+            throw new \RuntimeException('Kelas '.$classData['code'].' / '.$classData['name'].' belum tersedia. Seeder ini tidak membuat kelas baru.');
+        }
+
+        return $classroom;
+    }
+
     private function ensureUnassignedSchedulesSupported(): void
     {
         $column = collect(Schema::getColumns('lesson_schedules'))->firstWhere('name', 'employee_id');
