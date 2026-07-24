@@ -4,14 +4,8 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
-use App\Enums\EmployeeStatus;
-use App\Enums\EmploymentType;
-use App\Enums\Gender;
-use App\Enums\SubjectCategory;
 use App\Models\AcademicYear;
 use App\Models\Classroom;
-use App\Models\Employee;
-use App\Models\GradeLevel;
 use App\Models\LessonSchedule;
 use App\Models\Semester;
 use App\Models\Subject;
@@ -30,34 +24,10 @@ final class OfficialLessonScheduleSeeder extends Seeder
         $year = AcademicYear::firstOrCreate(['name' => '2026/2027'], ['starts_on' => '2026-07-01', 'ends_on' => '2027-06-30', 'is_active' => true]);
         $semester = Semester::firstOrCreate(['academic_year_id' => $year->id, 'term' => 1], ['name' => 'Ganjil', 'starts_on' => '2026-07-01', 'ends_on' => '2026-12-31', 'is_active' => true]);
 
-        $subjects = collect($this->subjects())->mapWithKeys(fn (array $subject) => [
-            $subject[0] => Subject::updateOrCreate(['code' => $subject[0]], [
-                'name' => $subject[1],
-                'short_name' => $subject[2],
-                'category' => $subject[3]->value,
-                'minimum_passing_grade' => 75,
-                'default_weekly_hours' => 2,
-                'is_active' => true,
-            ]),
-        ]);
+        $subjects = $this->existingSubjects();
 
         foreach ($this->classSchedules() as $classData) {
-            $grade = GradeLevel::firstOrCreate(['level' => $classData['grade']], ['name' => 'Kelas '.$classData['grade'], 'code' => 'K'.$classData['grade'], 'is_active' => true]);
-            $homeroomTeacher = Employee::updateOrCreate(['employee_number' => 'WK-'.str($classData['code'])->slug('-')->upper()], [
-                'name' => $classData['homeroom'],
-                'gender' => Gender::Female->value,
-                'employment_type' => EmploymentType::ClassTeacher->value,
-                'employee_status' => EmployeeStatus::Permanent->value,
-                'is_active' => true,
-            ]);
-            $classroom = Classroom::updateOrCreate(['academic_year_id' => $year->id, 'code' => $classData['code']], [
-                'grade_level_id' => $grade->id,
-                'name' => $classData['name'],
-                'capacity' => 28,
-                'homeroom_teacher_id' => $homeroomTeacher->id,
-                'room' => 'Ruang '.$classData['name'],
-                'is_active' => true,
-            ]);
+            $classroom = $this->existingClassroom($year, $classData);
 
             foreach ($classData['slots'] as [$start, $end, $dailySubjects]) {
                 foreach (self::DAYS as $index => $day) {
@@ -80,11 +50,45 @@ final class OfficialLessonScheduleSeeder extends Seeder
                         'lesson_hours' => 1,
                         'room' => $classroom->room,
                         'is_active' => true,
-                        'notes' => 'Diimpor dari jadwal resmi MI Muslimat NU Demak TA 2026/2027 semester ganjil. Guru pengampu belum ditetapkan karena dokumen jadwal hanya memuat mata pelajaran.',
+                        'notes' => 'Diimpor dari jadwal resmi MI Muslimat NU Demak TA 2026/2027 semester ganjil berdasarkan tangkapan layar. Guru pengampu belum ditetapkan sesuai instruksi.',
                     ]);
                 }
             }
         }
+    }
+
+
+    /**
+     * @return \Illuminate\Support\Collection<string, Subject>
+     */
+    private function existingSubjects(): \Illuminate\Support\Collection
+    {
+        $codes = collect($this->subjects())->pluck(0);
+        $subjects = Subject::query()->whereIn('code', $codes)->get()->keyBy('code');
+        $missing = $codes->diff($subjects->keys())->values();
+
+        if ($missing->isNotEmpty()) {
+            throw new \RuntimeException('Mata pelajaran belum tersedia: '.$missing->implode(', ').'. Seeder ini tidak membuat mata pelajaran baru.');
+        }
+
+        return $subjects;
+    }
+
+    private function existingClassroom(AcademicYear $year, array $classData): Classroom
+    {
+        $classroom = Classroom::query()
+            ->where('academic_year_id', $year->id)
+            ->where(function ($query) use ($classData): void {
+                $query->where('code', $classData['code'])
+                    ->orWhere('name', $classData['name']);
+            })
+            ->first();
+
+        if (! $classroom) {
+            throw new \RuntimeException('Kelas '.$classData['code'].' / '.$classData['name'].' belum tersedia. Seeder ini tidak membuat kelas baru.');
+        }
+
+        return $classroom;
     }
 
     private function ensureUnassignedSchedulesSupported(): void
@@ -107,30 +111,8 @@ final class OfficialLessonScheduleSeeder extends Seeder
     private function subjects(): array
     {
         return [
-            ['PAGI', 'Pembiasaan Pagi dan Sholat Dhuha', 'Pembiasaan', SubjectCategory::SelfDevelopment],
-            ['BTAQ', 'BTAQ', 'BTAQ', SubjectCategory::Btaq],
-            ['PP', 'Pendidikan Pancasila', 'Pend. Pancasila', SubjectCategory::General],
-            ['QH', "Al-Qur'an Hadits", "Al-Qur'an Hadits", SubjectCategory::Religion],
-            ['PJOK', 'PJOK', 'PJOK', SubjectCategory::General],
-            ['TASMI', "Tasmi'", "Tasmi'", SubjectCategory::Btaq],
-            ['IST', 'Istigotsah', 'Istigotsah', SubjectCategory::Religion],
-            ['LD', 'Literasi Digital (TIK, Koding dan Kecerdasan Artifisial)', 'Literasi Digital', SubjectCategory::General],
-            ['BIN', 'Bahasa Indonesia', 'B. Indonesia', SubjectCategory::General],
-            ['MTK', 'Matematika', 'Matematika', SubjectCategory::General],
-            ['BAR', 'Bahasa Arab', 'B. Arab', SubjectCategory::Religion],
-            ['KNU', 'Ke-NU-an', 'Ke-NU-an', SubjectCategory::LocalContent],
-            ['AA', 'Aqidah Akhlaq', 'Aqidah Akhlaq', SubjectCategory::Religion],
-            ['SBDP', 'SBDP', 'SBDP', SubjectCategory::General],
-            ['FIQ', 'Fiqih', 'Fiqih', SubjectCategory::Religion],
-            ['BIG', 'Bahasa Inggris', 'B. Inggris', SubjectCategory::General],
-            ['BJW', 'Bahasa Jawa', 'B. Jawa', SubjectCategory::LocalContent],
-            ['NUM', 'Numerasi', 'Numerasi', SubjectCategory::General],
-            ['LIT', 'Literasi', 'Literasi', SubjectCategory::General],
-            ['LUG', 'Lughoh Arobiyah', 'Lughoh Arobiyah', SubjectCategory::Religion],
-            ['STEAM', 'Science, Technology, Engineering, Arts, and Mathematics (STEAM)', 'STEAM', SubjectCategory::General],
-            ['IPAS', 'IPAS', 'IPAS', SubjectCategory::General],
-            ['SKI', 'SKI', 'SKI', SubjectCategory::Religion],
-            ['TKA', 'TKA', 'TKA', SubjectCategory::Other],
+            ['PAGI'], ['BTAQ'], ['PP'], ['QH'], ['PJOK'], ['TASMI'], ['IST'], ['LD'], ['BIN'], ['MTK'], ['BAR'], ['KNU'],
+            ['AA'], ['SBDP'], ['FIQ'], ['BIG'], ['BJW'], ['NUM'], ['LIT'], ['LUG'], ['STEAM'], ['IPAS'], ['SKI'], ['TKA'],
         ];
     }
 
@@ -163,20 +145,20 @@ final class OfficialLessonScheduleSeeder extends Seeder
         ];
 
         return [
-            ['grade' => 1, 'code' => 'I-AS-SALAM', 'name' => 'I As-Salam (Fullday)', 'homeroom' => 'Farisa Aufi Saputri, S.Pd.', 'slots' => array_merge($gradeOneSlots, [
+            ['code' => 'I-AS-SALAM', 'name' => 'I As-Salam (Fullday)', 'slots' => array_merge($gradeOneSlots, [
                 ['12:45', '13:20', ['QH','QH','QH','QH',null,null]], ['13:20', '13:55', ['QH','QH','QH','QH',null,null]], ['13:55', '14:30', ['NUM','LIT','LUG','STEAM',null,null]], ['14:30', '15:05', ['NUM','LIT','LUG','STEAM',null,null]],
             ])],
-            ['grade' => 1, 'code' => 'I-AR-RAHMAN', 'name' => 'I Ar-Rahman', 'homeroom' => 'Zumaja Laili, S.Pd.', 'slots' => $gradeOneSlots],
-            ['grade' => 1, 'code' => 'I-AR-RAHIM', 'name' => 'I Ar-Rahim', 'homeroom' => 'Ayu Suryaningsih, S.Pd.', 'slots' => $gradeOneSlots],
-            ['grade' => 2, 'code' => 'II-AL-MUMIN', 'name' => "II Al-Mu'min", 'homeroom' => 'Mawadatuz Zahro, S.Pd.', 'slots' => $lowerSlots],
-            ['grade' => 2, 'code' => 'II-AL-WAHHAB', 'name' => 'II Al-Wahhab', 'homeroom' => "Ro'is Ro'datul Urbah, S.Pd.", 'slots' => $lowerSlots],
-            ['grade' => 2, 'code' => 'II-AL-LATHIF', 'name' => 'II Al-Lathif', 'homeroom' => 'Ummi Al Ivadah, S.Pd.', 'slots' => $lowerSlots],
-            ['grade' => 3, 'code' => 'III-AL-KHALIQ', 'name' => 'III Al-Khaliq', 'homeroom' => 'Dewi Shofiyah, S.Pd.', 'slots' => $lowerSlots],
-            ['grade' => 3, 'code' => 'III-AL-MAJID', 'name' => 'III Al-Majid', 'homeroom' => "Laily Rizqi Amaliah, S.Pd.", 'slots' => $lowerSlots],
-            ['grade' => 4, 'code' => 'IV-AL-BASITH', 'name' => 'IV Al-Basith', 'homeroom' => 'Hambali, S.Pd.I.', 'slots' => $lowerSlots],
-            ['grade' => 4, 'code' => 'IV-AL-KARIM', 'name' => 'IV Al-Karim', 'homeroom' => 'Qonita Nasyiatul Wahdah, S.Ag.', 'slots' => $lowerSlots],
-            ['grade' => 5, 'code' => 'V-AL-ALIM', 'name' => "V Al-'Alim", 'homeroom' => 'Dyah Ayu Febriani, S.Pd.', 'slots' => $lowerSlots],
-            ['grade' => 6, 'code' => 'VI-AL-MAJID', 'name' => 'VI Al-Majid', 'homeroom' => "Laily Rizqi Amaliah, S.Pd.", 'slots' => $lowerSlots],
+            ['code' => 'I-AR-RAHMAN', 'name' => 'I Ar-Rahman', 'slots' => $gradeOneSlots],
+            ['code' => 'I-AR-RAHIM', 'name' => 'I Ar-Rahim', 'slots' => $gradeOneSlots],
+            ['code' => 'II-AL-MUMIN', 'name' => "II Al-Mu'min", 'slots' => $lowerSlots],
+            ['code' => 'II-AL-WAHHAB', 'name' => 'II Al-Wahhab', 'slots' => $lowerSlots],
+            ['code' => 'II-AL-LATHIF', 'name' => 'II Al-Lathif', 'slots' => $lowerSlots],
+            ['code' => 'III-AL-KHALIQ', 'name' => 'III Al-Khaliq', 'slots' => $lowerSlots],
+            ['code' => 'III-AL-MAJID', 'name' => 'III Al-Majid', 'slots' => $lowerSlots],
+            ['code' => 'IV-AL-BASITH', 'name' => 'IV Al-Basith', 'slots' => $lowerSlots],
+            ['code' => 'IV-AL-KARIM', 'name' => 'IV Al-Karim', 'slots' => $lowerSlots],
+            ['code' => 'V-AL-ALIM', 'name' => "V Al-'Alim", 'slots' => $lowerSlots],
+            ['code' => 'VI-AL-MAJID', 'name' => 'VI Al-Majid', 'slots' => $lowerSlots],
         ];
     }
 }
