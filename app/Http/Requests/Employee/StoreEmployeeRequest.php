@@ -47,6 +47,16 @@ class StoreEmployeeRequest extends FormRequest
         ];
     }
 
+    public function messages(): array
+    {
+        return [
+            'employee_number.unique' => 'Nomor induk yayasan (NIY) sudah digunakan oleh guru/pegawai lain.',
+            'nip.unique' => 'NIP sudah digunakan oleh guru/pegawai lain.',
+            'email.email' => 'E-mail aktif harus menggunakan format alamat email yang benar.',
+            'email.unique' => 'E-mail aktif sudah digunakan oleh guru/pegawai lain. Gunakan e-mail lain atau periksa kembali data pegawai yang sudah ada.',
+        ];
+    }
+
     public function attributes(): array
     {
         return [
