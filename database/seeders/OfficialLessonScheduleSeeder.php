@@ -4,14 +4,8 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
-use App\Enums\EmployeeStatus;
-use App\Enums\EmploymentType;
-use App\Enums\Gender;
-use App\Enums\SubjectCategory;
 use App\Models\AcademicYear;
 use App\Models\Classroom;
-use App\Models\Employee;
-use App\Models\GradeLevel;
 use App\Models\LessonSchedule;
 use App\Models\Semester;
 use App\Models\Subject;
@@ -30,61 +24,119 @@ final class OfficialLessonScheduleSeeder extends Seeder
         $year = AcademicYear::firstOrCreate(['name' => '2026/2027'], ['starts_on' => '2026-07-01', 'ends_on' => '2027-06-30', 'is_active' => true]);
         $semester = Semester::firstOrCreate(['academic_year_id' => $year->id, 'term' => 1], ['name' => 'Ganjil', 'starts_on' => '2026-07-01', 'ends_on' => '2026-12-31', 'is_active' => true]);
 
-        $subjects = collect($this->subjects())->mapWithKeys(fn (array $subject) => [
-            $subject[0] => Subject::updateOrCreate(['code' => $subject[0]], [
-                'name' => $subject[1],
-                'short_name' => $subject[2],
-                'category' => $subject[3]->value,
-                'minimum_passing_grade' => 75,
-                'default_weekly_hours' => 2,
-                'is_active' => true,
-            ]),
+        $subjects = $this->existingSubjects();
+        $classrooms = collect($this->classSchedules())->mapWithKeys(fn (array $classData): array => [
+            $classData['code'] => $this->existingClassroom($year, $classData),
         ]);
 
-        foreach ($this->classSchedules() as $classData) {
-            $grade = GradeLevel::firstOrCreate(['level' => $classData['grade']], ['name' => 'Kelas '.$classData['grade'], 'code' => 'K'.$classData['grade'], 'is_active' => true]);
-            $homeroomTeacher = Employee::updateOrCreate(['employee_number' => 'WK-'.str($classData['code'])->slug('-')->upper()], [
-                'name' => $classData['homeroom'],
-                'gender' => Gender::Female->value,
-                'employment_type' => EmploymentType::ClassTeacher->value,
-                'employee_status' => EmployeeStatus::Permanent->value,
-                'is_active' => true,
-            ]);
-            $classroom = Classroom::updateOrCreate(['academic_year_id' => $year->id, 'code' => $classData['code']], [
-                'grade_level_id' => $grade->id,
-                'name' => $classData['name'],
-                'capacity' => 28,
-                'homeroom_teacher_id' => $homeroomTeacher->id,
-                'room' => 'Ruang '.$classData['name'],
-                'is_active' => true,
-            ]);
+        DB::transaction(function () use ($year, $semester, $subjects, $classrooms): void {
+            $this->deleteImportedSchedules();
 
-            foreach ($classData['slots'] as [$start, $end, $dailySubjects]) {
-                foreach (self::DAYS as $index => $day) {
-                    $code = $dailySubjects[$index] ?? null;
-                    if (! $code || str_starts_with($code, 'BREAK')) {
-                        continue;
+            foreach ($this->classSchedules() as $classData) {
+                $classroom = $classrooms[$classData['code']];
+
+                foreach ($classData['slots'] as [$start, $end, $dailySubjects]) {
+                    foreach (self::DAYS as $index => $day) {
+                        $code = $dailySubjects[$index] ?? null;
+                        if (! $code || str_starts_with($code, 'BREAK')) {
+                            continue;
+                        }
+
+                        $subject = $subjects[$code];
+                        LessonSchedule::updateOrCreate([
+                            'semester_id' => $semester->id,
+                            'classroom_id' => $classroom->id,
+                            'day_of_week' => $day,
+                            'starts_at' => $start,
+                            'ends_at' => $end,
+                        ], [
+                            'teaching_assignment_id' => null,
+                            'academic_year_id' => $year->id,
+                            'subject_id' => $subject->id,
+                            'employee_id' => null,
+                            'lesson_hours' => 1,
+                            'room' => $classroom->room,
+                            'is_active' => true,
+                            'notes' => 'Diimpor dari jadwal resmi MI Muslimat NU Demak TA 2026/2027 semester ganjil berdasarkan tangkapan layar. Guru pengampu belum ditetapkan sesuai instruksi.',
+                        ]);
                     }
-                    $subject = $subjects[$code];
-                    LessonSchedule::updateOrCreate([
-                        'semester_id' => $semester->id,
-                        'classroom_id' => $classroom->id,
-                        'day_of_week' => $day,
-                        'starts_at' => $start,
-                        'ends_at' => $end,
-                    ], [
-                        'teaching_assignment_id' => null,
-                        'academic_year_id' => $year->id,
-                        'subject_id' => $subject->id,
-                        'employee_id' => null,
-                        'lesson_hours' => 1,
-                        'room' => $classroom->room,
-                        'is_active' => true,
-                        'notes' => 'Diimpor dari jadwal resmi MI Muslimat NU Demak TA 2026/2027 semester ganjil. Guru pengampu belum ditetapkan karena dokumen jadwal hanya memuat mata pelajaran.',
-                    ]);
                 }
             }
+        });
+    }
+
+
+    /**
+     * @return \Illuminate\Support\Collection<string, Subject>
+     */
+    private function existingSubjects(): \Illuminate\Support\Collection
+    {
+        $subjects = Subject::query()->where('is_active', true)->get();
+        $mapped = collect();
+        $missing = collect();
+
+        foreach ($this->subjectAliases() as $code => $aliases) {
+            $subject = $subjects->first(fn (Subject $subject): bool => $this->matchesAny($subject, $aliases));
+
+            if ($subject) {
+                $mapped[$code] = $subject;
+            } else {
+                $missing->push($code);
+            }
         }
+
+        if ($missing->isNotEmpty()) {
+            throw new \RuntimeException('Mata pelajaran belum tersedia atau kodenya belum sesuai: '.$missing->implode(', ').'. Seeder ini tidak membuat mata pelajaran baru.');
+        }
+
+        return $mapped;
+    }
+
+    private function existingClassroom(AcademicYear $year, array $classData): Classroom
+    {
+        $aliases = $this->classroomAliases($classData);
+        $classroom = Classroom::query()
+            ->where('academic_year_id', $year->id)
+            ->get()
+            ->first(fn (Classroom $classroom): bool => $this->matchesAny($classroom, $aliases));
+
+        if (! $classroom) {
+            throw new \RuntimeException('Kelas '.$classData['code'].' / '.$classData['name'].' belum tersedia. Seeder ini tidak membuat kelas baru.');
+        }
+
+        return $classroom;
+    }
+
+    private function deleteImportedSchedules(): void
+    {
+        LessonSchedule::query()
+            ->where('notes', 'like', 'Diimpor dari jadwal resmi MI Muslimat NU Demak TA 2026/2027 semester ganjil%')
+            ->delete();
+    }
+
+    private function matchesAny(Subject|Classroom $model, array $aliases): bool
+    {
+        $values = array_filter([$model->code ?? null, $model->name ?? null, $model->short_name ?? null]);
+
+        foreach ($values as $value) {
+            if (in_array($this->normalize((string) $value), $aliases, true)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function normalize(string $value): string
+    {
+        $value = str($value)->lower()->ascii()->replace(["'", '’'], '')->toString();
+
+        return preg_replace('/[^a-z0-9]+/', '', $value) ?? '';
+    }
+
+    private function normalizedAliases(array $aliases): array
+    {
+        return array_values(array_unique(array_map(fn (string $alias): string => $this->normalize($alias), $aliases)));
     }
 
     private function ensureUnassignedSchedulesSupported(): void
@@ -104,34 +156,52 @@ final class OfficialLessonScheduleSeeder extends Seeder
         throw new \RuntimeException('Kolom lesson_schedules.employee_id belum nullable. Jalankan php artisan migrate sebelum menjalankan OfficialLessonScheduleSeeder.');
     }
 
-    private function subjects(): array
+    private function subjectAliases(): array
     {
-        return [
-            ['PAGI', 'Pembiasaan Pagi dan Sholat Dhuha', 'Pembiasaan', SubjectCategory::SelfDevelopment],
-            ['BTAQ', 'BTAQ', 'BTAQ', SubjectCategory::Btaq],
-            ['PP', 'Pendidikan Pancasila', 'Pend. Pancasila', SubjectCategory::General],
-            ['QH', "Al-Qur'an Hadits", "Al-Qur'an Hadits", SubjectCategory::Religion],
-            ['PJOK', 'PJOK', 'PJOK', SubjectCategory::General],
-            ['TASMI', "Tasmi'", "Tasmi'", SubjectCategory::Btaq],
-            ['IST', 'Istigotsah', 'Istigotsah', SubjectCategory::Religion],
-            ['LD', 'Literasi Digital (TIK, Koding dan Kecerdasan Artifisial)', 'Literasi Digital', SubjectCategory::General],
-            ['BIN', 'Bahasa Indonesia', 'B. Indonesia', SubjectCategory::General],
-            ['MTK', 'Matematika', 'Matematika', SubjectCategory::General],
-            ['BAR', 'Bahasa Arab', 'B. Arab', SubjectCategory::Religion],
-            ['KNU', 'Ke-NU-an', 'Ke-NU-an', SubjectCategory::LocalContent],
-            ['AA', 'Aqidah Akhlaq', 'Aqidah Akhlaq', SubjectCategory::Religion],
-            ['SBDP', 'SBDP', 'SBDP', SubjectCategory::General],
-            ['FIQ', 'Fiqih', 'Fiqih', SubjectCategory::Religion],
-            ['BIG', 'Bahasa Inggris', 'B. Inggris', SubjectCategory::General],
-            ['BJW', 'Bahasa Jawa', 'B. Jawa', SubjectCategory::LocalContent],
-            ['NUM', 'Numerasi', 'Numerasi', SubjectCategory::General],
-            ['LIT', 'Literasi', 'Literasi', SubjectCategory::General],
-            ['LUG', 'Lughoh Arobiyah', 'Lughoh Arobiyah', SubjectCategory::Religion],
-            ['STEAM', 'Science, Technology, Engineering, Arts, and Mathematics (STEAM)', 'STEAM', SubjectCategory::General],
-            ['IPAS', 'IPAS', 'IPAS', SubjectCategory::General],
-            ['SKI', 'SKI', 'SKI', SubjectCategory::Religion],
-            ['TKA', 'TKA', 'TKA', SubjectCategory::Other],
-        ];
+        return collect([
+            'PAGI' => ['PAGI', 'Pembiasaan', 'Pembiasaan Pagi', 'Pembiasaan Pagi dan Sholat Dhuha'],
+            'BTAQ' => ['BTAQ'],
+            'PP' => ['PP', 'Pendidikan Pancasila', 'Pend. Pancasila'],
+            'QH' => ['QH', "Al-Qur'an Hadits", 'Al Quran Hadits', 'Al-Quran Hadits'],
+            'PJOK' => ['PJOK'],
+            'TASMI' => ['TASMI', "Tasmi'", 'Tasmi'],
+            'IST' => ['IST', 'Istigotsah', 'Istighotsah'],
+            'LD' => ['LD', 'Literasi Digital', 'Literasi Digital TIK Koding dan Kecerdasan Artifisial'],
+            'BIN' => ['BIN', 'Bahasa Indonesia', 'B. Indonesia'],
+            'MTK' => ['MTK', 'Matematika'],
+            'BAR' => ['BAR', 'Bahasa Arab', 'B. Arab'],
+            'KNU' => ['KNU', 'Ke-NU-an', 'KeNUan'],
+            'AA' => ['AA', 'Aqidah Akhlaq', 'Akidah Akhlak'],
+            'SBDP' => ['SBDP', 'SBdP', 'Seni Budaya dan Prakarya'],
+            'FIQ' => ['FIQ', 'Fiqih', 'Fikih'],
+            'BIG' => ['BIG', 'Bahasa Inggris', 'B. Inggris'],
+            'BJW' => ['BJW', 'Bahasa Jawa', 'B. Jawa'],
+            'NUM' => ['NUM', 'Numerasi'],
+            'LIT' => ['LIT', 'Literasi'],
+            'LUG' => ['LUG', 'Lughoh Arobiyah', 'Lughoh Arabiyah'],
+            'STEAM' => ['STEAM', 'Science Technology Engineering Arts and Mathematics'],
+            'IPAS' => ['IPAS'],
+            'SKI' => ['SKI', 'Sejarah Kebudayaan Islam'],
+            'TKA' => ['TKA'],
+        ])->map(fn (array $aliases): array => $this->normalizedAliases($aliases))->all();
+    }
+
+    private function classroomAliases(array $classData): array
+    {
+        $code = $classData['code'];
+        $name = $classData['name'];
+        $withoutFullday = str_replace(['(Fullday)', 'Fullday', 'Full Day'], '', $name);
+        $spacedCode = str_replace('-', ' ', $code);
+
+        return $this->normalizedAliases([
+            $code,
+            $name,
+            $withoutFullday,
+            $spacedCode,
+            'Kelas '.$name,
+            'Kelas '.$withoutFullday,
+            'Kelas '.$spacedCode,
+        ]);
     }
 
     private function classSchedules(): array
@@ -163,20 +233,20 @@ final class OfficialLessonScheduleSeeder extends Seeder
         ];
 
         return [
-            ['grade' => 1, 'code' => 'I-AS-SALAM', 'name' => 'I As-Salam (Fullday)', 'homeroom' => 'Farisa Aufi Saputri, S.Pd.', 'slots' => array_merge($gradeOneSlots, [
+            ['code' => 'I-AS-SALAM', 'name' => 'I As-Salam (Fullday)', 'slots' => array_merge($gradeOneSlots, [
                 ['12:45', '13:20', ['QH','QH','QH','QH',null,null]], ['13:20', '13:55', ['QH','QH','QH','QH',null,null]], ['13:55', '14:30', ['NUM','LIT','LUG','STEAM',null,null]], ['14:30', '15:05', ['NUM','LIT','LUG','STEAM',null,null]],
             ])],
-            ['grade' => 1, 'code' => 'I-AR-RAHMAN', 'name' => 'I Ar-Rahman', 'homeroom' => 'Zumaja Laili, S.Pd.', 'slots' => $gradeOneSlots],
-            ['grade' => 1, 'code' => 'I-AR-RAHIM', 'name' => 'I Ar-Rahim', 'homeroom' => 'Ayu Suryaningsih, S.Pd.', 'slots' => $gradeOneSlots],
-            ['grade' => 2, 'code' => 'II-AL-MUMIN', 'name' => "II Al-Mu'min", 'homeroom' => 'Mawadatuz Zahro, S.Pd.', 'slots' => $lowerSlots],
-            ['grade' => 2, 'code' => 'II-AL-WAHHAB', 'name' => 'II Al-Wahhab', 'homeroom' => "Ro'is Ro'datul Urbah, S.Pd.", 'slots' => $lowerSlots],
-            ['grade' => 2, 'code' => 'II-AL-LATHIF', 'name' => 'II Al-Lathif', 'homeroom' => 'Ummi Al Ivadah, S.Pd.', 'slots' => $lowerSlots],
-            ['grade' => 3, 'code' => 'III-AL-KHALIQ', 'name' => 'III Al-Khaliq', 'homeroom' => 'Dewi Shofiyah, S.Pd.', 'slots' => $lowerSlots],
-            ['grade' => 3, 'code' => 'III-AL-MAJID', 'name' => 'III Al-Majid', 'homeroom' => "Laily Rizqi Amaliah, S.Pd.", 'slots' => $lowerSlots],
-            ['grade' => 4, 'code' => 'IV-AL-BASITH', 'name' => 'IV Al-Basith', 'homeroom' => 'Hambali, S.Pd.I.', 'slots' => $lowerSlots],
-            ['grade' => 4, 'code' => 'IV-AL-KARIM', 'name' => 'IV Al-Karim', 'homeroom' => 'Qonita Nasyiatul Wahdah, S.Ag.', 'slots' => $lowerSlots],
-            ['grade' => 5, 'code' => 'V-AL-ALIM', 'name' => "V Al-'Alim", 'homeroom' => 'Dyah Ayu Febriani, S.Pd.', 'slots' => $lowerSlots],
-            ['grade' => 6, 'code' => 'VI-AL-MAJID', 'name' => 'VI Al-Majid', 'homeroom' => "Laily Rizqi Amaliah, S.Pd.", 'slots' => $lowerSlots],
+            ['code' => 'I-AR-RAHMAN', 'name' => 'I Ar-Rahman', 'slots' => $gradeOneSlots],
+            ['code' => 'I-AR-RAHIM', 'name' => 'I Ar-Rahim', 'slots' => $gradeOneSlots],
+            ['code' => 'II-AL-MUMIN', 'name' => "II Al-Mu'min", 'slots' => $lowerSlots],
+            ['code' => 'II-AL-WAHHAB', 'name' => 'II Al-Wahhab', 'slots' => $lowerSlots],
+            ['code' => 'II-AL-LATHIF', 'name' => 'II Al-Lathif', 'slots' => $lowerSlots],
+            ['code' => 'III-AL-KHALIQ', 'name' => 'III Al-Khaliq', 'slots' => $lowerSlots],
+            ['code' => 'III-AL-MAJID', 'name' => 'III Al-Majid', 'slots' => $lowerSlots],
+            ['code' => 'IV-AL-BASITH', 'name' => 'IV Al-Basith', 'slots' => $lowerSlots],
+            ['code' => 'IV-AL-KARIM', 'name' => 'IV Al-Karim', 'slots' => $lowerSlots],
+            ['code' => 'V-AL-ALIM', 'name' => "V Al-'Alim", 'slots' => $lowerSlots],
+            ['code' => 'VI-AL-MAJID', 'name' => 'VI Al-Majid', 'slots' => $lowerSlots],
         ];
     }
 }
