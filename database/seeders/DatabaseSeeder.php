@@ -12,6 +12,6 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([RolePermissionSeeder::class, InventoryPermissionSeeder::class, InventoryMasterSeeder::class, FinanceModuleSeeder::class, SchoolProfileSeeder::class, AcademicPeriodSeeder::class, SettingSeeder::class, WorkScheduleSeeder::class,
             CleanupOfficialLessonScheduleSeederData::class, StudentAffairsSeeder::class,
-            BtaqAssessmentReportSeeder::class, SuperAdminSeeder::class]);
+            OfficialLessonScheduleSeeder::class, BtaqAssessmentReportSeeder::class, SuperAdminSeeder::class]);
     }
 }
