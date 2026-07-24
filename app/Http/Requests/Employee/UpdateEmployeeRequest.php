@@ -49,6 +49,8 @@ class UpdateEmployeeRequest extends FormRequest
         ];
     }
 
+    public function messages(): array { return (new StoreEmployeeRequest)->messages(); }
+
     public function attributes(): array { return (new StoreEmployeeRequest)->attributes(); }
 
     protected function employmentTypeFromPosition(string $position): string
