@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Enums\EmployeeStatus;
-use App\Enums\EmploymentType;
 use App\Enums\EnrollmentStatus;
 use App\Enums\StudentStatus;
 use App\Models\Classroom;
@@ -27,7 +26,6 @@ class ClassroomPlacementService
             $classroom = Classroom::query()->lockForUpdate()->findOrFail($classroom->id);
             $employee = Employee::query()->lockForUpdate()->findOrFail($employee->id);
             if (! $employee->is_active) throw ValidationException::withMessages(['employee_id' => 'Wali kelas harus pegawai aktif.']);
-            if ($employee->employment_type !== EmploymentType::ClassTeacher) throw ValidationException::withMessages(['employee_id' => 'Wali kelas harus Guru Kelas.']);
             $active = HomeroomAssignment::query()->where('classroom_id', $classroom->id)->where('is_active', true)->lockForUpdate()->first();
             if ($active && empty($data['reason'])) throw ValidationException::withMessages(['reason' => 'Alasan wajib diisi saat mengganti wali kelas.']);
             $duplicate = HomeroomAssignment::query()->where('employee_id', $employee->id)->where('academic_year_id', $classroom->academic_year_id)->where('is_active', true)->where('classroom_id', '!=', $classroom->id)->lockForUpdate()->exists();
