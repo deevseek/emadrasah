@@ -25,36 +25,118 @@ final class OfficialLessonScheduleSeeder extends Seeder
         $semester = Semester::firstOrCreate(['academic_year_id' => $year->id, 'term' => 1], ['name' => 'Ganjil', 'starts_on' => '2026-07-01', 'ends_on' => '2026-12-31', 'is_active' => true]);
 
         $subjects = $this->existingSubjects();
+        $classrooms = collect($this->classSchedules())->mapWithKeys(fn (array $classData): array => [
+            $classData['code'] => $this->existingClassroom($year, $classData),
+        ]);
 
-        foreach ($this->classSchedules() as $classData) {
-            $classroom = $this->existingClassroom($year, $classData);
+        DB::transaction(function () use ($year, $semester, $subjects, $classrooms): void {
+            $this->deleteImportedSchedules();
 
-            foreach ($classData['slots'] as [$start, $end, $dailySubjects]) {
-                foreach (self::DAYS as $index => $day) {
-                    $code = $dailySubjects[$index] ?? null;
-                    if (! $code || str_starts_with($code, 'BREAK')) {
-                        continue;
+            foreach ($this->classSchedules() as $classData) {
+                $classroom = $classrooms[$classData['code']];
+
+                foreach ($classData['slots'] as [$start, $end, $dailySubjects]) {
+                    foreach (self::DAYS as $index => $day) {
+                        $code = $dailySubjects[$index] ?? null;
+                        if (! $code || str_starts_with($code, 'BREAK')) {
+                            continue;
+                        }
+
+                        $subject = $subjects[$code];
+                        LessonSchedule::updateOrCreate([
+                            'semester_id' => $semester->id,
+                            'classroom_id' => $classroom->id,
+                            'day_of_week' => $day,
+                            'starts_at' => $start,
+                            'ends_at' => $end,
+                        ], [
+                            'teaching_assignment_id' => null,
+                            'academic_year_id' => $year->id,
+                            'subject_id' => $subject->id,
+                            'employee_id' => null,
+                            'lesson_hours' => 1,
+                            'room' => $classroom->room,
+                            'is_active' => true,
+                            'notes' => 'Diimpor dari jadwal resmi MI Muslimat NU Demak TA 2026/2027 semester ganjil berdasarkan tangkapan layar. Guru pengampu belum ditetapkan sesuai instruksi.',
+                        ]);
                     }
-                    $subject = $subjects[$code];
-                    LessonSchedule::updateOrCreate([
-                        'semester_id' => $semester->id,
-                        'classroom_id' => $classroom->id,
-                        'day_of_week' => $day,
-                        'starts_at' => $start,
-                        'ends_at' => $end,
-                    ], [
-                        'teaching_assignment_id' => null,
-                        'academic_year_id' => $year->id,
-                        'subject_id' => $subject->id,
-                        'employee_id' => null,
-                        'lesson_hours' => 1,
-                        'room' => $classroom->room,
-                        'is_active' => true,
-                        'notes' => 'Diimpor dari jadwal resmi MI Muslimat NU Demak TA 2026/2027 semester ganjil berdasarkan tangkapan layar. Guru pengampu belum ditetapkan sesuai instruksi.',
-                    ]);
                 }
             }
+        });
+    }
+
+
+    /**
+     * @return \Illuminate\Support\Collection<string, Subject>
+     */
+    private function existingSubjects(): \Illuminate\Support\Collection
+    {
+        $subjects = Subject::query()->where('is_active', true)->get();
+        $mapped = collect();
+        $missing = collect();
+
+        foreach ($this->subjectAliases() as $code => $aliases) {
+            $subject = $subjects->first(fn (Subject $subject): bool => $this->matchesAny($subject, $aliases));
+
+            if ($subject) {
+                $mapped[$code] = $subject;
+            } else {
+                $missing->push($code);
+            }
         }
+
+        if ($missing->isNotEmpty()) {
+            throw new \RuntimeException('Mata pelajaran belum tersedia atau kodenya belum sesuai: '.$missing->implode(', ').'. Seeder ini tidak membuat mata pelajaran baru.');
+        }
+
+        return $mapped;
+    }
+
+    private function existingClassroom(AcademicYear $year, array $classData): Classroom
+    {
+        $aliases = $this->classroomAliases($classData);
+        $classroom = Classroom::query()
+            ->where('academic_year_id', $year->id)
+            ->get()
+            ->first(fn (Classroom $classroom): bool => $this->matchesAny($classroom, $aliases));
+
+        if (! $classroom) {
+            throw new \RuntimeException('Kelas '.$classData['code'].' / '.$classData['name'].' belum tersedia. Seeder ini tidak membuat kelas baru.');
+        }
+
+        return $classroom;
+    }
+
+    private function deleteImportedSchedules(): void
+    {
+        LessonSchedule::query()
+            ->where('notes', 'like', 'Diimpor dari jadwal resmi MI Muslimat NU Demak TA 2026/2027 semester ganjil%')
+            ->delete();
+    }
+
+    private function matchesAny(Subject|Classroom $model, array $aliases): bool
+    {
+        $values = array_filter([$model->code ?? null, $model->name ?? null, $model->short_name ?? null]);
+
+        foreach ($values as $value) {
+            if (in_array($this->normalize((string) $value), $aliases, true)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function normalize(string $value): string
+    {
+        $value = str($value)->lower()->ascii()->replace(["'", '’'], '')->toString();
+
+        return preg_replace('/[^a-z0-9]+/', '', $value) ?? '';
+    }
+
+    private function normalizedAliases(array $aliases): array
+    {
+        return array_values(array_unique(array_map(fn (string $alias): string => $this->normalize($alias), $aliases)));
     }
 
 
@@ -108,12 +190,52 @@ final class OfficialLessonScheduleSeeder extends Seeder
         throw new \RuntimeException('Kolom lesson_schedules.employee_id belum nullable. Jalankan php artisan migrate sebelum menjalankan OfficialLessonScheduleSeeder.');
     }
 
-    private function subjects(): array
+    private function subjectAliases(): array
     {
-        return [
-            ['PAGI'], ['BTAQ'], ['PP'], ['QH'], ['PJOK'], ['TASMI'], ['IST'], ['LD'], ['BIN'], ['MTK'], ['BAR'], ['KNU'],
-            ['AA'], ['SBDP'], ['FIQ'], ['BIG'], ['BJW'], ['NUM'], ['LIT'], ['LUG'], ['STEAM'], ['IPAS'], ['SKI'], ['TKA'],
-        ];
+        return collect([
+            'PAGI' => ['PAGI', 'Pembiasaan', 'Pembiasaan Pagi', 'Pembiasaan Pagi dan Sholat Dhuha'],
+            'BTAQ' => ['BTAQ'],
+            'PP' => ['PP', 'Pendidikan Pancasila', 'Pend. Pancasila'],
+            'QH' => ['QH', "Al-Qur'an Hadits", 'Al Quran Hadits', 'Al-Quran Hadits'],
+            'PJOK' => ['PJOK'],
+            'TASMI' => ['TASMI', "Tasmi'", 'Tasmi'],
+            'IST' => ['IST', 'Istigotsah', 'Istighotsah'],
+            'LD' => ['LD', 'Literasi Digital', 'Literasi Digital TIK Koding dan Kecerdasan Artifisial'],
+            'BIN' => ['BIN', 'Bahasa Indonesia', 'B. Indonesia'],
+            'MTK' => ['MTK', 'Matematika'],
+            'BAR' => ['BAR', 'Bahasa Arab', 'B. Arab'],
+            'KNU' => ['KNU', 'Ke-NU-an', 'KeNUan'],
+            'AA' => ['AA', 'Aqidah Akhlaq', 'Akidah Akhlak'],
+            'SBDP' => ['SBDP', 'SBdP', 'Seni Budaya dan Prakarya'],
+            'FIQ' => ['FIQ', 'Fiqih', 'Fikih'],
+            'BIG' => ['BIG', 'Bahasa Inggris', 'B. Inggris'],
+            'BJW' => ['BJW', 'Bahasa Jawa', 'B. Jawa'],
+            'NUM' => ['NUM', 'Numerasi'],
+            'LIT' => ['LIT', 'Literasi'],
+            'LUG' => ['LUG', 'Lughoh Arobiyah', 'Lughoh Arabiyah'],
+            'STEAM' => ['STEAM', 'Science Technology Engineering Arts and Mathematics'],
+            'IPAS' => ['IPAS'],
+            'SKI' => ['SKI', 'Sejarah Kebudayaan Islam'],
+            'TKA' => ['TKA'],
+        ])->map(fn (array $aliases): array => $this->normalizedAliases($aliases))->all();
+    }
+
+    private function classroomAliases(array $classData): array
+    {
+        $code = $classData['code'];
+        $name = $classData['name'];
+        $withoutFullday = str_replace(['(Fullday)', 'Fullday', 'Full Day'], '', $name);
+        $spacedCode = str_replace('-', ' ', $code);
+
+        return $this->normalizedAliases([
+            $code,
+            $name,
+            $withoutFullday,
+            $spacedCode,
+            'Kelas '.$name,
+            'Kelas '.$withoutFullday,
+            'Kelas '.$spacedCode,
+        ]);
     }
 
     private function classSchedules(): array
