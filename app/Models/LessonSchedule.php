@@ -5,16 +5,17 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\DayOfWeek;
+use App\Enums\ScheduleEntryType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class LessonSchedule extends Model
 {
-    protected $fillable = ['teaching_assignment_id', 'academic_year_id', 'semester_id', 'classroom_id', 'subject_id', 'employee_id', 'day_of_week', 'starts_at', 'ends_at', 'lesson_hours', 'room', 'is_active', 'notes'];
+    protected $fillable = ['teaching_assignment_id', 'entry_type', 'activity_name', 'academic_year_id', 'semester_id', 'classroom_id', 'subject_id', 'employee_id', 'day_of_week', 'starts_at', 'ends_at', 'lesson_hours', 'counts_as_teaching_hour', 'room', 'is_active', 'notes', 'source_reference', 'import_batch_id'];
 
     protected function casts(): array
     {
-        return ['day_of_week' => DayOfWeek::class, 'lesson_hours' => 'integer', 'is_active' => 'boolean'];
+        return ['day_of_week' => DayOfWeek::class, 'entry_type'=>ScheduleEntryType::class, 'lesson_hours' => 'integer', 'counts_as_teaching_hour'=>'boolean', 'is_active' => 'boolean'];
     }
 
     public function teachingAssignment(): BelongsTo
@@ -46,4 +47,5 @@ class LessonSchedule extends Model
     {
         return $this->belongsTo(Employee::class);
     }
+    public function importBatch(): BelongsTo { return $this->belongsTo(ImportBatch::class); }
 }
