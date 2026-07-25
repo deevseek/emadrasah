@@ -1,5 +1,9 @@
 <x-app-layout><x-slot name="header"><h1 class="text-xl font-semibold text-emerald-950">{{ $title }}</h1><p class="text-sm text-slate-600">Unggah XLSX, periksa preview, lalu proses data yang valid.</p></x-slot>
-<div class="space-y-6"><div class="rounded-xl border border-emerald-100 bg-white p-6 shadow"><div class="mb-5 flex flex-wrap items-center justify-between gap-3"><div><h2 class="font-semibold text-emerald-950">Berkas sumber</h2><p class="text-sm text-slate-500">Maksimal 10 MB. Master guru, kelas, dan mata pelajaran tidak dibuat otomatis.</p></div><a class="rounded border border-emerald-800 px-4 py-2 text-emerald-900" href="{{ route($kind==='teaching'?'teaching-assignments.import.template':'schedules.import.template') }}">Unduh Template XLSX</a></div>
+<div class="space-y-6">
+@if (session('status'))
+    <div class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800" role="status">{{ session('status') }}</div>
+@endif
+<div class="rounded-xl border border-emerald-100 bg-white p-6 shadow"><div class="mb-5 flex flex-wrap items-center justify-between gap-3"><div><h2 class="font-semibold text-emerald-950">Berkas sumber</h2><p class="text-sm text-slate-500">Maksimal 10 MB. Master guru, kelas, dan mata pelajaran tidak dibuat otomatis.</p></div><a class="rounded border border-emerald-800 px-4 py-2 text-emerald-900" href="{{ route($kind==='teaching'?'teaching-assignments.import.template':'schedules.import.template') }}">Unduh Template XLSX</a></div>
 @if ($errors->any())
     <div class="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">
         <p class="font-semibold">Data belum dapat diproses.</p>
