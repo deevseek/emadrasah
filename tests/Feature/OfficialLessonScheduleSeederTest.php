@@ -24,7 +24,7 @@ final class OfficialLessonScheduleSeederTest extends TestCase
         $year = AcademicYear::create(['name' => '2026/2027', 'starts_on' => '2026-07-01', 'ends_on' => '2027-06-30', 'is_active' => true]);
         $level = GradeLevel::create(['name' => 'Kelas 1', 'code' => 'K1', 'level' => 1, 'is_active' => true]);
 
-        $codes = ['PAGI', 'BTAQ', 'PP', 'QH', 'PJOK', 'TASMI', 'IST', 'LD', 'BIN', 'MTK', 'BAR', 'KNU', 'AA', 'SBDP', 'FIQ', 'BIG', 'BJW', 'NUM', 'LIT', 'LUG', 'STEAM', 'IPAS', 'SKI', 'TKA'];
+        $codes = ['BTAQ', 'PKN', 'QH', 'PJOK', 'TIK', 'BINDO', 'MTK', 'BAR', 'KE-NU-AN', 'AA', 'SBDP', 'FIQ', 'BING', 'BAJA', 'NUM', 'LIT', 'LA', 'STEAM', 'IPAS', 'SKI', 'TKA', 'TAQ'];
         foreach ($codes as $code) {
             Subject::create(['code' => $code, 'name' => $code, 'category' => SubjectCategory::General->value, 'is_active' => true]);
         }
@@ -37,6 +37,7 @@ final class OfficialLessonScheduleSeederTest extends TestCase
 
         $this->assertSame(12, Classroom::count());
         $this->assertSame(0, Employee::count());
+        $this->assertSame(0, Subject::whereIn('code', ['PAGI', 'TASMI', 'IST'])->count());
         $this->assertGreaterThan(0, LessonSchedule::whereNull('employee_id')->whereNull('teaching_assignment_id')->count());
         $this->assertDatabaseHas('lesson_schedules', [
             'day_of_week' => 'senin',
@@ -44,6 +45,10 @@ final class OfficialLessonScheduleSeederTest extends TestCase
             'ends_at' => '07:15',
             'employee_id' => null,
             'teaching_assignment_id' => null,
+            'entry_type' => 'activity',
+            'activity_name' => 'Pembiasaan Pagi/Sholat Dhuha',
+            'subject_id' => null,
+            'counts_as_teaching_hour' => false,
         ]);
     }
 }
