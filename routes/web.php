@@ -287,6 +287,9 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         Route::patch('/teaching-assignments/{teachingAssignment}/toggle', [TeachingAssignmentController::class, 'toggle'])->middleware('permission:teaching-assignments.activate')->name('teaching-assignments.toggle');
         Route::delete('/teaching-assignments/{teachingAssignment}', [TeachingAssignmentController::class, 'destroy'])->middleware('permission:teaching-assignments.activate')->name('teaching-assignments.destroy');
         Route::get('/schedules/export', [ScheduleController::class, 'export'])->middleware('permission:schedules.export')->name('schedules.export');
+        Route::post('/schedules/template', [ScheduleController::class, 'uploadTemplate'])->middleware('permission:schedules.print')->name('schedules.templates.store');
+        Route::get('/schedules/template/download', [ScheduleController::class, 'downloadTemplate'])->middleware('permission:schedules.print')->name('schedules.templates.download');
+        Route::get('/schedules/export-word', [ScheduleController::class, 'exportWord'])->middleware('permission:schedules.print')->name('schedules.export-word');
         Route::get('/schedules/import', [ScheduleImportController::class, 'index'])->middleware('permission:schedules.import')->name('schedules.import');
         Route::get('/schedules/import/template', [ScheduleImportController::class, 'template'])->middleware('permission:schedules.import')->name('schedules.import.template');
         Route::post('/schedules/import/preview', [ScheduleImportController::class, 'preview'])->middleware('permission:schedules.import')->name('schedules.import.preview');
