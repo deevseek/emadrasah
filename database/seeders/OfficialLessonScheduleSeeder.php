@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
+use App\Enums\ScheduleEntryType;
 use App\Models\AcademicYear;
 use App\Models\Classroom;
 use App\Models\LessonSchedule;
@@ -40,7 +41,8 @@ final class OfficialLessonScheduleSeeder extends Seeder
                             continue;
                         }
 
-                        $subject = $subjects[$code];
+                        $activityName = $this->activityName($code);
+                        $subject = $activityName === null ? $subjects[$code] : null;
                         LessonSchedule::firstOrCreate([
                             'semester_id' => $semester->id,
                             'classroom_id' => $classroom->id,
@@ -49,10 +51,13 @@ final class OfficialLessonScheduleSeeder extends Seeder
                             'ends_at' => $end,
                         ], [
                             'teaching_assignment_id' => null,
+                            'entry_type' => $activityName === null ? ScheduleEntryType::Lesson : ScheduleEntryType::Activity,
+                            'activity_name' => $activityName,
                             'academic_year_id' => $year->id,
-                            'subject_id' => $subject->id,
+                            'subject_id' => $subject?->id,
                             'employee_id' => null,
                             'lesson_hours' => 1,
+                            'counts_as_teaching_hour' => $activityName === null,
                             'room' => $classroom->room,
                             'is_active' => true,
                             'notes' => 'Diimpor dari jadwal resmi MI Muslimat NU Demak TA 2026/2027 semester ganjil berdasarkan tangkapan layar. Guru pengampu belum ditetapkan sesuai instruksi.',
@@ -63,6 +68,16 @@ final class OfficialLessonScheduleSeeder extends Seeder
         });
     }
 
+
+    private function activityName(string $code): ?string
+    {
+        return match ($code) {
+            'PAGI' => 'Pembiasaan Pagi/Sholat Dhuha',
+            'TASMI' => 'Tasmi’',
+            'IST' => 'Istigotsah',
+            default => null,
+        };
+    }
 
     /**
      * @return \Illuminate\Support\Collection<string, Subject>
@@ -150,30 +165,28 @@ final class OfficialLessonScheduleSeeder extends Seeder
     private function subjectAliases(): array
     {
         return collect([
-            'PAGI' => ['PAGI', 'Pembiasaan', 'Pembiasaan Pagi', 'Pembiasaan Pagi dan Sholat Dhuha'],
             'BTAQ' => ['BTAQ'],
-            'PP' => ['PP', 'Pendidikan Pancasila', 'Pend. Pancasila'],
+            'PKN' => ['PKN', 'Pendidikan Pancasila', 'Pend. Pancasila'],
             'QH' => ['QH', "Al-Qur'an Hadits", 'Al Quran Hadits', 'Al-Quran Hadits'],
             'PJOK' => ['PJOK'],
-            'TASMI' => ['TASMI', "Tasmi'", 'Tasmi'],
-            'IST' => ['IST', 'Istigotsah', 'Istighotsah'],
-            'LD' => ['LD', 'Literasi Digital', 'Literasi Digital TIK Koding dan Kecerdasan Artifisial'],
-            'BIN' => ['BIN', 'Bahasa Indonesia', 'B. Indonesia'],
+            'TIK' => ['TIK', 'Literasi Digital', 'Literasi Digital TIK Koding dan Kecerdasan Artifisial'],
+            'BINDO' => ['BINDO', 'Bahasa Indonesia', 'B. Indonesia'],
             'MTK' => ['MTK', 'Matematika'],
             'BAR' => ['BAR', 'Bahasa Arab', 'B. Arab'],
-            'KNU' => ['KNU', 'Ke-NU-an', 'KeNUan'],
+            'KE-NU-AN' => ['KE-NU-AN', 'Ke-NU-an', 'KeNUan'],
             'AA' => ['AA', 'Aqidah Akhlaq', 'Akidah Akhlak'],
             'SBDP' => ['SBDP', 'SBdP', 'Seni Budaya dan Prakarya'],
             'FIQ' => ['FIQ', 'Fiqih', 'Fikih'],
-            'BIG' => ['BIG', 'Bahasa Inggris', 'B. Inggris'],
-            'BJW' => ['BJW', 'Bahasa Jawa', 'B. Jawa'],
+            'BING' => ['BING', 'Bahasa Inggris', 'B. Inggris'],
+            'BAJA' => ['BAJA', 'Bahasa Jawa', 'B. Jawa'],
             'NUM' => ['NUM', 'Numerasi'],
             'LIT' => ['LIT', 'Literasi'],
-            'LUG' => ['LUG', 'Lughoh Arobiyah', 'Lughoh Arabiyah'],
+            'LA' => ['LA', 'Lughoh Arobiyah', 'Lughoh Arabiyah'],
             'STEAM' => ['STEAM', 'Science Technology Engineering Arts and Mathematics'],
             'IPAS' => ['IPAS'],
             'SKI' => ['SKI', 'Sejarah Kebudayaan Islam'],
             'TKA' => ['TKA'],
+            'TAQ' => ['TAQ', "Takhassus Al-Qur'an", 'Takhassus Al-Qur’an'],
         ])->map(fn (array $aliases): array => $this->normalizedAliases($aliases))->all();
     }
 
@@ -201,31 +214,31 @@ final class OfficialLessonScheduleSeeder extends Seeder
             ['06:50', '07:15', ['PAGI','PAGI','PAGI','PAGI','PAGI','PAGI']],
             ['07:15', '07:50', ['BTAQ','BTAQ','BTAQ','BTAQ','TASMI','BTAQ']],
             ['07:50', '08:25', ['BTAQ','BTAQ','BTAQ','BTAQ','IST','BTAQ']],
-            ['08:25', '09:00', ['PP','QH','PP','PJOK','LD','BIN']],
-            ['09:00', '09:35', ['PP','QH','PP','PJOK','LD','BIN']],
-            ['10:00', '10:35', ['BIN','MTK','BIN','MTK','BAR','KNU']],
-            ['10:35', '11:10', ['BIN','MTK','BIN','MTK','BAR','STEAM']],
-            ['11:10', '11:45', ['AA','SBDP','FIQ','BIG',null,null]],
-            ['11:45', '12:10', ['AA','SBDP','FIQ','BJW',null,null]],
+            ['08:25', '09:00', ['PKN','QH','PKN','PJOK','TIK','BINDO']],
+            ['09:00', '09:35', ['PKN','QH','PKN','PJOK','TIK','BINDO']],
+            ['10:00', '10:35', ['BINDO','MTK','BINDO','MTK','BAR','KE-NU-AN']],
+            ['10:35', '11:10', ['BINDO','MTK','BINDO','MTK','BAR','STEAM']],
+            ['11:10', '11:45', ['AA','SBDP','FIQ','BING',null,null]],
+            ['11:45', '12:10', ['AA','SBDP','FIQ','BAJA',null,null]],
         ];
 
         $lowerSlots = [
             ['06:50', '07:15', ['PAGI','PAGI','PAGI','PAGI','PAGI','PAGI']],
-            ['07:15', '07:50', ['PP','MTK','PJOK','IPAS','TASMI','PP']],
-            ['07:50', '08:25', ['PP','MTK','PJOK','IPAS','IST','PP']],
-            ['08:25', '09:00', ['BTAQ','BTAQ','BTAQ','BTAQ','LD','BTAQ']],
-            ['09:00', '09:35', ['BTAQ','BTAQ','BTAQ','BTAQ','LD','BTAQ']],
-            ['10:00', '10:35', ['BIN','MTK','BIN','MTK','BAR','KNU']],
-            ['10:35', '11:10', ['BIN','MTK','BIN','MTK','BAR','STEAM']],
-            ['11:10', '11:45', ['AA','SBDP','FIQ','BIG',null,null]],
+            ['07:15', '07:50', ['PKN','MTK','PJOK','IPAS','TASMI','PKN']],
+            ['07:50', '08:25', ['PKN','MTK','PJOK','IPAS','IST','PKN']],
+            ['08:25', '09:00', ['BTAQ','BTAQ','BTAQ','BTAQ','TIK','BTAQ']],
+            ['09:00', '09:35', ['BTAQ','BTAQ','BTAQ','BTAQ','TIK','BTAQ']],
+            ['10:00', '10:35', ['BINDO','MTK','BINDO','MTK','BAR','KE-NU-AN']],
+            ['10:35', '11:10', ['BINDO','MTK','BINDO','MTK','BAR','STEAM']],
+            ['11:10', '11:45', ['AA','SBDP','FIQ','BING',null,null]],
             ['11:45', '12:10', ['AA','SBDP','FIQ','MTK',null,null]],
-            ['12:30', '13:05', ['IPAS','LIT','SKI','PP',null,null]],
-            ['13:05', '13:40', ['IPAS','LIT','SKI','PP',null,null]],
+            ['12:30', '13:05', ['IPAS','LIT','SKI','PKN',null,null]],
+            ['13:05', '13:40', ['IPAS','LIT','SKI','PKN',null,null]],
         ];
 
         return [
             ['code' => 'I-AS-SALAM', 'name' => 'I As-Salam (Fullday)', 'slots' => array_merge($gradeOneSlots, [
-                ['12:45', '13:20', ['QH','QH','QH','QH',null,null]], ['13:20', '13:55', ['QH','QH','QH','QH',null,null]], ['13:55', '14:30', ['NUM','LIT','LUG','STEAM',null,null]], ['14:30', '15:05', ['NUM','LIT','LUG','STEAM',null,null]],
+                ['12:45', '13:20', ['QH','QH','QH','QH',null,null]], ['13:20', '13:55', ['QH','QH','QH','QH',null,null]], ['13:55', '14:30', ['NUM','LIT','LA','STEAM',null,null]], ['14:30', '15:05', ['NUM','LIT','LA','STEAM',null,null]],
             ])],
             ['code' => 'I-AR-RAHMAN', 'name' => 'I Ar-Rahman', 'slots' => $gradeOneSlots],
             ['code' => 'I-AR-RAHIM', 'name' => 'I Ar-Rahim', 'slots' => $gradeOneSlots],

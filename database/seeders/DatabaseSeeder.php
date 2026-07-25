@@ -10,7 +10,7 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        $this->call([RolePermissionSeeder::class, InventoryPermissionSeeder::class, InventoryMasterSeeder::class, FinanceModuleSeeder::class, SchoolProfileSeeder::class, AcademicPeriodSeeder::class, SettingSeeder::class, WorkScheduleSeeder::class,
+        $this->call([RolePermissionSeeder::class, InventoryPermissionSeeder::class, InventoryMasterSeeder::class, FinanceModuleSeeder::class, SchoolProfileSeeder::class, AcademicPeriodSeeder::class, MimnuSubjectSeeder::class, SettingSeeder::class, WorkScheduleSeeder::class,
             StudentAffairsSeeder::class,
             BtaqAssessmentReportSeeder::class, SuperAdminSeeder::class]);
     }
