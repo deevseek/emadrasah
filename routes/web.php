@@ -275,6 +275,7 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         Route::get('/teaching-assignments/export', [TeachingAssignmentController::class, 'export'])->middleware('permission:teaching-assignments.export')->name('teaching-assignments.export');
         Route::get('/teaching-assignments/import', [TeachingAssignmentImportController::class, 'index'])->middleware('permission:teaching-assignments.import')->name('teaching-assignments.import');
         Route::get('/teaching-assignments/import/template', [TeachingAssignmentImportController::class, 'template'])->middleware('permission:teaching-assignments.import')->name('teaching-assignments.import.template');
+        Route::get('/teaching-assignments/import/preview', [TeachingAssignmentImportController::class, 'expiredPreview'])->middleware('permission:teaching-assignments.import')->name('teaching-assignments.import.preview.expired');
         Route::post('/teaching-assignments/import/preview', [TeachingAssignmentImportController::class, 'preview'])->middleware('permission:teaching-assignments.import')->name('teaching-assignments.import.preview');
         Route::post('/teaching-assignments/import/process', [TeachingAssignmentImportController::class, 'process'])->middleware('permission:teaching-assignments.import')->name('teaching-assignments.import.process');
         Route::get('/teaching-assignments', [TeachingAssignmentController::class, 'index'])->middleware('permission:teaching-assignments.view|teaching-assignments.view-own')->name('teaching-assignments.index');
