@@ -64,9 +64,22 @@
     ];
 
     $routeName = Route::currentRouteName() ?? 'dashboard';
-    $title = $title ?? trim(strip_tags((string) ($header ?? ''))) ?: 'Dashboard';
+    $legacyHeader = trim((string) ($header ?? ''));
+    $legacyHeaderTitle = '';
+    if ($legacyHeader !== '') {
+        if (preg_match('/<h[1-6][^>]*>(.*?)<\/h[1-6]>/is', $legacyHeader, $heading)) {
+            $legacyHeaderTitle = trim(html_entity_decode(strip_tags($heading[1])));
+        } elseif ($legacyHeader === strip_tags($legacyHeader)) {
+            $legacyHeaderTitle = $legacyHeader;
+        }
+    }
+    $title = filled($title) ? $title : ($legacyHeaderTitle ?: 'Dashboard');
     $breadcrumbMap = [
         'dashboard' => ['Beranda'],
+        'teaching-assignments.import' => ['Beranda', 'Akademik', 'Penugasan Mengajar', 'Impor'],
+        'teaching-assignments.import.*' => ['Beranda', 'Akademik', 'Penugasan Mengajar', 'Impor'],
+        'schedules.import' => ['Beranda', 'Akademik', 'Jadwal Pelajaran', 'Impor'],
+        'schedules.import.*' => ['Beranda', 'Akademik', 'Jadwal Pelajaran', 'Impor'],
         'subjects.*' => ['Beranda', 'Akademik', 'Mata Pelajaran'],
         'teaching-journals.*' => ['Beranda', 'Akademik', 'Jurnal Mengajar'],
         'student-attendances.*' => ['Beranda', 'Akademik', 'Absensi Siswa'],

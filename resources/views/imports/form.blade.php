@@ -1,19 +1,25 @@
-<x-app-layout :display-flash="false"><x-slot name="header"><div><h1 class="text-xl font-semibold text-emerald-950">{{ $title }}</h1><p class="mt-1 text-sm text-slate-600">Unggah file Excel, periksa hasilnya, lalu simpan jadwal yang valid.</p></div></x-slot>
+<x-app-layout :display-flash="false" :title="$title">
 <div class="space-y-6">
 @if (session('status'))
     <div class="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800" role="status">{{ session('status') }}</div>
 @endif
-<div class="rounded-xl border border-emerald-100 bg-white p-6 shadow"><div class="mb-5 flex flex-wrap items-center justify-between gap-3"><div><h2 class="font-semibold text-emerald-950">File Jadwal</h2><p class="text-sm text-slate-500">Maksimal 10 MB. Master guru, kelas, dan mata pelajaran tidak dibuat otomatis.</p></div><a class="rounded border border-emerald-800 px-4 py-2 text-emerald-900" href="{{ route($kind==='teaching'?'teaching-assignments.import.template':'schedules.import.template') }}">Unduh Template Excel</a></div>
-@if ($errors->any())
-    <div class="mb-4 rounded-lg border {{ $errors->has('preview') ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-red-200 bg-red-50 text-red-800' }} p-4 text-sm" role="alert">
+@if ($errors->has('preview'))
+    <div class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800" role="alert">
+        @foreach ($errors->get('preview') as $error)<p>{{ $error }}</p>@endforeach
+    </div>
+@endif
+@php($validationErrors = collect($errors->messages())->except('preview')->flatten())
+@if ($validationErrors->isNotEmpty())
+    <div class="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">
         <p class="font-semibold">Data belum dapat diproses.</p>
         <ul class="mt-2 list-disc space-y-1 pl-5">
-            @foreach ($errors->all() as $error)
+            @foreach ($validationErrors as $error)
                 <li>{{ $error }}</li>
             @endforeach
         </ul>
     </div>
 @endif
+<div class="rounded-xl border border-emerald-100 bg-white p-6 shadow"><div class="mb-5 flex flex-wrap items-start justify-between gap-3"><div><h2 class="font-semibold text-emerald-950">File Jadwal</h2><p class="mt-1 text-sm text-slate-600">Unggah file Excel, periksa hasilnya, lalu simpan jadwal yang valid.</p><p class="mt-1 text-sm text-slate-500">Maksimal 10 MB. Master guru, kelas, dan mata pelajaran tidak dibuat otomatis.</p></div><a class="rounded border border-emerald-800 px-4 py-2 text-emerald-900" href="{{ route($kind==='teaching'?'teaching-assignments.import.template':'schedules.import.template') }}">Unduh Template Excel</a></div>
 <form method="post" enctype="multipart/form-data" action="{{ route($kind==='teaching'?'teaching-assignments.import.preview':'schedules.import.preview') }}" class="grid gap-4 md:grid-cols-2">@csrf
 <label>Tahun Ajaran<select required name="academic_year_id" class="mt-1 w-full"><option value="">Pilih</option>@foreach($academicYears as $year)<option value="{{ $year->id }}">{{ $year->name }}</option>@endforeach</select></label><label>Semester<select required name="semester_id" class="mt-1 w-full"><option value="">Pilih</option>@foreach($academicYears->flatMap->semesters as $semester)<option value="{{ $semester->id }}">{{ $semester->name }}</option>@endforeach</select></label>
 @if($kind==='teaching')<label>Mode impor<select name="mode" class="mt-1 w-full"><option value="create">Tambah data baru saja</option><option value="update">Tambah dan perbarui data yang cocok</option><option value="replace">Tambah/perbarui dan nonaktifkan data lama</option></select><span class="text-xs text-amber-700">Mode terakhir memerlukan konfirmasi tambahan.</span></label>@endif
