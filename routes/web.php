@@ -292,6 +292,7 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         Route::get('/schedules/export-word', [ScheduleController::class, 'exportWord'])->middleware('permission:schedules.print')->name('schedules.export-word');
         Route::get('/schedules/import', [ScheduleImportController::class, 'index'])->middleware('permission:schedules.import')->name('schedules.import');
         Route::get('/schedules/import/template', [ScheduleImportController::class, 'template'])->middleware('permission:schedules.import')->name('schedules.import.template');
+        Route::get('/schedules/import/preview', [ScheduleImportController::class, 'expiredPreview'])->middleware('permission:schedules.import')->name('schedules.import.preview.expired');
         Route::post('/schedules/import/preview', [ScheduleImportController::class, 'preview'])->middleware('permission:schedules.import')->name('schedules.import.preview');
         Route::post('/schedules/import/process', [ScheduleImportController::class, 'process'])->middleware('permission:schedules.import')->name('schedules.import.process');
         Route::post('/import-batches/{importBatch}/rollback', [ImportBatchController::class, 'rollback'])->middleware('permission:imports.rollback')->name('import-batches.rollback');

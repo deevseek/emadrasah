@@ -118,8 +118,9 @@
                                 <div class="mt-3 space-y-3">
                                     @foreach($weekly[$day->value] as $schedule)
                                         <div class="border-l-4 border-emerald-700 pl-3 text-sm">
-                                            <p class="font-semibold text-slate-900">{{ substr($schedule->starts_at, 0, 5) }}–{{ substr($schedule->ends_at, 0, 5) }} · {{ $schedule->classroom?->name }}</p>
+                                            <p class="font-semibold text-slate-900">{{ substr($schedule->starts_at, 0, 5) }}–{{ substr($schedule->ends_at, 0, 5) }} · {{ $schedule->participant_classrooms ?: $schedule->classroom?->name }}</p>
                                             <p class="text-slate-600">{{ $schedule->entry_type?->value === 'lesson' ? $schedule->subject?->name : $schedule->activity_name }}@if($schedule->entry_type?->value === 'lesson' && $schedule->employee?->name) · {{ $schedule->employee->name }}@endif</p>
+                                            @if($schedule->isSharedSession())<span class="mt-1 inline-block rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-900">Sesi bersama</span>@endif
                                         </div>
                                     @endforeach
                                 </div>

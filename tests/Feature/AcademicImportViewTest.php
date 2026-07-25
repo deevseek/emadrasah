@@ -43,6 +43,18 @@ final class AcademicImportViewTest extends TestCase
             ->assertSessionHas('status', 'Sesi preview telah berakhir. Silakan unggah kembali berkas untuk membuat preview baru.');
     }
 
+    public function test_get_request_to_schedule_preview_returns_to_import_form(): void
+    {
+        Permission::findOrCreate('schedules.import');
+        $user = User::factory()->create();
+        $user->givePermissionTo('schedules.import');
+
+        $this->actingAs($user)
+            ->get('/academic/schedules/import/preview')
+            ->assertRedirect(route('schedules.import'))
+            ->assertSessionHas('status', 'Sesi preview telah berakhir. Silakan unggah kembali berkas untuk membuat preview baru.');
+    }
+
     public function test_import_form_displays_preview_expiration_message(): void
     {
         session()->flash('status', 'Sesi preview telah berakhir.');
