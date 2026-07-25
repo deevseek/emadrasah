@@ -33,6 +33,9 @@ final class AcademicImportMatcherTest extends TestCase
             ["Al-'Alim", 'Al Alim'],
             ['As-Salam', 'As Salam'],
             ['Fullday', 'Full Day'],
+            ['Kelas I Ar-Rahman', 'I Ar-Rahman'],
+            ['I As-Salam (Fullday)', 'I As-Salam'],
+            ['Al Qur`an Hadis', 'Al-Qur’an Hadits'],
         ];
     }
 }
