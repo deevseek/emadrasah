@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Academic;
 
 use App\Models\{LessonSchedule, TeachingAssignment};
+use App\Enums\ScheduleEntryType;
 use App\Services\ActivityLogger;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -15,9 +16,12 @@ class ScheduleService
     public function save(array $data, ?LessonSchedule $schedule = null): LessonSchedule
     {
         return DB::transaction(function () use ($data, $schedule) {
-            $assignment = TeachingAssignment::with(['employee','classroom','subject'])->lockForUpdate()->findOrFail($data['teaching_assignment_id']);
-            if (! $assignment->is_active || ! $assignment->employee?->is_active || ! $assignment->classroom?->is_active || ! $assignment->subject?->is_active) throw ValidationException::withMessages(['teaching_assignment_id'=>'Penugasan Mengajar harus aktif dan valid.']);
-            $payload = $data + ['academic_year_id'=>$assignment->academic_year_id,'semester_id'=>$assignment->semester_id,'classroom_id'=>$assignment->classroom_id,'subject_id'=>$assignment->subject_id,'employee_id'=>$assignment->employee_id,'is_active'=>$data['is_active'] ?? true];
+            $type = ScheduleEntryType::tryFrom((string)($data['entry_type'] ?? 'lesson')) ?? ScheduleEntryType::Lesson;
+            $assignment = $type === ScheduleEntryType::Lesson ? TeachingAssignment::with(['employee','classroom','subject'])->lockForUpdate()->findOrFail($data['teaching_assignment_id']) : null;
+            if ($assignment && (! $assignment->is_active || ! $assignment->employee?->is_active || ! $assignment->classroom?->is_active || ! $assignment->subject?->is_active)) throw ValidationException::withMessages(['teaching_assignment_id'=>'Penugasan Mengajar harus aktif dan valid.']);
+            $payload = $data + ['is_active'=>$data['is_active'] ?? true];
+            if ($assignment) $payload = $payload + ['academic_year_id'=>$assignment->academic_year_id,'semester_id'=>$assignment->semester_id,'classroom_id'=>$assignment->classroom_id,'subject_id'=>$assignment->subject_id,'employee_id'=>$assignment->employee_id];
+            else $payload += ['teaching_assignment_id'=>null,'subject_id'=>null,'employee_id'=>null,'counts_as_teaching_hour'=>false];
             LessonSchedule::where('semester_id',$payload['semester_id'])->where('day_of_week',$payload['day_of_week'])->where('starts_at','<',$payload['ends_at'])->where('ends_at','>',$payload['starts_at'])->lockForUpdate()->get();
             $this->conflicts->assertNoConflict($payload, $schedule);
             $old = $schedule?->getAttributes() ?? [];
