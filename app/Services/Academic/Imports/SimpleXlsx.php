@@ -5,42 +5,102 @@ declare(strict_types=1);
 namespace App\Services\Academic\Imports;
 
 use RuntimeException;
+use SimpleXMLElement;
 use ZipArchive;
 
 final class SimpleXlsx
 {
+    private const SPREADSHEET_NAMESPACE = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+
     /** @return list<array<string, string>> */
     public function read(string $path): array
     {
         $zip = new ZipArchive;
-        if ($zip->open($path) !== true) throw new RuntimeException('Berkas XLSX rusak atau tidak dapat dibaca.');
-        $shared = [];
-        if (($xml = $zip->getFromName('xl/sharedStrings.xml')) !== false) {
-            $doc = simplexml_load_string($xml);
-            foreach ($doc?->si ?? [] as $item) $shared[] = trim(implode('', array_map('strval', $item->xpath('.//t') ?: [])));
+        if ($zip->open($path) !== true) {
+            throw new RuntimeException('Berkas XLSX rusak atau tidak dapat dibaca.');
         }
-        $sheet = $zip->getFromName('xl/worksheets/sheet1.xml');
+
+        $shared = [];
+        if (($sharedStringsXml = $zip->getFromName('xl/sharedStrings.xml')) !== false) {
+            $doc = $this->loadXml($sharedStringsXml);
+            $doc->registerXPathNamespace('x', self::SPREADSHEET_NAMESPACE);
+            foreach ($doc->xpath('//x:si') ?: [] as $item) {
+                $item->registerXPathNamespace('x', self::SPREADSHEET_NAMESPACE);
+                $texts = array_map(static fn (SimpleXMLElement $node): string => (string) $node, $item->xpath('.//x:t') ?: []);
+                $shared[] = trim(implode('', $texts));
+            }
+        }
+
+        $sheetXml = $zip->getFromName('xl/worksheets/sheet1.xml');
         $zip->close();
-        if ($sheet === false) throw new RuntimeException('Workbook tidak memiliki lembar pertama.');
-        $xml = simplexml_load_string($sheet);
+        if ($sheetXml === false) {
+            throw new RuntimeException('Workbook tidak memiliki lembar pertama.');
+        }
+
+        $xml = $this->loadXml($sheetXml);
+        $xml->registerXPathNamespace('x', self::SPREADSHEET_NAMESPACE);
         $matrix = [];
-        foreach ($xml?->sheetData?->row ?? [] as $row) {
+        foreach ($xml->xpath('//x:sheetData/x:row') ?: [] as $row) {
+            $row->registerXPathNamespace('x', self::SPREADSHEET_NAMESPACE);
             $values = [];
-            foreach ($row->c as $cell) {
-                preg_match('/([A-Z]+)/', (string) $cell['r'], $m);
-                $column = $this->columnIndex($m[1] ?? 'A');
-                $value = (string) $cell->v;
-                if ((string) $cell['t'] === 's') $value = $shared[(int) $value] ?? '';
-                elseif ((string) $cell['t'] === 'inlineStr') $value = (string) $cell->is->t;
+            foreach ($row->xpath('./x:c') ?: [] as $cell) {
+                $cell->registerXPathNamespace('x', self::SPREADSHEET_NAMESPACE);
+                preg_match('/^([A-Z]+)/i', (string) $cell['r'], $matches);
+                $column = $this->columnIndex(mb_strtoupper($matches[1] ?? 'A'));
+                $type = (string) $cell['t'];
+                $valueNodes = $cell->xpath('./x:v') ?: [];
+                $value = (string) ($valueNodes[0] ?? '');
+
+                if ($type === 's') {
+                    $value = $shared[(int) $value] ?? '';
+                } elseif ($type === 'inlineStr') {
+                    $texts = array_map(static fn (SimpleXMLElement $node): string => (string) $node, $cell->xpath('./x:is//x:t') ?: []);
+                    $value = implode('', $texts);
+                }
+
                 $values[$column] = trim($value);
             }
-            if ($values !== []) { ksort($values); $matrix[] = $values; }
+            if ($values !== []) {
+                ksort($values);
+                $matrix[] = $values;
+            }
         }
-        if ($matrix === []) return [];
-        $headers = array_map(fn ($v) => mb_strtolower(trim((string) $v)), array_values(array_shift($matrix)));
-        return array_values(array_filter(array_map(function (array $values) use ($headers): array {
-            $row=[]; foreach ($headers as $i=>$header) $row[$header]=(string)($values[$i]??''); return $row;
-        }, $matrix), fn ($row) => implode('', $row) !== ''));
+
+        if ($matrix === []) {
+            return [];
+        }
+
+        $headerCells = array_shift($matrix);
+        $headers = [];
+        foreach ($headerCells as $columnIndex => $value) {
+            $header = mb_strtolower(trim((string) $value));
+            if ($header !== '') {
+                $headers[$columnIndex] = $header;
+            }
+        }
+
+        $rows = [];
+        foreach ($matrix as $values) {
+            $data = [];
+            foreach ($headers as $columnIndex => $header) {
+                $data[$header] = (string) ($values[$columnIndex] ?? '');
+            }
+            if (implode('', $data) !== '') {
+                $rows[] = $data;
+            }
+        }
+
+        return $rows;
+    }
+
+    private function loadXml(string $xml): SimpleXMLElement
+    {
+        $document = simplexml_load_string($xml);
+        if ($document === false) {
+            throw new RuntimeException('XML di dalam workbook tidak valid.');
+        }
+
+        return $document;
     }
 
     public function download(array $headers, array $rows, string $filename): \Symfony\Component\HttpFoundation\StreamedResponse
