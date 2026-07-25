@@ -35,7 +35,9 @@ class ScheduleConflictService
 
     public function belongsToSameSharedSession(array $incoming, LessonSchedule $existing): bool
     {
-        return filled($incoming['shared_session_code'] ?? null)
+        return ! empty($incoming['employee_id'])
+            && ! empty($existing->employee_id)
+            && filled($incoming['shared_session_code'] ?? null)
             && $incoming['shared_session_code'] === $existing->shared_session_code
             && (int) $incoming['employee_id'] === (int) $existing->employee_id
             && (int) $incoming['subject_id'] === (int) $existing->subject_id

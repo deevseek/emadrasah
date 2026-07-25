@@ -111,12 +111,32 @@ final class LessonScheduleImportService
             $incoming = ['employee_id' => $row['employee_id'], 'subject_id' => $row['subject_id'], 'semester_id' => $row['semester_id'], 'day_of_week' => $row['day'], 'starts_at' => $row['starts_at'], 'ends_at' => $row['ends_at'], 'classroom_id' => $row['classroom_id'], 'shared_session_code' => $row['shared_session_code']];
             $base = LessonSchedule::where(['semester_id' => $row['semester_id'], 'day_of_week' => $row['day'], 'is_active' => true])->where('starts_at', '<', $row['ends_at'])->where('ends_at', '>', $row['starts_at']);
             if ((clone $base)->where('classroom_id', $row['classroom_id'])->exists()) $row['status'] = 'classroom_conflict';
-            elseif (($teacher = (clone $base)->where('employee_id', $row['employee_id'])->get()->first(fn ($e) => ! $this->conflicts->belongsToSameSharedSession($incoming, $e)))) $row['status'] = 'teacher_conflict';
+            elseif (
+                ! empty($row['employee_id'])
+                && ($teacher = (clone $base)
+                    ->where('employee_id', $row['employee_id'])
+                    ->get()
+                    ->first(
+                        fn ($existing) => ! $this->conflicts->belongsToSameSharedSession(
+                            $incoming,
+                            $existing
+                        )
+                    ))
+            ) {
+                $row['status'] = 'teacher_conflict';
+            }
             elseif (filled($row['source']['ruangan'] ?? null) && ($room = (clone $base)->where('room', trim((string) $row['source']['ruangan']))->get()->first(fn ($e) => ! $this->conflicts->belongsToSameSharedSession($incoming, $e)))) $row['status'] = 'room_conflict';
             foreach ($accepted as $previous) {
                 if ($row['day'] !== $previous['day'] || $row['starts_at'] >= $previous['ends_at'] || $row['ends_at'] <= $previous['starts_at']) continue;
                 if ($row['classroom_id'] === $previous['classroom_id']) $row['status'] = 'classroom_conflict';
-                elseif ($row['employee_id'] === $previous['employee_id'] && ! $this->sameSharedRows($row, $previous)) $row['status'] = 'teacher_conflict';
+                elseif (
+                    ! empty($row['employee_id'])
+                    && ! empty($previous['employee_id'])
+                    && $row['employee_id'] === $previous['employee_id']
+                    && ! $this->sameSharedRows($row, $previous)
+                ) {
+                    $row['status'] = 'teacher_conflict';
+                }
                 elseif (filled($row['source']['ruangan'] ?? null) && ($row['source']['ruangan'] === ($previous['source']['ruangan'] ?? null)) && ! $this->sameSharedRows($row, $previous)) $row['status'] = 'room_conflict';
             }
             if ($row['status'] === 'valid_new') $row['status'] = filled($row['shared_session_code']) ? 'valid_shared_session' : 'valid_new';
