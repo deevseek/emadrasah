@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class TeachingAssignment extends Model
 {
-    protected $fillable = ['academic_year_id', 'semester_id', 'employee_id', 'classroom_id', 'subject_id', 'weekly_hours', 'is_active', 'starts_on', 'ends_on', 'notes', 'replaced_by_id'];
+    protected $fillable = ['academic_year_id', 'semester_id', 'employee_id', 'classroom_id', 'subject_id', 'weekly_hours', 'is_active', 'starts_on', 'ends_on', 'notes', 'replaced_by_id', 'import_batch_id', 'source_reference'];
 
     protected function casts(): array
     {
@@ -23,4 +23,5 @@ class TeachingAssignment extends Model
     public function classroom(): BelongsTo { return $this->belongsTo(Classroom::class); }
     public function subject(): BelongsTo { return $this->belongsTo(Subject::class); }
     public function schedules(): HasMany { return $this->hasMany(LessonSchedule::class); }
+    public function importBatch(): BelongsTo { return $this->belongsTo(ImportBatch::class); }
 }

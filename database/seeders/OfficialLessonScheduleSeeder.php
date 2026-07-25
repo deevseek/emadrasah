@@ -30,8 +30,6 @@ final class OfficialLessonScheduleSeeder extends Seeder
         ]);
 
         DB::transaction(function () use ($year, $semester, $subjects, $classrooms): void {
-            $this->deleteImportedSchedules();
-
             foreach ($this->classSchedules() as $classData) {
                 $classroom = $classrooms[$classData['code']];
 
@@ -43,7 +41,7 @@ final class OfficialLessonScheduleSeeder extends Seeder
                         }
 
                         $subject = $subjects[$code];
-                        LessonSchedule::updateOrCreate([
+                        LessonSchedule::firstOrCreate([
                             'semester_id' => $semester->id,
                             'classroom_id' => $classroom->id,
                             'day_of_week' => $day,
@@ -107,13 +105,6 @@ final class OfficialLessonScheduleSeeder extends Seeder
         return $classroom;
     }
 
-    private function deleteImportedSchedules(): void
-    {
-        LessonSchedule::query()
-            ->where('notes', 'like', 'Diimpor dari jadwal resmi MI Muslimat NU Demak TA 2026/2027 semester ganjil%')
-            ->delete();
-    }
-
     private function matchesAny(Subject|Classroom $model, array $aliases): bool
     {
         $values = array_filter([$model->code ?? null, $model->name ?? null, $model->short_name ?? null]);
@@ -137,40 +128,6 @@ final class OfficialLessonScheduleSeeder extends Seeder
     private function normalizedAliases(array $aliases): array
     {
         return array_values(array_unique(array_map(fn (string $alias): string => $this->normalize($alias), $aliases)));
-    }
-
-
-    /**
-     * @return \Illuminate\Support\Collection<string, Subject>
-     */
-    private function existingSubjects(): \Illuminate\Support\Collection
-    {
-        $codes = collect($this->subjects())->pluck(0);
-        $subjects = Subject::query()->whereIn('code', $codes)->get()->keyBy('code');
-        $missing = $codes->diff($subjects->keys())->values();
-
-        if ($missing->isNotEmpty()) {
-            throw new \RuntimeException('Mata pelajaran belum tersedia: '.$missing->implode(', ').'. Seeder ini tidak membuat mata pelajaran baru.');
-        }
-
-        return $subjects;
-    }
-
-    private function existingClassroom(AcademicYear $year, array $classData): Classroom
-    {
-        $classroom = Classroom::query()
-            ->where('academic_year_id', $year->id)
-            ->where(function ($query) use ($classData): void {
-                $query->where('code', $classData['code'])
-                    ->orWhere('name', $classData['name']);
-            })
-            ->first();
-
-        if (! $classroom) {
-            throw new \RuntimeException('Kelas '.$classData['code'].' / '.$classData['name'].' belum tersedia. Seeder ini tidak membuat kelas baru.');
-        }
-
-        return $classroom;
     }
 
     private function ensureUnassignedSchedulesSupported(): void
@@ -274,12 +231,12 @@ final class OfficialLessonScheduleSeeder extends Seeder
             ['code' => 'I-AR-RAHIM', 'name' => 'I Ar-Rahim', 'slots' => $gradeOneSlots],
             ['code' => 'II-AL-MUMIN', 'name' => "II Al-Mu'min", 'slots' => $lowerSlots],
             ['code' => 'II-AL-WAHHAB', 'name' => 'II Al-Wahhab', 'slots' => $lowerSlots],
-            ['code' => 'II-AL-LATHIF', 'name' => 'II Al-Lathif', 'slots' => $lowerSlots],
             ['code' => 'III-AL-KHALIQ', 'name' => 'III Al-Khaliq', 'slots' => $lowerSlots],
-            ['code' => 'III-AL-MAJID', 'name' => 'III Al-Majid', 'slots' => $lowerSlots],
+            ['code' => 'III-AL-LATHIF', 'name' => 'III Al-Lathif', 'slots' => $lowerSlots],
             ['code' => 'IV-AL-BASITH', 'name' => 'IV Al-Basith', 'slots' => $lowerSlots],
             ['code' => 'IV-AL-KARIM', 'name' => 'IV Al-Karim', 'slots' => $lowerSlots],
             ['code' => 'V-AL-ALIM', 'name' => "V Al-'Alim", 'slots' => $lowerSlots],
+            ['code' => 'V-AL-HAKIM', 'name' => 'V Al-Hakim', 'slots' => $lowerSlots],
             ['code' => 'VI-AL-MAJID', 'name' => 'VI Al-Majid', 'slots' => $lowerSlots],
         ];
     }

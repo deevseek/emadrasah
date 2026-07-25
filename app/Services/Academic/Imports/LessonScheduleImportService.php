@@ -1,0 +1,24 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Services\Academic\Imports;
+
+use App\Enums\{DayOfWeek,ScheduleEntryType};
+use App\Models\{ImportBatch,LessonSchedule,TeachingAssignment};
+use App\Services\Academic\ScheduleService;
+use Illuminate\Support\Facades\{Auth,DB};
+
+final class LessonScheduleImportService
+{
+    public function __construct(private SimpleXlsx $xlsx,private ImportMatcher $matcher,private ScheduleService $schedules){}
+    public function preview(string $path,int $year,int $semester): array
+    {$rows=$this->xlsx->read($path);$result=[];$seen=[];foreach($rows as$i=>$row){$status='valid_new';$class=$this->matcher->classroom($year,$row['kode_kelas']??null,$row['kelas']??null);if($class['status'])$status=$class['status'];$type=ScheduleEntryType::tryFrom(mb_strtolower($row['jenis_slot']??''))??ScheduleEntryType::Lesson;$day=$this->day($row['hari']??'');[$start,$end]=$this->times($row);if(!$day||!$start||!$end||$end<=$start)$status='invalid_time';$assignment=null;
+        if($type===ScheduleEntryType::Lesson&&$class['model']){$subject=$this->matcher->subject($row['kode_mata_pelajaran']??null,$row['mata_pelajaran']??null,$class['model']->grade_level_id);if(!$subject['model'])$status=$subject['status'];else{$q=TeachingAssignment::where(['academic_year_id'=>$year,'semester_id'=>$semester,'classroom_id'=>$class['model']->id,'subject_id'=>$subject['model']->id,'is_active'=>true]);if(filled($row['nomor_pegawai']??null))$q->whereHas('employee',fn($x)=>$x->where('employee_number',$row['nomor_pegawai']));$assignment=$q->get();if($assignment->count()!==1)$status='assignment_not_found';else$assignment=$assignment->first();}}
+        if($type!==ScheduleEntryType::Lesson&&blank($row['nama_kegiatan']??null))$status='validation_error';$key=implode(':',[$class['model']?->id,$day?->value,$start,$end,$type->value,$assignment?->id,$row['nama_kegiatan']??'']);if(isset($seen[$key]))$status='duplicate_in_file';$seen[$key]=1;
+        if($status==='valid_new'&&$class['model']){$base=LessonSchedule::where(['semester_id'=>$semester,'day_of_week'=>$day->value,'is_active'=>true])->where('starts_at','<',$end)->where('ends_at','>',$start);if((clone$base)->where('classroom_id',$class['model']->id)->exists())$status='classroom_conflict';elseif($assignment?->employee_id&&(clone$base)->where('employee_id',$assignment->employee_id)->exists())$status='teacher_conflict';elseif(filled($row['ruangan']??null)&&(clone$base)->where('room',$row['ruangan'])->exists())$status='room_conflict';}
+        $result[]=['line'=>$i+2,'source'=>$row,'status'=>$status,'classroom_id'=>$class['model']?->id,'assignment_id'=>$assignment?->id,'entry_type'=>$type->value,'day'=>$day?->value,'starts_at'=>$start,'ends_at'=>$end];}return['rows'=>$result,'summary'=>['total'=>count($result),'valid'=>collect($result)->where('status','valid_new')->count()]+array_count_values(array_column($result,'status'))];}
+    public function process(array $rows,int$year,int$semester,string$filename):ImportBatch{return DB::transaction(function()use($rows,$year,$semester,$filename){$batch=ImportBatch::create(['type'=>'lesson_schedule','original_filename'=>$filename,'academic_year_id'=>$year,'semester_id'=>$semester,'status'=>'processing','total_rows'=>count($rows),'valid_rows'=>collect($rows)->where('status','valid_new')->count(),'imported_by'=>Auth::id(),'started_at'=>now()]);$n=0;foreach($rows as$row){if($row['status']!=='valid_new')continue;$s=$row['source'];$payload=['entry_type'=>$row['entry_type'],'teaching_assignment_id'=>$row['assignment_id'],'academic_year_id'=>$year,'semester_id'=>$semester,'classroom_id'=>$row['classroom_id'],'day_of_week'=>$row['day'],'starts_at'=>$row['starts_at'],'ends_at'=>$row['ends_at'],'lesson_hours'=>$row['entry_type']==='lesson'?max(1,(int)($s['jp']??1)):1,'activity_name'=>$row['entry_type']==='lesson'?null:$s['nama_kegiatan'],'counts_as_teaching_hour'=>$row['entry_type']==='lesson','room'=>$s['ruangan']?:null,'notes'=>$s['keterangan']?:null,'source_reference'=>$filename.':'.$row['line'],'import_batch_id'=>$batch->id,'is_active'=>true];$this->schedules->save($payload);$n++;}$batch->update(['status'=>'completed','imported_rows'=>$n,'skipped_rows'=>count($rows)-$n,'error_rows'=>collect($rows)->whereNotIn('status',['valid_new','unchanged'])->count(),'finished_at'=>now()]);return$batch;});}
+    private function day(string$v):?DayOfWeek{return DayOfWeek::tryFrom(mb_strtolower(trim($v)));}
+    private function times(array$row):array{$a=str_replace('.',':',trim($row['waktu_mulai']??''));$b=str_replace('.',':',trim($row['waktu_selesai']??''));if(str_contains($a,'-')&&$b==='')[$a,$b]=array_map('trim',explode('-',$a,2));foreach([&$a,&$b]as&$v)if(preg_match('/^\d{1,2}:\d{2}$/',$v))$v=str_pad($v,5,'0',STR_PAD_LEFT);return[preg_match('/^\d{2}:\d{2}$/',$a)?$a:null,preg_match('/^\d{2}:\d{2}$/',$b)?$b:null];}
+}
