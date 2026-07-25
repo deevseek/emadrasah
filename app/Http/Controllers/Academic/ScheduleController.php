@@ -41,7 +41,18 @@ class ScheduleController extends Controller
             ->when($request->subject_id, fn (Builder $query, mixed $value) => $query->where('subject_id', $value))
             ->when($request->day_of_week, fn (Builder $query, mixed $value) => $query->where('day_of_week', $value))
             ->when($request->entry_type, fn (Builder $query, mixed $value) => $query->where('entry_type', $value));
-        $weekly = (clone $query)->orderBy('day_of_week')->orderBy('starts_at')->get()->groupBy(fn (LessonSchedule $schedule) => $schedule->day_of_week->value);
+        $weeklyRows = (clone $query)->orderBy('day_of_week')->orderBy('starts_at')->get();
+        if (($employeeId ?? $request->employee_id) && ! $request->classroom_id) {
+            $weeklyRows = $weeklyRows->unique(fn (LessonSchedule $schedule) => $schedule->isSharedSession()
+                ? implode(':', [$schedule->employee_id, $schedule->semester_id, $schedule->day_of_week->value, $schedule->starts_at, $schedule->ends_at, $schedule->shared_session_code])
+                : 'schedule:'.$schedule->id)->values();
+            $weeklyRows->each(function (LessonSchedule $schedule): void {
+                if ($schedule->isSharedSession()) {
+                    $schedule->setAttribute('participant_classrooms', LessonSchedule::sharedSession($schedule->shared_session_code)->where('is_active', true)->where('semester_id', $schedule->semester_id)->where('day_of_week', $schedule->day_of_week->value)->where('starts_at', $schedule->starts_at)->where('ends_at', $schedule->ends_at)->with('classroom')->get()->pluck('classroom.name')->filter()->unique()->join(', '));
+                }
+            });
+        }
+        $weekly = $weeklyRows->groupBy(fn (LessonSchedule $schedule) => $schedule->day_of_week->value);
 
         return view('schedules.index', $this->refs($employeeId) + [
             'schedules' => $query->orderBy('day_of_week')->orderBy('starts_at')->paginate(15)->withQueryString(),
@@ -69,7 +80,10 @@ class ScheduleController extends Controller
     {
         $this->abortUnlessCanView($request, $schedule->employee_id);
 
-        return view('schedules.show', ['schedule' => $schedule->load(['academicYear', 'semester', 'employee', 'classroom', 'subject', 'teachingAssignment'])]);
+        $schedule->load(['academicYear', 'semester', 'employee', 'classroom', 'subject', 'teachingAssignment']);
+        $participants = $schedule->isSharedSession() ? LessonSchedule::sharedSession($schedule->shared_session_code)->where('is_active', true)->where('semester_id', $schedule->semester_id)->where('day_of_week', $schedule->day_of_week->value)->where('starts_at', $schedule->starts_at)->where('ends_at', $schedule->ends_at)->with('classroom')->get()->pluck('classroom.name')->filter()->unique()->values() : collect();
+
+        return view('schedules.show', compact('schedule', 'participants'));
     }
 
     public function edit(LessonSchedule $schedule): View
