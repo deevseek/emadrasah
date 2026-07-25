@@ -129,7 +129,7 @@ class ScheduleController extends Controller
     {
         $templates->storeTemplate($request->file('template'));
 
-        return back()->with('status', 'Template Word Jadwal Pelajaran berhasil disimpan.');
+        return back()->with('status', 'Template jadwal berhasil diperbarui.');
     }
 
     public function downloadTemplate(LessonScheduleTemplateService $templates): BinaryFileResponse
