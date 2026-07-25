@@ -18,8 +18,8 @@ use App\Services\Academic\ScheduleService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\StreamedResponse;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ScheduleController extends Controller
 {
@@ -33,12 +33,14 @@ class ScheduleController extends Controller
             ->when($request->classroom_id, fn (Builder $query, mixed $value) => $query->where('classroom_id', $value))
             ->when($employeeId ?? $request->employee_id, fn (Builder $query, mixed $value) => $query->where('employee_id', $value))
             ->when($request->subject_id, fn (Builder $query, mixed $value) => $query->where('subject_id', $value))
-            ->when($request->day_of_week, fn (Builder $query, mixed $value) => $query->where('day_of_week', $value));
+            ->when($request->day_of_week, fn (Builder $query, mixed $value) => $query->where('day_of_week', $value))
+            ->when($request->entry_type, fn (Builder $query, mixed $value) => $query->where('entry_type', $value));
         $weekly = (clone $query)->orderBy('day_of_week')->orderBy('starts_at')->get()->groupBy(fn (LessonSchedule $schedule) => $schedule->day_of_week->value);
 
         return view('schedules.index', $this->refs($employeeId) + [
             'schedules' => $query->orderBy('day_of_week')->orderBy('starts_at')->paginate(15)->withQueryString(),
             'weekly' => $weekly,
+            'timeSlots' => $weekly->flatten()->map(fn (LessonSchedule $schedule) => substr((string) $schedule->starts_at, 0, 5).'–'.substr((string) $schedule->ends_at, 0, 5))->unique()->sort()->values(),
             'filters' => $request->all(),
         ]);
     }

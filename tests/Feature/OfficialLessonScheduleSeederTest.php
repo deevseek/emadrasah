@@ -29,7 +29,7 @@ final class OfficialLessonScheduleSeederTest extends TestCase
             Subject::create(['code' => $code, 'name' => $code, 'category' => SubjectCategory::General->value, 'is_active' => true]);
         }
 
-        foreach (['I-AS-SALAM', 'I-AR-RAHMAN', 'I-AR-RAHIM', 'II-AL-MUMIN', 'II-AL-WAHHAB', 'II-AL-LATHIF', 'III-AL-KHALIQ', 'III-AL-MAJID', 'IV-AL-BASITH', 'IV-AL-KARIM', 'V-AL-ALIM', 'VI-AL-MAJID'] as $code) {
+        foreach (['I-AS-SALAM', 'I-AR-RAHMAN', 'I-AR-RAHIM', 'II-AL-MUMIN', 'II-AL-WAHHAB', 'III-AL-KHALIQ', 'III-AL-LATHIF', 'IV-AL-BASITH', 'IV-AL-KARIM', 'V-AL-ALIM', 'V-AL-HAKIM', 'VI-AL-MAJID'] as $code) {
             Classroom::create(['academic_year_id' => $year->id, 'grade_level_id' => $level->id, 'name' => $code, 'code' => $code, 'is_active' => true]);
         }
 
