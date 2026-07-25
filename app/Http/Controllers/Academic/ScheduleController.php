@@ -105,10 +105,15 @@ class ScheduleController extends Controller
         return view('schedules.print', $this->refs($employeeId) + [
             'items' => $this->authorizedQuery($request, LessonSchedule::query())
                 ->with(['employee', 'classroom', 'subject', 'academicYear', 'semester'])
+                ->when($request->academic_year_id, fn (Builder $query, mixed $value) => $query->where('academic_year_id', $value))
+                ->when($request->semester_id, fn (Builder $query, mixed $value) => $query->where('semester_id', $value))
                 ->when($request->classroom_id, fn (Builder $query, mixed $value) => $query->where('classroom_id', $value))
                 ->when($employeeId ?? $request->employee_id, fn (Builder $query, mixed $value) => $query->where('employee_id', $value))
+                ->when($request->day_of_week, fn (Builder $query, mixed $value) => $query->where('day_of_week', $value))
+                ->when($request->entry_type, fn (Builder $query, mixed $value) => $query->where('entry_type', $value))
                 ->orderBy('day_of_week')->orderBy('starts_at')->get(),
             'printedAt' => now(),
+            'filters' => $request->only(['academic_year_id', 'semester_id', 'classroom_id', 'employee_id', 'day_of_week', 'entry_type']),
         ]);
     }
 

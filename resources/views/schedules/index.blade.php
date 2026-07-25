@@ -9,9 +9,6 @@
             @can('schedules.create')
                 <x-ui.button :href="route('schedules.create')">Tambah Jadwal</x-ui.button>
             @endcan
-            @can('schedules.print')
-                <x-ui.button variant="outline" :href="route('schedules.print', request()->query())" title="Buka tampilan cetak jadwal">Cetak</x-ui.button>
-            @endcan
             @can('schedules.export')
                 <x-ui.button variant="outline" :href="route('schedules.export')">Unduh CSV</x-ui.button>
             @endcan
@@ -51,6 +48,7 @@
 
                 <x-ui.card>
                     <h2 class="text-lg font-bold text-emerald-950">Unduh Jadwal Word</h2>
+                    <p class="mt-1 text-sm text-slate-600">Gunakan menu ini untuk membuat jadwal sesuai template Word madrasah.</p>
                     <p class="mt-1 text-sm text-slate-600">Pilih tahun ajaran, semester, tanggal dokumen, dan kelas yang akan dimasukkan.</p>
 
                     <form class="mt-4 grid gap-4 sm:grid-cols-2" method="GET" action="{{ route('schedules.export-word') }}">
