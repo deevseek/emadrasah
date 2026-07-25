@@ -276,6 +276,7 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         Route::get('/teaching-assignments/import', [TeachingAssignmentImportController::class, 'index'])->middleware('permission:teaching-assignments.import')->name('teaching-assignments.import');
         Route::get('/teaching-assignments/import/template', [TeachingAssignmentImportController::class, 'template'])->middleware('permission:teaching-assignments.import')->name('teaching-assignments.import.template');
         Route::get('/teaching-assignments/import/preview', [TeachingAssignmentImportController::class, 'expiredPreview'])->middleware('permission:teaching-assignments.import')->name('teaching-assignments.import.preview.expired');
+        Route::get('/teaching-assignments/import/preview/{token}', [TeachingAssignmentImportController::class, 'show'])->middleware('permission:teaching-assignments.import')->name('teaching-assignments.import.preview.show');
         Route::post('/teaching-assignments/import/preview', [TeachingAssignmentImportController::class, 'preview'])->middleware('permission:teaching-assignments.import')->name('teaching-assignments.import.preview');
         Route::post('/teaching-assignments/import/process', [TeachingAssignmentImportController::class, 'process'])->middleware('permission:teaching-assignments.import')->name('teaching-assignments.import.process');
         Route::get('/teaching-assignments', [TeachingAssignmentController::class, 'index'])->middleware('permission:teaching-assignments.view|teaching-assignments.view-own')->name('teaching-assignments.index');
@@ -293,6 +294,7 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         Route::get('/schedules/import', [ScheduleImportController::class, 'index'])->middleware('permission:schedules.import')->name('schedules.import');
         Route::get('/schedules/import/template', [ScheduleImportController::class, 'template'])->middleware('permission:schedules.import')->name('schedules.import.template');
         Route::get('/schedules/import/preview', [ScheduleImportController::class, 'expiredPreview'])->middleware('permission:schedules.import')->name('schedules.import.preview.expired');
+        Route::get('/schedules/import/preview/{token}', [ScheduleImportController::class, 'show'])->middleware('permission:schedules.import')->name('schedules.import.preview.show');
         Route::post('/schedules/import/preview', [ScheduleImportController::class, 'preview'])->middleware('permission:schedules.import')->name('schedules.import.preview');
         Route::post('/schedules/import/process', [ScheduleImportController::class, 'process'])->middleware('permission:schedules.import')->name('schedules.import.process');
         Route::post('/import-batches/{importBatch}/rollback', [ImportBatchController::class, 'rollback'])->middleware('permission:imports.rollback')->name('import-batches.rollback');
