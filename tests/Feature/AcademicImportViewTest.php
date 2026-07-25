@@ -27,7 +27,10 @@ final class AcademicImportViewTest extends TestCase
             'errors' => new ViewErrorBag,
         ])->render();
 
-        $this->assertStringContainsString('Unggah XLSX', $html);
+        $this->assertStringContainsString('Unggah file Excel, periksa hasilnya, lalu simpan jadwal yang valid.', $html);
+        $this->assertStringContainsString('File Jadwal', $html);
+        $this->assertStringContainsString('Pilih File Excel', $html);
+        $this->assertStringContainsString('Periksa Data', $html);
         $this->assertStringNotContainsString('validation-errors', $html);
     }
 
@@ -52,12 +55,12 @@ final class AcademicImportViewTest extends TestCase
         $this->actingAs($user)
             ->get('/academic/schedules/import/preview')
             ->assertRedirect(route('schedules.import'))
-            ->assertSessionHas('status', 'Sesi preview telah berakhir. Silakan unggah kembali berkas untuk membuat preview baru.');
+            ->assertSessionHasErrors(['preview' => 'Sesi preview telah berakhir. Silakan unggah kembali berkas.']);
     }
 
     public function test_import_form_displays_preview_expiration_message(): void
     {
-        session()->flash('status', 'Sesi preview telah berakhir.');
+        session()->flash('errors', (new ViewErrorBag)->put('default', new \Illuminate\Support\MessageBag(['preview' => 'Sesi preview telah berakhir.'])));
 
         $html = View::make('imports.form', [
             'kind' => 'teaching',
@@ -67,6 +70,8 @@ final class AcademicImportViewTest extends TestCase
             'errors' => new ViewErrorBag,
         ])->render();
 
-        $this->assertStringContainsString('Sesi preview telah berakhir.', $html);
+        $this->assertSame(1, substr_count($html, 'Sesi preview telah berakhir.'));
+        $this->assertStringContainsString('border-amber-200', $html);
+        $this->assertStringNotContainsString('Impor Jadwal PelajaranUnggah', $html);
     }
 }
