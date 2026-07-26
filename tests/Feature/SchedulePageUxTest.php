@@ -103,7 +103,7 @@ final class SchedulePageUxTest extends TestCase
             'semester_id' => $semester->id,
             'classroom_id' => $classroom->id,
             'entry_type' => 'activity',
-            'activity_name' => 'TASMI’',
+            'activity_name' => 'DOA & / ISTIGHOTSAH',
             'day_of_week' => 'senin',
             'starts_at' => '07:00',
             'ends_at' => '07:30',
@@ -138,7 +138,7 @@ final class SchedulePageUxTest extends TestCase
         $renderedXml = $rendered->getFromName('word/document.xml');
         $rendered->close();
         $this->assertIsString($renderedXml);
-        $this->assertStringContainsString('TASMI’', $renderedXml);
+        $this->assertStringContainsString('DOA &amp; / ISTIGHOTSAH', $renderedXml);
         $this->assertSame($originalHash, hash_file('sha256', Storage::disk('local')->path($path)));
     }
 }

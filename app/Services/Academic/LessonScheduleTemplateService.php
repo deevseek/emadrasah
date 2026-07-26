@@ -263,13 +263,24 @@ final class LessonScheduleTemplateService
             $paragraph->appendChild($run);
             $texts = [$text];
         }
-        $texts[0]->nodeValue = $value;
+        $this->replaceNodeText($texts[0], $value);
         if ($value !== trim($value)) {
             $texts[0]->setAttributeNS('http://www.w3.org/XML/1998/namespace', 'xml:space', 'preserve');
         }
-        foreach (array_slice($texts, 1) as $text) $text->nodeValue = '';
+        foreach (array_slice($texts, 1) as $text) {
+            $this->replaceNodeText($text, '');
+        }
 
         return true;
+    }
+
+    private function replaceNodeText(\DOMNode $node, string $value): void
+    {
+        while ($node->firstChild) {
+            $node->removeChild($node->firstChild);
+        }
+
+        $node->appendChild($node->ownerDocument->createTextNode($value));
     }
 
     private function nodeText(\DOMXPath $xpath, \DOMNode $node): string
