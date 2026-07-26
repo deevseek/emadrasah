@@ -144,7 +144,7 @@ final class LessonScheduleTemplateService
         $days = ['senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'];
 
         foreach ($xpath->query('.//w:tr', $table) as $row) {
-            foreach ($this->rowCells($xpath, $row) as $cell) {
+            foreach ($this->scheduleGridCells($xpath, $row) as $cell) {
                 $label = $this->canonicalLabel($this->nodeText($xpath, $cell['node']));
                 if (in_array($label, $days, true)) {
                     $columns[$label] = $cell['start'];
@@ -183,7 +183,7 @@ final class LessonScheduleTemplateService
         }
 
         foreach ($xpath->query('.//w:tr', $table) as $row) {
-            $cells = $this->rowCells($xpath, $row);
+            $cells = $this->scheduleGridCells($xpath, $row);
             $rowText = str_replace(['.', '–', '—'], [':', '-', '-'], $this->nodeText($xpath, $row));
             if (! str_contains($rowText, $start) || ! str_contains($rowText, $end)) {
                 continue;
@@ -200,7 +200,7 @@ final class LessonScheduleTemplateService
     }
 
     /** @return list<array{start: int, end: int, node: \DOMNode}> */
-    private function rowCells(\DOMXPath $xpath, \DOMNode $row): array
+    private function scheduleGridCells(\DOMXPath $xpath, \DOMNode $row): array
     {
         $result = [];
         $column = 0;
