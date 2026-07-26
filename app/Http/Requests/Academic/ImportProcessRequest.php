@@ -8,6 +8,25 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class ImportProcessRequest extends FormRequest
 {
-    public function authorize():bool{return $this->user()?->can($this->routeIs('teaching-assignments.*')?'teaching-assignments.import':'schedules.import')??false;}
-    public function rules():array{return['preview_token'=>['required','uuid','string'],'confirm_replace'=>['nullable','accepted']];}
+    public function authorize(): bool
+    {
+        $permission = $this->routeIs('teaching-assignments.*')
+            ? 'teaching-assignments.import'
+            : 'schedules.import';
+
+        return $this->user()?->can($permission) ?? false;
+    }
+
+    public function rules(): array
+    {
+        $rules = [
+            'preview_token' => ['required', 'uuid', 'string'],
+        ];
+
+        if ($this->routeIs('teaching-assignments.*')) {
+            $rules['confirm_replace'] = ['sometimes', 'accepted'];
+        }
+
+        return $rules;
+    }
 }
