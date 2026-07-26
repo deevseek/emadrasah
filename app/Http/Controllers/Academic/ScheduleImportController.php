@@ -39,7 +39,7 @@ class ScheduleImportController extends Controller
         return redirect()->route('schedules.import')->withErrors(['preview' => 'Data preview tidak ditemukan. Silakan periksa kembali file jadwal.']);
     }
 
-    public function preview(ImportPreviewRequest $request, LessonScheduleImportService $service, ImportPreviewStore $store): View
+    public function preview(ImportPreviewRequest $request, LessonScheduleImportService $service, ImportPreviewStore $store): RedirectResponse
     {
         $file = $request->file('file');
         $path = $file->store('academic-imports', 'local');
@@ -50,7 +50,7 @@ class ScheduleImportController extends Controller
         }
         $stored = $store->create(self::TYPE, (int) $request->user()->id, (int) $request->academic_year_id, (int) $request->semester_id, $file->getClientOriginalName(), $preview + ['year' => (int) $request->academic_year_id, 'semester' => (int) $request->semester_id, 'filename' => $file->getClientOriginalName()]);
 
-        return $this->previewView($preview, $stored->token);
+        return redirect()->route('schedules.import.preview.show', $stored->token);
     }
 
     public function show(string $token, ImportPreviewStore $store): View
