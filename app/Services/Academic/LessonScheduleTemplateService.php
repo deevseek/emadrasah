@@ -74,15 +74,18 @@ final class LessonScheduleTemplateService
         }
         $xpath = new \DOMXPath($dom);
         $xpath->registerNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main');
-        $tables = iterator_to_array($xpath->query('//w:tbl'));
-        if (count($tables) < $classrooms->count()) {
+        $tables = collect(iterator_to_array($xpath->query('//w:tbl')))
+            ->filter(fn (\DOMNode $table): bool => count($this->dayColumns($xpath, $table)) >= 6)
+            ->values();
+        if ($tables->count() < $classrooms->count()) {
             $zip->close(); @unlink($output);
-            throw new RuntimeException('Tabel kelas pada template tidak dapat ditemukan.');
+            throw new RuntimeException('Jumlah tabel jadwal pada template lebih sedikit daripada jumlah kelas yang akan diekspor.');
         }
 
         $principal = SchoolProfile::query()->first()?->principal_name
             ?: Employee::query()->where('is_active', true)->whereRaw('LOWER(position) LIKE ?', ['%kepala madrasah%'])->value('name') ?: '';
         $filledCells = 0;
+        $unmappedClasses = [];
         foreach ($classrooms->values() as $index => $classroom) {
             $items = $schedules->where('classroom_id', $classroom->id);
             $homeroom = HomeroomAssignment::with('employee')->where('classroom_id', $classroom->id)->where('academic_year_id', $year->id)->where('is_active', true)->latest('id')->first()?->employee
@@ -93,12 +96,17 @@ final class LessonScheduleTemplateService
                 'nama_kepala_madrasah' => $principal, 'judul_jadwal' => "JADWAL PELAJARAN KELAS {$classroom->name} SEMESTER ".strtoupper($semester->name),
             ];
             $this->replacePlaceholders($xpath, $values, $this->canonical((string) $classroom->code));
-            $filledCells += $this->fillTable($xpath, $tables[$index], $items);
+            $classFilledCells = $this->fillTable($xpath, $tables[$index], $items);
+            $filledCells += $classFilledCells;
+            if ($items->isNotEmpty() && $classFilledCells < $items->count()) {
+                $unmappedClasses[] = $classroom->name;
+            }
         }
-        if ($filledCells === 0) {
+        if ($filledCells === 0 || $unmappedClasses !== []) {
             $zip->close();
             @unlink($output);
-            throw new RuntimeException('Jadwal tidak dapat dipetakan ke tabel Word. Pastikan kolom hari dan baris waktu pada template sesuai dengan jadwal.');
+            $classes = $unmappedClasses === [] ? '' : ' Kelas: '.implode(', ', $unmappedClasses).'.';
+            throw new RuntimeException('Jadwal tidak dapat dipetakan seluruhnya ke tabel Word. Pastikan kolom hari dan baris waktu pada template sesuai dengan jadwal.'.$classes);
         }
 
         $zip->addFromString('word/document.xml', $dom->saveXML());
@@ -142,6 +150,27 @@ final class LessonScheduleTemplateService
                     $columns[$label] = $cell['start'];
                 }
             }
+
+            foreach ($cells as $cell) {
+                if ($cell['start'] <= $column && $cell['end'] >= $column) {
+                    return $cell['node'];
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /** @return list<array{start: int, end: int, node: \DOMNode}> */
+    private function rowCells(\DOMXPath $xpath, \DOMNode $row): array
+    {
+        $result = [];
+        $column = 0;
+        foreach ($xpath->query('./w:tc', $row) as $cell) {
+            $spanNode = $xpath->query('./w:tcPr/w:gridSpan', $cell)->item(0);
+            $span = max(1, (int) ($spanNode?->attributes?->getNamedItemNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main', 'val')?->nodeValue ?? 1));
+            $result[] = ['start' => $column, 'end' => $column + $span - 1, 'node' => $cell];
+            $column += $span;
         }
 
         return $columns;
