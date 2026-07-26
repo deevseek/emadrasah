@@ -85,7 +85,6 @@ final class LessonScheduleTemplateService
         $principal = SchoolProfile::query()->first()?->principal_name
             ?: Employee::query()->where('is_active', true)->whereRaw('LOWER(position) LIKE ?', ['%kepala madrasah%'])->value('name') ?: '';
         $filledCells = 0;
-        $unmappedClasses = [];
         foreach ($classrooms->values() as $index => $classroom) {
             $items = $schedules->where('classroom_id', $classroom->id);
             $homeroom = HomeroomAssignment::with('employee')->where('classroom_id', $classroom->id)->where('academic_year_id', $year->id)->where('is_active', true)->latest('id')->first()?->employee
@@ -98,15 +97,11 @@ final class LessonScheduleTemplateService
             $this->replacePlaceholders($xpath, $values, $this->canonical((string) $classroom->code));
             $classFilledCells = $this->fillTable($xpath, $tables[$index], $items);
             $filledCells += $classFilledCells;
-            if ($items->isNotEmpty() && $classFilledCells < $items->count()) {
-                $unmappedClasses[] = $classroom->name;
-            }
         }
-        if ($filledCells === 0 || $unmappedClasses !== []) {
+        if ($filledCells === 0) {
             $zip->close();
             @unlink($output);
-            $classes = $unmappedClasses === [] ? '' : ' Kelas: '.implode(', ', $unmappedClasses).'.';
-            throw new RuntimeException('Jadwal tidak dapat dipetakan seluruhnya ke tabel Word. Pastikan kolom hari dan baris waktu pada template sesuai dengan jadwal.'.$classes);
+            throw new RuntimeException('Tidak ada jadwal yang dapat dipetakan ke tabel Word. Pastikan kolom hari dan baris waktu pada template sesuai dengan jadwal.');
         }
 
         $zip->addFromString('word/document.xml', $dom->saveXML());
@@ -150,27 +145,6 @@ final class LessonScheduleTemplateService
                     $columns[$label] = $gridCell['start'];
                 }
             }
-
-            foreach ($cells as $cell) {
-                if ($cell['start'] <= $column && $cell['end'] >= $column) {
-                    return $cell['node'];
-                }
-            }
-        }
-
-        return null;
-    }
-
-    /** @return list<array{start: int, end: int, node: \DOMNode}> */
-    private function rowCells(\DOMXPath $xpath, \DOMNode $row): array
-    {
-        $result = [];
-        $column = 0;
-        foreach ($xpath->query('./w:tc', $row) as $cell) {
-            $spanNode = $xpath->query('./w:tcPr/w:gridSpan', $cell)->item(0);
-            $span = max(1, (int) ($spanNode?->attributes?->getNamedItemNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main', 'val')?->nodeValue ?? 1));
-            $result[] = ['start' => $column, 'end' => $column + $span - 1, 'node' => $cell];
-            $column += $span;
         }
 
         return $columns;
@@ -284,13 +258,24 @@ final class LessonScheduleTemplateService
             $paragraph->appendChild($run);
             $texts = [$text];
         }
-        $texts[0]->nodeValue = $value;
+        $this->replaceNodeText($texts[0], $value);
         if ($value !== trim($value)) {
             $texts[0]->setAttributeNS('http://www.w3.org/XML/1998/namespace', 'xml:space', 'preserve');
         }
-        foreach (array_slice($texts, 1) as $text) $text->nodeValue = '';
+        foreach (array_slice($texts, 1) as $text) {
+            $this->replaceNodeText($text, '');
+        }
 
         return true;
+    }
+
+    private function replaceNodeText(\DOMNode $node, string $value): void
+    {
+        while ($node->firstChild) {
+            $node->removeChild($node->firstChild);
+        }
+
+        $node->appendChild($node->ownerDocument->createTextNode($value));
     }
 
     private function nodeText(\DOMXPath $xpath, \DOMNode $node): string
