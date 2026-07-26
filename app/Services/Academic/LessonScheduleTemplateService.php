@@ -150,27 +150,6 @@ final class LessonScheduleTemplateService
                     $columns[$label] = $gridCell['start'];
                 }
             }
-
-            foreach ($cells as $cell) {
-                if ($cell['start'] <= $column && $cell['end'] >= $column) {
-                    return $cell['node'];
-                }
-            }
-        }
-
-        return null;
-    }
-
-    /** @return list<array{start: int, end: int, node: \DOMNode}> */
-    private function rowCells(\DOMXPath $xpath, \DOMNode $row): array
-    {
-        $result = [];
-        $column = 0;
-        foreach ($xpath->query('./w:tc', $row) as $cell) {
-            $spanNode = $xpath->query('./w:tcPr/w:gridSpan', $cell)->item(0);
-            $span = max(1, (int) ($spanNode?->attributes?->getNamedItemNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main', 'val')?->nodeValue ?? 1));
-            $result[] = ['start' => $column, 'end' => $column + $span - 1, 'node' => $cell];
-            $column += $span;
         }
 
         return $columns;
