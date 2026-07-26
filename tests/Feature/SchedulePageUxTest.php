@@ -109,6 +109,17 @@ final class SchedulePageUxTest extends TestCase
             'ends_at' => '07:30',
             'is_active' => true,
         ]);
+        LessonSchedule::query()->create([
+            'academic_year_id' => $year->id,
+            'semester_id' => $semester->id,
+            'classroom_id' => $classroom->id,
+            'entry_type' => 'activity',
+            'activity_name' => 'Kegiatan di luar slot template',
+            'day_of_week' => 'selasa',
+            'starts_at' => '12:00',
+            'ends_at' => '12:30',
+            'is_active' => true,
+        ]);
 
         $path = 'private/academic/templates/lesson-schedules/official-schedule.docx';
         Storage::disk('local')->makeDirectory(dirname($path));

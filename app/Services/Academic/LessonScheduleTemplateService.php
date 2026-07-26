@@ -85,7 +85,6 @@ final class LessonScheduleTemplateService
         $principal = SchoolProfile::query()->first()?->principal_name
             ?: Employee::query()->where('is_active', true)->whereRaw('LOWER(position) LIKE ?', ['%kepala madrasah%'])->value('name') ?: '';
         $filledCells = 0;
-        $unmappedClasses = [];
         foreach ($classrooms->values() as $index => $classroom) {
             $items = $schedules->where('classroom_id', $classroom->id);
             $homeroom = HomeroomAssignment::with('employee')->where('classroom_id', $classroom->id)->where('academic_year_id', $year->id)->where('is_active', true)->latest('id')->first()?->employee
@@ -98,15 +97,11 @@ final class LessonScheduleTemplateService
             $this->replacePlaceholders($xpath, $values, $this->canonical((string) $classroom->code));
             $classFilledCells = $this->fillTable($xpath, $tables[$index], $items);
             $filledCells += $classFilledCells;
-            if ($items->isNotEmpty() && $classFilledCells < $items->count()) {
-                $unmappedClasses[] = $classroom->name;
-            }
         }
-        if ($filledCells === 0 || $unmappedClasses !== []) {
+        if ($filledCells === 0) {
             $zip->close();
             @unlink($output);
-            $classes = $unmappedClasses === [] ? '' : ' Kelas: '.implode(', ', $unmappedClasses).'.';
-            throw new RuntimeException('Jadwal tidak dapat dipetakan seluruhnya ke tabel Word. Pastikan kolom hari dan baris waktu pada template sesuai dengan jadwal.'.$classes);
+            throw new RuntimeException('Tidak ada jadwal yang dapat dipetakan ke tabel Word. Pastikan kolom hari dan baris waktu pada template sesuai dengan jadwal.');
         }
 
         $zip->addFromString('word/document.xml', $dom->saveXML());
