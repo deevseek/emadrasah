@@ -115,7 +115,7 @@ final class SchedulePageUxTest extends TestCase
         $zip = new ZipArchive;
         $zip->open(Storage::disk('local')->path($path), ZipArchive::CREATE);
         $zip->addFromString('[Content_Types].xml', '<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="xml" ContentType="application/xml"/></Types>');
-        $zip->addFromString('word/document.xml', '<?xml version="1.0" encoding="UTF-8"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>${nama_kelas}</w:t></w:r></w:p><w:tbl><w:tr><w:tc><w:p><w:r><w:t>${jadwal_senin_07:00_07:30}</w:t></w:r></w:p></w:tc></w:tr></w:tbl></w:body></w:document>');
+        $zip->addFromString('word/document.xml', '<?xml version="1.0" encoding="UTF-8"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>${nama_kelas}</w:t></w:r></w:p><w:tbl><w:tr><w:tc><w:p><w:r><w:t>JAM KE</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>WAKTU</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>SENIN</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>SELASA</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:tc><w:p><w:r><w:t>1</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>07.00-07.30</w:t></w:r></w:p></w:tc><w:tc><w:p/></w:tc><w:tc><w:p/></w:tc></w:tr></w:tbl></w:body></w:document>');
         $zip->close();
         SchoolSetting::query()->updateOrCreate(
             ['group' => 'lesson_schedule_templates', 'key' => 'official_docx_path'],
@@ -133,6 +133,12 @@ final class SchedulePageUxTest extends TestCase
 
         $response->assertOk()
             ->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+        $rendered = new ZipArchive;
+        $rendered->open($response->baseResponse->getFile()->getPathname());
+        $renderedXml = $rendered->getFromName('word/document.xml');
+        $rendered->close();
+        $this->assertIsString($renderedXml);
+        $this->assertStringContainsString('TASMI’', $renderedXml);
         $this->assertSame($originalHash, hash_file('sha256', Storage::disk('local')->path($path)));
     }
 }
