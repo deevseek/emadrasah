@@ -122,8 +122,7 @@ final class LessonScheduleTemplateService
                 $target = $this->gridCell($xpath, $table, $dayColumns[$this->canonicalLabel($day)] ?? null, $start, $end);
             }
             if ($target) {
-                $this->setCellText($xpath, $target, $this->scheduleText($item));
-                $filled++;
+                $filled += $this->setCellText($xpath, $target, $this->scheduleText($item)) ? 1 : 0;
             }
         }
 
@@ -219,18 +218,50 @@ final class LessonScheduleTemplateService
         }
     }
 
-    private function setCellText(\DOMXPath $xpath, \DOMNode $cell, string $value): void
+    private function setCellText(\DOMXPath $xpath, \DOMNode $cell, string $value): bool
     {
         $paragraph = $xpath->query('./w:p', $cell)->item(0);
-        if ($paragraph) $this->setParagraphText($xpath, $paragraph, $value);
+        if (! $paragraph) {
+            $paragraph = $cell->ownerDocument?->createElementNS(
+                'http://schemas.openxmlformats.org/wordprocessingml/2006/main',
+                'w:p'
+            );
+            if (! $paragraph) {
+                return false;
+            }
+            $cell->appendChild($paragraph);
+        }
+
+        return $this->setParagraphText($xpath, $paragraph, $value);
     }
 
-    private function setParagraphText(\DOMXPath $xpath, \DOMNode $paragraph, string $value): void
+    private function setParagraphText(\DOMXPath $xpath, \DOMNode $paragraph, string $value): bool
     {
         $texts = iterator_to_array($xpath->query('.//w:t', $paragraph));
-        if (! $texts) return;
+        if (! $texts) {
+            $document = $paragraph->ownerDocument;
+            if (! $document) {
+                return false;
+            }
+            $run = $document->createElementNS(
+                'http://schemas.openxmlformats.org/wordprocessingml/2006/main',
+                'w:r'
+            );
+            $text = $document->createElementNS(
+                'http://schemas.openxmlformats.org/wordprocessingml/2006/main',
+                'w:t'
+            );
+            $run->appendChild($text);
+            $paragraph->appendChild($run);
+            $texts = [$text];
+        }
         $texts[0]->nodeValue = $value;
+        if ($value !== trim($value)) {
+            $texts[0]->setAttributeNS('http://www.w3.org/XML/1998/namespace', 'xml:space', 'preserve');
+        }
         foreach (array_slice($texts, 1) as $text) $text->nodeValue = '';
+
+        return true;
     }
 
     private function nodeText(\DOMXPath $xpath, \DOMNode $node): string
