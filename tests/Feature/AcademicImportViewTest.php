@@ -102,6 +102,22 @@ final class AcademicImportViewTest extends TestCase
             ->assertSee('Periksa Data Jadwal Pelajaran');
     }
 
+    public function test_schedule_process_does_not_require_teaching_assignment_replace_confirmation(): void
+    {
+        Permission::findOrCreate('schedules.import');
+        $user = User::factory()->create();
+        $user->givePermissionTo('schedules.import');
+
+        $response = $this->actingAs($user)->post(route('schedules.import.process'), [
+            'preview_token' => 'da83787b-da3d-48e4-aacd-5b33e0b69239',
+        ]);
+
+        $response
+            ->assertRedirect(route('schedules.import'))
+            ->assertSessionDoesntHaveErrors('confirm_replace')
+            ->assertSessionHasErrors('preview');
+    }
+
     public function test_import_form_displays_preview_expiration_message(): void
     {
         $errors = (new ViewErrorBag)->put('default', new MessageBag(['preview' => 'Sesi preview telah berakhir.']));
