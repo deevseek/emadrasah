@@ -74,14 +74,18 @@ final class LessonScheduleTemplateService
         }
         $xpath = new \DOMXPath($dom);
         $xpath->registerNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main');
-        $tables = iterator_to_array($xpath->query('//w:tbl'));
-        if (count($tables) < $classrooms->count()) {
+        $tables = collect(iterator_to_array($xpath->query('//w:tbl')))
+            ->filter(fn (\DOMNode $table): bool => count($this->dayColumns($xpath, $table)) >= 6)
+            ->values();
+        if ($tables->count() < $classrooms->count()) {
             $zip->close(); @unlink($output);
-            throw new RuntimeException('Tabel kelas pada template tidak dapat ditemukan.');
+            throw new RuntimeException('Jumlah tabel jadwal pada template lebih sedikit daripada jumlah kelas yang akan diekspor.');
         }
 
         $principal = SchoolProfile::query()->first()?->principal_name
             ?: Employee::query()->where('is_active', true)->whereRaw('LOWER(position) LIKE ?', ['%kepala madrasah%'])->value('name') ?: '';
+        $filledCells = 0;
+        $unmappedClasses = [];
         foreach ($classrooms->values() as $index => $classroom) {
             $items = $schedules->where('classroom_id', $classroom->id);
             $homeroom = HomeroomAssignment::with('employee')->where('classroom_id', $classroom->id)->where('academic_year_id', $year->id)->where('is_active', true)->latest('id')->first()?->employee
@@ -92,7 +96,17 @@ final class LessonScheduleTemplateService
                 'nama_kepala_madrasah' => $principal, 'judul_jadwal' => "JADWAL PELAJARAN KELAS {$classroom->name} SEMESTER ".strtoupper($semester->name),
             ];
             $this->replacePlaceholders($xpath, $values, $this->canonical((string) $classroom->code));
-            $this->fillTable($xpath, $tables[$index], $items);
+            $classFilledCells = $this->fillTable($xpath, $tables[$index], $items);
+            $filledCells += $classFilledCells;
+            if ($items->isNotEmpty() && $classFilledCells < $items->count()) {
+                $unmappedClasses[] = $classroom->name;
+            }
+        }
+        if ($filledCells === 0 || $unmappedClasses !== []) {
+            $zip->close();
+            @unlink($output);
+            $classes = $unmappedClasses === [] ? '' : ' Kelas: '.implode(', ', $unmappedClasses).'.';
+            throw new RuntimeException('Jadwal tidak dapat dipetakan seluruhnya ke tabel Word. Pastikan kolom hari dan baris waktu pada template sesuai dengan jadwal.'.$classes);
         }
 
         $zip->addFromString('word/document.xml', $dom->saveXML());
@@ -101,9 +115,11 @@ final class LessonScheduleTemplateService
         return $output;
     }
 
-    private function fillTable(\DOMXPath $xpath, \DOMNode $table, Collection $items): void
+    private function fillTable(\DOMXPath $xpath, \DOMNode $table, Collection $items): int
     {
         $cells = iterator_to_array($xpath->query('.//w:tc', $table));
+        $dayColumns = $this->dayColumns($xpath, $table);
+        $filled = 0;
         foreach ($items as $item) {
             $day = mb_strtolower($item->day_of_week->label());
             $start = substr((string) $item->starts_at, 0, 5);
@@ -111,18 +127,75 @@ final class LessonScheduleTemplateService
             $tokens = ["\${jadwal_{$day}_{$start}_{$end}}", "{{jadwal_{$day}_{$start}_{$end}}}"];
             $target = collect($cells)->first(fn ($cell) => collect($tokens)->contains(fn ($token) => str_contains($this->nodeText($xpath, $cell), $token)));
             if (! $target) {
-                foreach ($xpath->query('.//w:tr', $table) as $row) {
-                    $text = mb_strtolower($this->nodeText($xpath, $row));
-                    if (str_contains($text, $day) && str_contains(str_replace('.', ':', $text), $start)) {
-                        $target = iterator_to_array($xpath->query('./w:tc', $row))[2] ?? iterator_to_array($xpath->query('./w:tc', $row))[1] ?? null;
-                        break;
-                    }
-                }
+                $target = $this->gridCell($xpath, $table, $dayColumns[$this->canonicalLabel($day)] ?? null, $start, $end);
             }
             if ($target) {
-                $this->setCellText($xpath, $target, $this->scheduleText($item));
+                $filled += $this->setCellText($xpath, $target, $this->scheduleText($item)) ? 1 : 0;
             }
         }
+
+        return $filled;
+    }
+
+    /** @return array<string, int> */
+    private function dayColumns(\DOMXPath $xpath, \DOMNode $table): array
+    {
+        $columns = [];
+        $days = ['senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'];
+
+        foreach ($xpath->query('.//w:tr', $table) as $row) {
+            foreach ($this->scheduleGridCells($xpath, $row) as $cell) {
+                $label = $this->canonicalLabel($this->nodeText($xpath, $cell['node']));
+                if (in_array($label, $days, true)) {
+                    $columns[$label] = $cell['start'];
+                }
+            }
+        }
+
+        return $columns;
+    }
+
+    private function gridCell(\DOMXPath $xpath, \DOMNode $table, ?int $column, string $start, string $end): ?\DOMNode
+    {
+        if ($column === null) {
+            return null;
+        }
+
+        foreach ($xpath->query('.//w:tr', $table) as $row) {
+            $cells = $this->scheduleGridCells($xpath, $row);
+            $rowText = str_replace(['.', '–', '—'], [':', '-', '-'], $this->nodeText($xpath, $row));
+            if (! str_contains($rowText, $start) || ! str_contains($rowText, $end)) {
+                continue;
+            }
+
+            foreach ($cells as $cell) {
+                if ($cell['start'] <= $column && $cell['end'] >= $column) {
+                    return $cell['node'];
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /** @return list<array{start: int, end: int, node: \DOMNode}> */
+    private function scheduleGridCells(\DOMXPath $xpath, \DOMNode $row): array
+    {
+        $result = [];
+        $column = 0;
+        foreach ($xpath->query('./w:tc', $row) as $cell) {
+            $spanNode = $xpath->query('./w:tcPr/w:gridSpan', $cell)->item(0);
+            $span = max(1, (int) ($spanNode?->attributes?->getNamedItemNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main', 'val')?->nodeValue ?? 1));
+            $result[] = ['start' => $column, 'end' => $column + $span - 1, 'node' => $cell];
+            $column += $span;
+        }
+
+        return $result;
+    }
+
+    private function canonicalLabel(string $value): string
+    {
+        return preg_replace('/[^a-z]/', '', mb_strtolower($value)) ?? '';
     }
 
     private function scheduleText($item): string
@@ -153,18 +226,50 @@ final class LessonScheduleTemplateService
         }
     }
 
-    private function setCellText(\DOMXPath $xpath, \DOMNode $cell, string $value): void
+    private function setCellText(\DOMXPath $xpath, \DOMNode $cell, string $value): bool
     {
         $paragraph = $xpath->query('./w:p', $cell)->item(0);
-        if ($paragraph) $this->setParagraphText($xpath, $paragraph, $value);
+        if (! $paragraph) {
+            $paragraph = $cell->ownerDocument?->createElementNS(
+                'http://schemas.openxmlformats.org/wordprocessingml/2006/main',
+                'w:p'
+            );
+            if (! $paragraph) {
+                return false;
+            }
+            $cell->appendChild($paragraph);
+        }
+
+        return $this->setParagraphText($xpath, $paragraph, $value);
     }
 
-    private function setParagraphText(\DOMXPath $xpath, \DOMNode $paragraph, string $value): void
+    private function setParagraphText(\DOMXPath $xpath, \DOMNode $paragraph, string $value): bool
     {
         $texts = iterator_to_array($xpath->query('.//w:t', $paragraph));
-        if (! $texts) return;
+        if (! $texts) {
+            $document = $paragraph->ownerDocument;
+            if (! $document) {
+                return false;
+            }
+            $run = $document->createElementNS(
+                'http://schemas.openxmlformats.org/wordprocessingml/2006/main',
+                'w:r'
+            );
+            $text = $document->createElementNS(
+                'http://schemas.openxmlformats.org/wordprocessingml/2006/main',
+                'w:t'
+            );
+            $run->appendChild($text);
+            $paragraph->appendChild($run);
+            $texts = [$text];
+        }
         $texts[0]->nodeValue = $value;
+        if ($value !== trim($value)) {
+            $texts[0]->setAttributeNS('http://www.w3.org/XML/1998/namespace', 'xml:space', 'preserve');
+        }
         foreach (array_slice($texts, 1) as $text) $text->nodeValue = '';
+
+        return true;
     }
 
     private function nodeText(\DOMXPath $xpath, \DOMNode $node): string

@@ -6,8 +6,12 @@ namespace Tests\Feature;
 
 use App\Models\AcademicYear;
 use App\Models\ImportBatch;
+use App\Models\ImportPreview;
+use App\Models\Semester;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\MessageBag;
 use Illuminate\Support\ViewErrorBag;
@@ -59,6 +63,59 @@ final class AcademicImportViewTest extends TestCase
             ->get('/academic/schedules/import/preview')
             ->assertRedirect(route('schedules.import'))
             ->assertSessionHasErrors(['preview' => 'Sesi preview telah berakhir. Silakan unggah kembali berkas.']);
+    }
+
+    public function test_schedule_preview_uses_a_persistent_get_url_after_upload(): void
+    {
+        Storage::fake('local');
+        Permission::findOrCreate('schedules.import');
+        $user = User::factory()->create();
+        $user->givePermissionTo('schedules.import');
+        $year = AcademicYear::query()->create([
+            'name' => '2026/2027',
+            'starts_on' => '2026-07-01',
+            'ends_on' => '2027-06-30',
+        ]);
+        $semester = Semester::query()->create([
+            'academic_year_id' => $year->id,
+            'name' => 'Ganjil',
+            'term' => 1,
+            'starts_on' => '2026-07-01',
+            'ends_on' => '2026-12-31',
+        ]);
+
+        $template = $this->actingAs($user)
+            ->get(route('schedules.import.template'))
+            ->streamedContent();
+
+        $response = $this->actingAs($user)->post(route('schedules.import.preview'), [
+            'academic_year_id' => $year->id,
+            'semester_id' => $semester->id,
+            'file' => UploadedFile::fake()->createWithContent('jadwal.xlsx', $template),
+        ]);
+
+        $preview = ImportPreview::query()->sole();
+        $response->assertRedirect(route('schedules.import.preview.show', $preview->token));
+
+        $this->get(route('schedules.import.preview.show', $preview->token))
+            ->assertOk()
+            ->assertSee('Periksa Data Jadwal Pelajaran');
+    }
+
+    public function test_schedule_process_does_not_require_teaching_assignment_replace_confirmation(): void
+    {
+        Permission::findOrCreate('schedules.import');
+        $user = User::factory()->create();
+        $user->givePermissionTo('schedules.import');
+
+        $response = $this->actingAs($user)->post(route('schedules.import.process'), [
+            'preview_token' => 'da83787b-da3d-48e4-aacd-5b33e0b69239',
+        ]);
+
+        $response
+            ->assertRedirect(route('schedules.import'))
+            ->assertSessionDoesntHaveErrors('confirm_replace')
+            ->assertSessionHasErrors('preview');
     }
 
     public function test_import_form_displays_preview_expiration_message(): void
