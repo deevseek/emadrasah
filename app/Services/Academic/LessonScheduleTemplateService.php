@@ -75,7 +75,7 @@ final class LessonScheduleTemplateService
         $xpath = new \DOMXPath($dom);
         $xpath->registerNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main');
         $tables = collect(iterator_to_array($xpath->query('//w:tbl')))
-            ->filter(fn (\DOMNode $table): bool => count($this->dayColumns($xpath, $table)) >= 6)
+            ->filter(fn (\DOMNode $table): bool => count($this->scheduleDayColumns($xpath, $table)) >= 6)
             ->values();
         if ($tables->count() < $classrooms->count()) {
             $zip->close(); @unlink($output);
@@ -118,7 +118,7 @@ final class LessonScheduleTemplateService
     private function fillTable(\DOMXPath $xpath, \DOMNode $table, Collection $items): int
     {
         $cells = iterator_to_array($xpath->query('.//w:tc', $table));
-        $dayColumns = $this->dayColumns($xpath, $table);
+        $dayColumns = $this->scheduleDayColumns($xpath, $table);
         $filled = 0;
         foreach ($items as $item) {
             $day = mb_strtolower($item->day_of_week->label());
@@ -138,16 +138,16 @@ final class LessonScheduleTemplateService
     }
 
     /** @return array<string, int> */
-    private function dayColumns(\DOMXPath $xpath, \DOMNode $table): array
+    private function scheduleDayColumns(\DOMXPath $xpath, \DOMNode $table): array
     {
         $columns = [];
         $days = ['senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'];
 
         foreach ($xpath->query('.//w:tr', $table) as $row) {
-            foreach ($this->scheduleGridCells($xpath, $row) as $cell) {
-                $label = $this->canonicalLabel($this->nodeText($xpath, $cell['node']));
+            foreach ($this->scheduleGridCells($xpath, $row) as $gridCell) {
+                $label = $this->canonicalLabel($this->nodeText($xpath, $gridCell['node']));
                 if (in_array($label, $days, true)) {
-                    $columns[$label] = $cell['start'];
+                    $columns[$label] = $gridCell['start'];
                 }
             }
 
