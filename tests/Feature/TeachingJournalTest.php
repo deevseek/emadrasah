@@ -13,6 +13,7 @@ use App\Models\AcademicYear;
 use App\Models\Classroom;
 use App\Models\Employee;
 use App\Models\GradeLevel;
+use App\Models\LessonSchedule;
 use App\Models\Semester;
 use App\Models\Subject;
 use App\Models\TeachingAssignment;
@@ -59,6 +60,31 @@ class TeachingJournalTest extends TestCase
         $this->actingAs($admin)->patch(route('teaching-journals.reject', $journal))->assertSessionHasErrors('rejection_reason');
         $this->actingAs($admin)->patch(route('teaching-journals.verify', $journal))->assertSessionHas('status');
         $this->actingAs($admin)->get(route('teaching-journals.print', $journal))->assertOk();
+    }
+
+    public function test_index_ignores_non_lesson_schedule_without_subject(): void
+    {
+        $admin = $this->admin();
+        $assignment = $this->assignmentForTeacher();
+
+        LessonSchedule::query()->create([
+            'entry_type' => 'activity',
+            'activity_name' => 'Upacara madrasah',
+            'academic_year_id' => $assignment->academic_year_id,
+            'semester_id' => $assignment->semester_id,
+            'classroom_id' => $assignment->classroom_id,
+            'subject_id' => null,
+            'employee_id' => null,
+            'day_of_week' => $this->dayValue(today()->dayOfWeekIso),
+            'starts_at' => '07:00',
+            'ends_at' => '08:00',
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('teaching-journals.index'))
+            ->assertOk()
+            ->assertDontSee('Upacara madrasah');
     }
 
     private function admin(): User
@@ -154,5 +180,10 @@ class TeachingJournalTest extends TestCase
 
         $this->seed();
         $this->seeded = true;
+    }
+
+    private function dayValue(int $iso): string
+    {
+        return [1 => 'senin', 2 => 'selasa', 3 => 'rabu', 4 => 'kamis', 5 => 'jumat', 6 => 'sabtu', 7 => 'ahad'][$iso];
     }
 }

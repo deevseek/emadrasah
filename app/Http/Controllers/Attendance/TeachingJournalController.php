@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Attendance;
 
+use App\Enums\ScheduleEntryType;
 use App\Enums\TeachingJournalStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Attendance\TeachingJournalRejectRequest;
@@ -27,7 +28,14 @@ final class TeachingJournalController extends Controller
         $user = $request->user(); $employeeId = $user->employee?->id;
         $journals = TeachingJournal::with('employee','classroom','subject','lessonSchedule')->when(! $user->can('teaching-journals.view'), fn ($q) => $q->where('employee_id',$employeeId))
             ->when($request->filled('status'), fn ($q) => $q->where('status',$request->status))->when($request->filled('date'), fn ($q) => $q->whereDate('journal_date',$request->date))->latest('journal_date')->paginate(15)->withQueryString();
-        $todaySchedules = LessonSchedule::with('classroom','subject','teachingAssignment.employee')->where('is_active',true)->when(! $user->can('teaching-journals.view'), fn ($q) => $q->where('employee_id',$employeeId))->where('day_of_week', $this->dayValue(today()->dayOfWeekIso))->orderBy('starts_at')->get();
+        $todaySchedules = LessonSchedule::with('classroom','subject','teachingAssignment.employee')
+            ->where('is_active', true)
+            ->where('entry_type', ScheduleEntryType::Lesson)
+            ->whereNotNull(['classroom_id', 'subject_id'])
+            ->when(! $user->can('teaching-journals.view'), fn ($q) => $q->where('employee_id', $employeeId))
+            ->where('day_of_week', $this->dayValue(today()->dayOfWeekIso))
+            ->orderBy('starts_at')
+            ->get();
         $todayJournals = TeachingJournal::whereDate('journal_date', today())->whereIn('lesson_schedule_id', $todaySchedules->pluck('id'))->get()->keyBy('lesson_schedule_id');
         return view('attendance.journals.index', compact('journals','todaySchedules','todayJournals') + ['templatePaths' => ['teacher' => $templates->templatePath('teacher'), 'class' => $templates->templatePath('class')]]);
     }
