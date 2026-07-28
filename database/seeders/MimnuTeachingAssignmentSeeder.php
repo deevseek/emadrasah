@@ -15,16 +15,27 @@ use RuntimeException;
 
 final class MimnuTeachingAssignmentSeeder extends Seeder
 {
+    private const EMPLOYEE_NUMBERS = [
+        '2' => '620.0725.040', '3' => '620.0421.006', '4' => '620.0726.047',
+        '5' => '620.0725.043', '6' => '620.0723.022', '7' => '620.0124.029',
+        '8' => '620.0725.042', '9' => '620.0124.028', '10' => '620.0726.051',
+        '11' => '620.0725.041', '12' => '620.0321.005', '13' => '620.0724.037',
+        '14' => '620.0824.038', '15' => '620.0726.049', '16' => '620.0523.019',
+        '17' => '620.0726.050', '18' => '620.0725.045', '19' => '620.0323.017',
+        '20' => '620.0124.030', '21' => '620.0726.048', '22' => '620.0923.027',
+    ];
+
     public function run(): void
     {
         DB::transaction(function (): void {
             $year = AcademicYear::query()->where('name', '2026/2027')->with('semesters')->firstOrFail();
-            $employees = Employee::query()->whereIn('employee_number', range(1, 24))->get()->keyBy('employee_number');
+            $employees = Employee::query()->whereIn('employee_number', self::EMPLOYEE_NUMBERS)->get()->keyBy('employee_number');
             $classrooms = Classroom::query()->where('academic_year_id', $year->id)->get()->keyBy('code');
             $subjects = Subject::query()->get()->keyBy('code');
 
             foreach ($this->assignments() as [$employeeCode, $classroomCodes, $subjectCode, $hours]) {
-                $employee = $employees[(string) $employeeCode] ?? throw new RuntimeException("Guru kode {$employeeCode} tidak ditemukan.");
+                $employeeNumber = self::EMPLOYEE_NUMBERS[(string) $employeeCode];
+                $employee = $employees[$employeeNumber] ?? throw new RuntimeException("Guru dengan NIY {$employeeNumber} tidak ditemukan.");
                 $subject = $subjects[$subjectCode] ?? throw new RuntimeException("Mata pelajaran {$subjectCode} tidak ditemukan.");
 
                 foreach ($year->semesters as $semester) {
