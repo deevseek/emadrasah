@@ -37,14 +37,16 @@ final class MimnuSubjectSeederTest extends TestCase
 
         $this->assertLevels('QH', [1, 2, 3, 4, 5, 6]);
         $this->assertLevels('SKI', [3, 4, 5, 6]);
-        $this->assertLevels('BAR', [1, 2, 4, 5, 6]);
+        $this->assertLevels('BAR', [1, 2, 3, 4, 5, 6]);
         $this->assertLevels('IPAS', [3, 4, 5, 6]);
         $this->assertLevels('TKA', [6]);
         $this->assertLevels('TAQ', [1]);
-        $this->assertLevels('STEAM', [1, 2, 3]);
+        $this->assertLevels('STEAM', [1, 2, 3, 4, 5]);
 
         $this->assertSame(4, Subject::where('code', 'MTK')->value('default_weekly_hours'));
-        $this->assertSame(2, Subject::where('code', 'TAQ')->value('default_weekly_hours'));
+        $this->assertSame(1, Subject::where('code', 'KE-NU-AN')->value('default_weekly_hours'));
+        $this->assertSame(12, Subject::where('code', 'TAQ')->value('default_weekly_hours'));
+        $this->assertSame(1, Subject::where('code', 'STEAM')->value('default_weekly_hours'));
     }
 
     public function test_legacy_aliases_are_migrated_without_changing_the_subject_id(): void

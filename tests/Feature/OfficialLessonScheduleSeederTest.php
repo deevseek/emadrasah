@@ -50,5 +50,31 @@ final class OfficialLessonScheduleSeederTest extends TestCase
             'subject_id' => null,
             'counts_as_teaching_hour' => false,
         ]);
+
+        $this->assertScheduledSubject('I-AS-SALAM', 'senin', '12:45', 'TAQ');
+        $this->assertScheduledSubject('I-AS-SALAM', 'jumat', '11:10', 'TAQ');
+        $this->assertScheduledSubject('I-AS-SALAM', 'jumat', '12:25', 'TAQ');
+        $this->assertScheduledSubject('I-AS-SALAM', 'sabtu', '11:45', 'TAQ');
+        $this->assertScheduledSubject('I-AR-RAHIM', 'senin', '07:15', 'PKN');
+        $this->assertScheduledSubject('I-AR-RAHIM', 'senin', '08:25', 'BTAQ');
+        $this->assertScheduledSubject('III-AL-KHALIQ', 'selasa', '11:10', 'BAR');
+        $this->assertScheduledSubject('IV-AL-BASITH', 'sabtu', '10:35', 'STEAM');
+        $this->assertScheduledSubject('V-AL-HAKIM', 'senin', '09:00', 'BTAQ');
+        $this->assertScheduledSubject('VI-AL-MAJID', 'sabtu', '08:25', 'TKA');
+
+        $count = LessonSchedule::count();
+        $this->seed(OfficialLessonScheduleSeeder::class);
+        $this->assertSame($count, LessonSchedule::count());
+    }
+
+    private function assertScheduledSubject(string $classroomCode, string $day, string $startsAt, string $subjectCode): void
+    {
+        $this->assertDatabaseHas('lesson_schedules', [
+            'classroom_id' => Classroom::where('code', $classroomCode)->value('id'),
+            'day_of_week' => $day,
+            'starts_at' => $startsAt,
+            'subject_id' => Subject::where('code', $subjectCode)->value('id'),
+            'entry_type' => 'lesson',
+        ]);
     }
 }
