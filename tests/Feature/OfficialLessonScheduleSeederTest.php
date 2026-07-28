@@ -46,8 +46,65 @@ final class OfficialLessonScheduleSeederTest extends TestCase
             'employee_id' => null,
             'teaching_assignment_id' => null,
             'entry_type' => 'activity',
-            'activity_name' => 'Pembiasaan Pagi/Sholat Dhuha',
+            'activity_name' => 'Upacara + Pembiasaan Pagi + Sholat Dhuha',
             'subject_id' => null,
+            'counts_as_teaching_hour' => false,
+        ]);
+
+        $this->assertScheduledSubject('I-AS-SALAM', 'senin', '12:45', 'TAQ');
+        $this->assertScheduledSubject('I-AS-SALAM', 'jumat', '11:10', 'TAQ');
+        $this->assertScheduledSubject('I-AS-SALAM', 'jumat', '12:25', 'TAQ');
+        $this->assertScheduledSubject('I-AS-SALAM', 'sabtu', '11:45', 'TAQ');
+        $this->assertScheduledSubject('I-AR-RAHIM', 'senin', '07:15', 'PKN');
+        $this->assertScheduledSubject('I-AR-RAHIM', 'senin', '08:25', 'BTAQ');
+        $this->assertScheduledSubject('III-AL-KHALIQ', 'selasa', '11:10', 'BAR');
+        $this->assertScheduledSubject('IV-AL-BASITH', 'sabtu', '10:35', 'STEAM');
+        $this->assertScheduledSubject('V-AL-HAKIM', 'senin', '09:00', 'BTAQ');
+        $this->assertScheduledSubject('VI-AL-MAJID', 'sabtu', '08:25', 'TKA');
+        $this->assertScheduleEntry('I-AS-SALAM', 'senin', '09:35', '10:00', 'break', 'Istirahat');
+        $this->assertScheduleEntry('I-AS-SALAM', 'jumat', '11:45', '12:25', 'break', 'Ishoma/Pulang');
+        $this->assertScheduleEntry('I-AS-SALAM', 'jumat', '13:00', '13:20', 'activity', 'Mission Accomplished — “Tutup Buku, Buka Cerita”');
+        $this->assertScheduleEntry('I-AS-SALAM', 'senin', '15:05', '15:15', 'break', 'Istirahat/Sholat/Pulang');
+
+        LessonSchedule::create([
+            'academic_year_id' => $year->id,
+            'semester_id' => $year->semesters()->firstOrFail()->id,
+            'classroom_id' => Classroom::where('code', 'I-AS-SALAM')->value('id'),
+            'day_of_week' => 'senin',
+            'starts_at' => '16:00',
+            'ends_at' => '16:30',
+            'entry_type' => 'activity',
+            'activity_name' => 'Kegiatan manual operator',
+            'counts_as_teaching_hour' => false,
+            'is_active' => true,
+        ]);
+
+        $count = LessonSchedule::count();
+        $this->seed(OfficialLessonScheduleSeeder::class);
+        $this->assertSame($count, LessonSchedule::count());
+        $this->assertDatabaseHas('lesson_schedules', ['activity_name' => 'Kegiatan manual operator']);
+    }
+
+    private function assertScheduledSubject(string $classroomCode, string $day, string $startsAt, string $subjectCode): void
+    {
+        $this->assertDatabaseHas('lesson_schedules', [
+            'classroom_id' => Classroom::where('code', $classroomCode)->value('id'),
+            'day_of_week' => $day,
+            'starts_at' => $startsAt,
+            'subject_id' => Subject::where('code', $subjectCode)->value('id'),
+            'entry_type' => 'lesson',
+        ]);
+    }
+
+    private function assertScheduleEntry(string $classroomCode, string $day, string $startsAt, string $endsAt, string $entryType, string $activityName): void
+    {
+        $this->assertDatabaseHas('lesson_schedules', [
+            'classroom_id' => Classroom::where('code', $classroomCode)->value('id'),
+            'day_of_week' => $day,
+            'starts_at' => $startsAt,
+            'ends_at' => $endsAt,
+            'entry_type' => $entryType,
+            'activity_name' => $activityName,
             'counts_as_teaching_hour' => false,
         ]);
     }
