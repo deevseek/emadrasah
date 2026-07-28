@@ -112,7 +112,7 @@ final class MimnuSubjectSeeder extends Seeder
             ['code' => 'AA', 'name' => 'Akidah Akhlak', 'short_name' => 'AA', 'category' => SubjectCategory::Religion, 'default_weekly_hours' => 2, 'levels' => $all],
             ['code' => 'FIQ', 'name' => 'Fikih', 'short_name' => 'Fikih', 'category' => SubjectCategory::Religion, 'default_weekly_hours' => 2, 'levels' => $all],
             ['code' => 'SKI', 'name' => 'Sejarah Kebudayaan Islam', 'short_name' => 'SKI', 'category' => SubjectCategory::Religion, 'default_weekly_hours' => 2, 'levels' => [3, 4, 5, 6]],
-            ['code' => 'BAR', 'name' => 'Bahasa Arab', 'short_name' => 'BAR', 'category' => SubjectCategory::Religion, 'default_weekly_hours' => 2, 'levels' => [1, 2, 4, 5, 6]],
+            ['code' => 'BAR', 'name' => 'Bahasa Arab', 'short_name' => 'BAR', 'category' => SubjectCategory::Religion, 'default_weekly_hours' => 2, 'levels' => $all],
             ['code' => 'PKN', 'name' => 'Pendidikan Pancasila', 'short_name' => 'Pend. Pancasila', 'category' => SubjectCategory::General, 'default_weekly_hours' => 4, 'levels' => $all],
             ['code' => 'BINDO', 'name' => 'Bahasa Indonesia', 'short_name' => 'B. Indonesia', 'category' => SubjectCategory::General, 'default_weekly_hours' => 6, 'levels' => $all],
             ['code' => 'MTK', 'name' => 'Matematika', 'short_name' => 'MTK', 'category' => SubjectCategory::General, 'default_weekly_hours' => 4, 'levels' => $all],
@@ -123,13 +123,13 @@ final class MimnuSubjectSeeder extends Seeder
             ['code' => 'BAJA', 'name' => 'Bahasa Jawa', 'short_name' => 'B. Jawa', 'category' => SubjectCategory::LocalContent, 'default_weekly_hours' => 1, 'levels' => $all],
             ['code' => 'BTAQ', 'name' => "Baca Tulis Al Qur'an", 'short_name' => 'BTAQ', 'category' => SubjectCategory::Btaq, 'default_weekly_hours' => 10, 'levels' => $all],
             ['code' => 'TIK', 'name' => 'Literasi Digital (TIK, Koding dan Kecerdasan Artifisial)', 'short_name' => 'Literasi Digital', 'category' => SubjectCategory::General, 'default_weekly_hours' => 2, 'levels' => $all],
-            ['code' => 'KE-NU-AN', 'name' => 'Ke Nu an', 'short_name' => 'Ke-NU-an', 'category' => SubjectCategory::LocalContent, 'default_weekly_hours' => 2, 'levels' => $all],
+            ['code' => 'KE-NU-AN', 'name' => 'Ke Nu an', 'short_name' => 'Ke-NU-an', 'category' => SubjectCategory::LocalContent, 'default_weekly_hours' => 1, 'levels' => $all],
             ['code' => 'TKA', 'name' => 'TKA', 'short_name' => 'TKA', 'category' => SubjectCategory::Other, 'default_weekly_hours' => 2, 'levels' => [6]],
-            ['code' => 'TAQ', 'name' => "Takhassus Al-Qur'an", 'short_name' => 'TAQ', 'category' => SubjectCategory::Btaq, 'default_weekly_hours' => 2, 'levels' => [1]],
+            ['code' => 'TAQ', 'name' => "Takhassus Al-Qur'an", 'short_name' => 'TAQ', 'category' => SubjectCategory::Btaq, 'default_weekly_hours' => 12, 'levels' => [1]],
             ['code' => 'NUM', 'name' => 'Numerasi', 'short_name' => 'Numerasi', 'category' => SubjectCategory::SelfDevelopment, 'default_weekly_hours' => 2, 'levels' => [1]],
             ['code' => 'LIT', 'name' => 'Literasi', 'short_name' => 'Literasi', 'category' => SubjectCategory::SelfDevelopment, 'default_weekly_hours' => 2, 'levels' => [1]],
             ['code' => 'LA', 'name' => 'Lughoh Arobiyah', 'short_name' => 'Lughoh Arobiyah', 'category' => SubjectCategory::Religion, 'default_weekly_hours' => 2, 'levels' => [1]],
-            ['code' => 'STEAM', 'name' => 'Science, Technology, Engineering, Arts, and Mathematics (STEAM)', 'short_name' => 'STEAM', 'category' => SubjectCategory::SelfDevelopment, 'default_weekly_hours' => 2, 'levels' => [1, 2, 3]],
+            ['code' => 'STEAM', 'name' => 'Science, Technology, Engineering, Arts, and Mathematics (STEAM)', 'short_name' => 'STEAM', 'category' => SubjectCategory::SelfDevelopment, 'default_weekly_hours' => 1, 'levels' => [1, 2, 3, 4, 5]],
         ];
     }
 }
