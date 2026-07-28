@@ -18,6 +18,8 @@ final class OfficialLessonScheduleSeeder extends Seeder
 {
     private const DAYS = ['senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'];
 
+    private const SOURCE_PREFIX = 'jadwal-resmi-mi-muslimat-2026-2027-ganjil';
+
     public function run(): void
     {
         $this->ensureUnassignedSchedulesSupported();
@@ -31,10 +33,15 @@ final class OfficialLessonScheduleSeeder extends Seeder
         ]);
 
         DB::transaction(function () use ($year, $semester, $subjects, $classrooms): void {
+            // Bersihkan data versi lama yang dibuat seeder ini sebelum source_reference digunakan.
             LessonSchedule::query()
                 ->where('semester_id', $semester->id)
                 ->whereIn('classroom_id', $classrooms->pluck('id'))
+                ->whereNull('source_reference')
+                ->where('notes', 'like', 'Diimpor dari jadwal resmi MI Muslimat NU Demak%')
                 ->delete();
+
+            $sourceReferences = [];
 
             foreach ($this->classSchedules() as $classData) {
                 $classroom = $classrooms[$classData['code']];
@@ -42,45 +49,62 @@ final class OfficialLessonScheduleSeeder extends Seeder
                 foreach ($classData['slots'] as [$start, $end, $dailySubjects]) {
                     foreach (self::DAYS as $index => $day) {
                         $code = $dailySubjects[$index] ?? null;
-                        if (! $code || str_starts_with($code, 'BREAK')) {
+                        if (! $code) {
                             continue;
                         }
 
-                        $activityName = $this->activityName($code);
-                        $subject = $activityName === null ? $subjects[$code] : null;
-                        LessonSchedule::create([
+                        [$entryType, $activityName] = $this->entryDetails($code);
+                        $subject = $entryType === ScheduleEntryType::Lesson ? $subjects[$code] : null;
+                        $sourceReference = implode(':', [self::SOURCE_PREFIX, $classData['code'], $day, $start, $end]);
+                        $sourceReferences[] = $sourceReference;
+
+                        LessonSchedule::updateOrCreate(['source_reference' => $sourceReference], [
                             'semester_id' => $semester->id,
                             'classroom_id' => $classroom->id,
                             'day_of_week' => $day,
                             'starts_at' => $start,
                             'ends_at' => $end,
                             'teaching_assignment_id' => null,
-                            'entry_type' => $activityName === null ? ScheduleEntryType::Lesson : ScheduleEntryType::Activity,
+                            'entry_type' => $entryType,
                             'activity_name' => $activityName,
                             'academic_year_id' => $year->id,
                             'subject_id' => $subject?->id,
                             'employee_id' => null,
                             'lesson_hours' => 1,
-                            'counts_as_teaching_hour' => $activityName === null,
+                            'counts_as_teaching_hour' => $entryType === ScheduleEntryType::Lesson,
                             'room' => $classroom->room,
                             'is_active' => true,
                             'notes' => 'Diimpor dari jadwal resmi MI Muslimat NU Demak TA 2026/2027 semester ganjil berdasarkan tangkapan layar. Guru pengampu belum ditetapkan sesuai instruksi.',
+                            'source_reference' => $sourceReference,
                         ]);
                     }
                 }
             }
+
+            LessonSchedule::query()
+                ->where('source_reference', 'like', self::SOURCE_PREFIX.':%')
+                ->whereNotIn('source_reference', $sourceReferences)
+                ->delete();
         });
     }
 
-
-    private function activityName(string $code): ?string
+    /** @return array{ScheduleEntryType, ?string} */
+    private function entryDetails(string $code): array
     {
-        return match ($code) {
-            'PAGI' => 'Pembiasaan Pagi/Sholat Dhuha',
+        if (str_starts_with($code, 'BREAK:')) {
+            return [ScheduleEntryType::Break, substr($code, 6)];
+        }
+
+        $activityName = match ($code) {
+            'UPACARA_PAGI' => 'Upacara + Pembiasaan Pagi + Sholat Dhuha',
+            'PAGI' => 'Pembiasaan Pagi + Sholat Dhuha',
             'TASMI' => 'Tasmi’',
             'IST' => 'Istigotsah',
+            'MISSION' => 'Mission Accomplished — “Tutup Buku, Buka Cerita”',
             default => null,
         };
+
+        return [$activityName === null ? ScheduleEntryType::Lesson : ScheduleEntryType::Activity, $activityName];
     }
 
     /**
@@ -214,7 +238,12 @@ final class OfficialLessonScheduleSeeder extends Seeder
 
     private function classSchedules(): array
     {
-        $morning = ['06:50', '07:15', ['PAGI', 'PAGI', 'PAGI', 'PAGI', 'PAGI', 'PAGI']];
+        $morning = ['06:50', '07:15', ['UPACARA_PAGI', 'PAGI', 'PAGI', 'PAGI', 'PAGI', 'PAGI']];
+        $morningBreak = ['09:35', '10:00', array_fill(0, 6, 'BREAK:Istirahat')];
+        $regularClosingBreaks = [
+            ['12:10', '12:30', ['BREAK:Istirahat/Sholat/Pulang', 'BREAK:Istirahat/Sholat/Pulang', 'BREAK:Istirahat/Sholat/Pulang', 'BREAK:Istirahat/Sholat/Pulang', null, null]],
+            ['11:10', '11:45', [null, null, null, null, 'BREAK:Istirahat/Sholat/Pulang', 'BREAK:Istirahat/Sholat/Pulang']],
+        ];
 
         $gradeOne = [
             $morning,
@@ -331,23 +360,28 @@ final class OfficialLessonScheduleSeeder extends Seeder
         return [
             ['code' => 'I-AS-SALAM', 'name' => 'I As-Salam (Fullday)', 'slots' => [
                 ...$gradeOneFullday,
+                $morningBreak,
+                ['12:10', '12:45', ['BREAK:Ishoma', 'BREAK:Ishoma', 'BREAK:Ishoma', 'BREAK:Ishoma', null, 'BREAK:Ishoma/Pulang']],
+                ['11:45', '12:25', [null, null, null, null, 'BREAK:Ishoma/Pulang', null]],
                 ['12:45', '13:20', ['TAQ', 'TAQ', 'TAQ', 'TAQ', null, null]],
                 ['13:20', '13:55', ['TAQ', 'TAQ', 'TAQ', 'TAQ', null, null]],
                 ['13:55', '14:30', ['NUM', 'LIT', 'LA', 'STEAM', null, null]],
                 ['14:30', '15:05', ['NUM', 'LIT', 'LA', 'STEAM', null, null]],
                 ['12:25', '13:00', [null, null, null, null, 'TAQ', null]],
+                ['13:00', '13:20', [null, null, null, null, 'MISSION', null]],
+                ['15:05', '15:15', ['BREAK:Istirahat/Sholat/Pulang', 'BREAK:Istirahat/Sholat/Pulang', 'BREAK:Istirahat/Sholat/Pulang', 'BREAK:Istirahat/Sholat/Pulang', null, null]],
             ]],
-            ['code' => 'I-AR-RAHMAN', 'name' => 'I Ar-Rahman', 'slots' => $gradeOne],
-            ['code' => 'I-AR-RAHIM', 'name' => 'I Ar-Rahim', 'slots' => $gradeOneArRahim],
-            ['code' => 'II-AL-MUMIN', 'name' => "II Al-Mu'min", 'slots' => $gradeTwo],
-            ['code' => 'II-AL-WAHHAB', 'name' => 'II Al-Wahhab', 'slots' => $gradeTwo],
-            ['code' => 'III-AL-KHALIQ', 'name' => 'III Al-Khaliq', 'slots' => $gradeThree],
-            ['code' => 'III-AL-LATHIF', 'name' => 'III Al-Lathif', 'slots' => $gradeThree],
-            ['code' => 'IV-AL-BASITH', 'name' => 'IV Al-Basith', 'slots' => $gradeFourBasith],
-            ['code' => 'IV-AL-KARIM', 'name' => 'IV Al-Karim', 'slots' => $gradeFourKarim],
-            ['code' => 'V-AL-ALIM', 'name' => "V Al-'Alim", 'slots' => $gradeFiveAlim],
-            ['code' => 'V-AL-HAKIM', 'name' => 'V Al-Hakim', 'slots' => $gradeFiveHakim],
-            ['code' => 'VI-AL-MAJID', 'name' => 'VI Al-Majid', 'slots' => $gradeSix],
+            ['code' => 'I-AR-RAHMAN', 'name' => 'I Ar-Rahman', 'slots' => [...$gradeOne, $morningBreak, ...$regularClosingBreaks]],
+            ['code' => 'I-AR-RAHIM', 'name' => 'I Ar-Rahim', 'slots' => [...$gradeOneArRahim, $morningBreak, ...$regularClosingBreaks]],
+            ['code' => 'II-AL-MUMIN', 'name' => "II Al-Mu'min", 'slots' => [...$gradeTwo, $morningBreak, ...$regularClosingBreaks]],
+            ['code' => 'II-AL-WAHHAB', 'name' => 'II Al-Wahhab', 'slots' => [...$gradeTwo, $morningBreak, ...$regularClosingBreaks]],
+            ['code' => 'III-AL-KHALIQ', 'name' => 'III Al-Khaliq', 'slots' => [...$gradeThree, $morningBreak, ...$regularClosingBreaks]],
+            ['code' => 'III-AL-LATHIF', 'name' => 'III Al-Lathif', 'slots' => [...$gradeThree, $morningBreak, ...$regularClosingBreaks]],
+            ['code' => 'IV-AL-BASITH', 'name' => 'IV Al-Basith', 'slots' => [...$gradeFourBasith, $morningBreak, ...$regularClosingBreaks]],
+            ['code' => 'IV-AL-KARIM', 'name' => 'IV Al-Karim', 'slots' => [...$gradeFourKarim, $morningBreak, ...$regularClosingBreaks]],
+            ['code' => 'V-AL-ALIM', 'name' => "V Al-'Alim", 'slots' => [...$gradeFiveAlim, $morningBreak, ...$regularClosingBreaks]],
+            ['code' => 'V-AL-HAKIM', 'name' => 'V Al-Hakim', 'slots' => [...$gradeFiveHakim, $morningBreak, ...$regularClosingBreaks]],
+            ['code' => 'VI-AL-MAJID', 'name' => 'VI Al-Majid', 'slots' => [...$gradeSix, $morningBreak, ...$regularClosingBreaks]],
         ];
     }
 }
