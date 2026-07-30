@@ -2,9 +2,9 @@
 @php
     use Illuminate\Support\Facades\Gate;
 
-    $schoolName = (string) config('emadrasah.name');
+    $schoolName = $schoolProfile->display_name;
     $appName = (string) config('emadrasah.app_name');
-    $logo = config('emadrasah.logo');
+    $logo = $schoolProfile->logo_url;
     $user = auth()->user();
     $role = $user?->roles?->pluck('display_name')->filter()->first() ?? $user?->roles?->pluck('name')->first() ?? 'Pengguna';
     $navGroups = config('navigation', []);
@@ -19,7 +19,7 @@
 <aside class="app-sidebar">
   <div class="flex items-center gap-3 border-b border-white/10 p-5">
     <div class="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-2xl bg-white text-lg font-black text-emerald-800">
-      @if($logo)<img src="{{ asset($logo) }}" class="h-full w-full object-cover" alt="Logo {{ $schoolName }}">@else {{ str($schoolName)->substr(0,2)->upper() }} @endif
+      @if($logo)<img src="{{ $logo }}" class="h-full w-full object-cover" alt="Logo {{ $schoolName }}">@else {{ str($schoolName)->substr(0,2)->upper() }} @endif
     </div>
     <div class="min-w-0 sidebar-label"><p class="truncate font-bold">{{ $schoolName }}</p><p class="text-xs text-emerald-100">{{ $appName }}</p></div>
     <button type="button" class="ml-auto rounded-lg p-2 text-emerald-100 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-amber-300 lg:hidden" onclick="closeMobileSidebar()" aria-label="Tutup navigasi">✕</button>

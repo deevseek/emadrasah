@@ -14,6 +14,12 @@ return [
         ],
     ],
     [
+        'label' => 'Data Madrasah',
+        'items' => [
+            ['label' => 'Profil Madrasah', 'route' => 'school-profile.show', 'active' => 'school-profile.*', 'permission' => 'school-profile.view', 'icon' => 'school'],
+        ],
+    ],
+    [
         'label' => 'Akun & Akses',
         'items' => [
             ['label' => 'Pengguna', 'route' => 'users.index', 'active' => 'users.*', 'permission' => 'users.view', 'icon' => 'users'],

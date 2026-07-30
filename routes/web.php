@@ -33,3 +33,4 @@ Route::middleware(['auth', 'active', 'force-password-change'])->group(function (
 });
 
 require __DIR__.'/access.php';
+require __DIR__.'/school.php';

@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Masuk E-Madrasah</title>
+    <title>Masuk E-Madrasah - {{ $schoolProfile->display_name }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-slate-100">
@@ -11,6 +11,7 @@
         <form method="post" action="{{ route('login.store') }}" class="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl">
             @csrf
 
+            <div class="mb-5 flex items-center gap-3"><div class="grid h-14 w-14 place-items-center overflow-hidden rounded-2xl bg-emerald-950 font-bold text-white">@if($schoolProfile->logo_url)<img src="{{ $schoolProfile->logo_url }}" class="h-full w-full object-cover" alt="Logo {{ $schoolProfile->display_name }}">@else{{ $schoolProfile->initials }}@endif</div><div><p class="font-bold text-emerald-950">{{ $schoolProfile->display_name }}</p><p class="text-xs text-slate-500">{{ $schoolProfile->education_level }}</p></div></div>
             <p class="text-sm font-semibold uppercase tracking-[0.25em] text-amber-600">Backoffice</p>
             <h1 class="mt-2 text-3xl font-bold text-emerald-950">Masuk E-Madrasah</h1>
             <p class="mt-2 text-sm text-slate-600">Gunakan akun resmi madrasah untuk mengakses sistem.</p>
