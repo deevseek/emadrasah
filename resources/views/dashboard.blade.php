@@ -1,25 +1,6 @@
-<x-app-layout :title="$title">
-<div class="space-y-6">
-  <section class="rounded-3xl bg-emerald-950 p-6 text-white shadow-sm">
-    <p class="text-sm text-emerald-100">Beranda e-Madrasah</p>
-    <h2 class="mt-2 text-2xl font-black">Fondasi e-Madrasah</h2>
-    <p class="mt-2 max-w-3xl text-sm text-emerald-50">Seluruh modul lama telah dibersihkan. Aplikasi siap dibangun ulang dengan alur kerja yang lebih sederhana dan terstruktur.</p>
-  </section>
-
-  <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4" aria-label="Informasi fondasi">
-    <x-ui.stat-card title="Status aplikasi" value="Siap dikembangkan" />
-    <x-ui.stat-card title="Autentikasi" value="Aktif" />
-    <x-ui.stat-card title="Hak akses" value="Aktif" />
-    <x-ui.stat-card title="Modul terpasang" value="0" />
-  </section>
-
-  <section class="card">
-    <div class="card-body">
-      <h2 class="text-lg font-bold text-emerald-950">Area modul</h2>
-      <x-ui.empty-state title="Belum ada modul yang dipasang.">
-        Modul baru akan dibangun secara bertahap.
-      </x-ui.empty-state>
-    </div>
-  </section>
-</div>
-</x-app-layout>
+<x-app-layout :title="$title"><div class="space-y-6">
+<section class="rounded-3xl bg-emerald-950 p-6 text-white shadow-sm"><p class="text-sm text-emerald-100">Beranda e-Madrasah</p><h2 class="mt-2 text-2xl font-black">{{ $profile->display_name }}</h2><p class="mt-2 text-sm text-emerald-50">Kelola fondasi data madrasah secara aman dan terstruktur.</p></section>
+<section class="card"><div class="card-body"><div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><h2 class="text-lg font-bold text-emerald-950">Profil Madrasah</h2><p class="mt-1 text-sm text-slate-500">Identitas resmi yang digunakan pada aplikasi dan dokumen.</p></div><span class="badge badge-success">Kelengkapan Profil: {{ $profile->completeness_percentage }}%</span></div>
+<div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><div><p class="text-xs text-slate-500">Nama madrasah</p><p class="font-semibold">{{ $profile->name }}</p></div><div><p class="text-xs text-slate-500">NSM / NPSN</p><p class="font-semibold">{{ $profile->nsm ?: '-' }} / {{ $profile->npsn ?: '-' }}</p></div><div><p class="text-xs text-slate-500">Kepala madrasah</p><p class="font-semibold">{{ $profile->head_name ?: 'Belum diisi' }}</p></div><div><p class="text-xs text-slate-500">Status kelengkapan</p><div class="progress mt-2"><span style="width: {{ $profile->completeness_percentage }}%"></span></div></div></div>
+@can('school-profile.view')<div class="mt-6"><a href="{{ route('school-profile.show') }}" class="btn btn-primary">Lengkapi Profil Madrasah</a></div>@endcan</div></section>
+</div></x-app-layout>
