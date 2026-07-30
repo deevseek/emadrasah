@@ -1,1 +1,0 @@
-<!doctype html><html lang="id"><body><h1>Jurnal BTAQ</h1><p>{{ $session->session_date?->format('d F Y') }} - {{ $session->group?->name }}</p><p>{{ $session->learning_activity }}</p><script>window.print()</script></body></html>
