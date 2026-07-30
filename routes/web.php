@@ -36,3 +36,4 @@ require __DIR__.'/access.php';
 require __DIR__.'/school.php';
 
 require __DIR__.'/academic-periods.php';
+require __DIR__.'/personnel.php';

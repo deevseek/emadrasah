@@ -18,6 +18,7 @@ return [
         'items' => [
             ['label' => 'Profil Madrasah', 'route' => 'school-profile.show', 'active' => 'school-profile.*', 'permission' => 'school-profile.view', 'icon' => 'school'],
             ['label' => 'Tahun Ajaran & Semester', 'route' => 'academic-periods.index', 'active' => 'academic-periods.*', 'permission' => 'academic-periods.view', 'icon' => 'calendar'],
+            ['label' => 'Data Personalia', 'route' => 'personnel.index', 'active' => 'personnel.*', 'permission' => 'personnel.view', 'icon' => 'personnel'],
         ],
     ],
     [

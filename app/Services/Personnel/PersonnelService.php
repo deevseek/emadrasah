@@ -1,0 +1,14 @@
+<?php
+declare(strict_types=1);
+namespace App\Services\Personnel;
+use App\Models\Personnel; use App\Models\User; use Illuminate\Support\Facades\DB;
+class PersonnelService
+{
+ public function create(array $data,User $actor):Personnel{return DB::transaction(function()use($data,$actor){$data=$this->clean($data);$data['created_by']=$data['updated_by']=$actor->id;$p=Personnel::create($data);activity('personnel')->causedBy($actor)->performedOn($p)->log("Menambahkan personalia {$p->full_name}.");return $p;});}
+ public function update(Personnel $p,array $data,User $actor):Personnel{return DB::transaction(function()use($p,$data,$actor){$safe=array_keys(array_diff_assoc($this->clean($data),$p->only(array_keys($data))));$p->update([...$this->clean($data),'updated_by'=>$actor->id]);activity('personnel')->causedBy($actor)->performedOn($p)->withProperties(['field_diubah'=>$safe])->log("Memperbarui data personalia {$p->full_name}.");return $p;});}
+ public function activate(Personnel $p,User $actor):void{$p->update(['is_active'=>true,'updated_by'=>$actor->id]);activity('personnel')->causedBy($actor)->performedOn($p)->log("Mengaktifkan personalia {$p->full_name}.");}
+ public function deactivate(Personnel $p,User $actor,bool $account=false):void{DB::transaction(function()use($p,$actor,$account){$p->update(['is_active'=>false,'updated_by'=>$actor->id]);if($account&&$p->user&&$p->user_id!==$actor->id&&$actor->can('users.activate'))$p->user->update(['is_active'=>false]);activity('personnel')->causedBy($actor)->performedOn($p)->log("Menonaktifkan personalia {$p->full_name}.");});}
+ public function connect(Personnel $p,int $userId,User $actor):void{DB::transaction(function()use($p,$userId,$actor){abort_if(Personnel::where('user_id',$userId)->whereKeyNot($p->id)->exists(),422,'Akun sudah terhubung dengan personalia lain.');$p->update(['user_id'=>$userId,'updated_by'=>$actor->id]);activity('personnel')->causedBy($actor)->performedOn($p)->log("Menghubungkan akun dengan personalia {$p->full_name}.");});}
+ public function disconnect(Personnel $p,User $actor):void{DB::transaction(function()use($p,$actor){$p->update(['user_id'=>null,'updated_by'=>$actor->id]);activity('personnel')->causedBy($actor)->performedOn($p)->log("Melepaskan akun dari personalia {$p->full_name}.");});}
+ private function clean(array $d):array{foreach($d as $k=>$v)if($v==='')$d[$k]=null;if(isset($d['email']))$d['email']=strtolower(trim((string)$d['email']))?:null;$d['is_active']=filter_var($d['is_active']??true,FILTER_VALIDATE_BOOL);return $d;}
+}
