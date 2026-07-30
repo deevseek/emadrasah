@@ -25,6 +25,7 @@ return [
         'label' => 'Kesiswaan',
         'items' => [
             ['label' => 'Data Siswa', 'route' => 'students.index', 'active' => 'students.*', 'permission' => 'students.view', 'icon' => 'students'],
+            ['label' => 'Kelas & Rombel', 'route' => 'classrooms.index', 'active' => 'classrooms.*', 'permission_any' => ['classrooms.view', 'classrooms.view-own'], 'icon' => 'classrooms'],
         ],
     ],
     [

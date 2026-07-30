@@ -26,7 +26,7 @@
   </div>
   <nav class="flex-1 space-y-5 overflow-y-auto p-4" aria-label="Navigasi utama">
     @foreach($navGroups as $group)
-      @php $visible = collect($group['items'])->filter(fn ($item) => Gate::allows($item['permission'])); @endphp
+      @php $visible = collect($group['items'])->filter(fn ($item) => isset($item['permission_any']) ? collect($item['permission_any'])->contains(fn ($permission) => Gate::allows($permission)) : Gate::allows($item['permission'])); @endphp
       @if($visible->isNotEmpty())
         <div><p class="sidebar-section px-3 pb-2 text-xs font-bold uppercase tracking-wider text-emerald-200/80">{{ $group['label'] }}</p><div class="space-y-1">
           @foreach($visible as $item)@php($isActive = request()->routeIs($item['active']))<a href="{{ route($item['route']) }}" onclick="closeMobileSidebar()" @class(['nav-link','nav-link-active'=>$isActive])><x-ui.icon :name="$item['icon']" /><span class="sidebar-label flex-1 truncate">{{ $item['label'] }}</span></a>@endforeach

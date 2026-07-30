@@ -1,0 +1,2 @@
+@props(['title','content'])
+<details class="inline-block align-middle"><summary class="cursor-pointer list-none rounded-full text-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-600" aria-label="Bantuan: {{ $title }}"><span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 font-bold">?</span></summary><div class="mt-2 max-w-sm rounded-xl border border-emerald-100 bg-white p-3 text-sm text-slate-600 shadow-lg"><strong class="block text-emerald-950">{{ $title }}</strong>{{ $content }}</div></details>
