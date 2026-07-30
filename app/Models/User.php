@@ -32,7 +32,17 @@ class User extends Authenticatable
 
     public function setUsernameAttribute(string $value): void { $this->attributes['username'] = strtolower($value); }
     public function setEmailAttribute(string $value): void { $this->attributes['email'] = strtolower($value); }
-    public function getInitialsAttribute(): string { return str($this->name)->explode(' ')->take(2)->map(fn ($word) => str($word)->substr(0, 1))->join('')->upper(); }
+    public function getInitialsAttribute(): string
+    {
+        $initials = str($this->name)
+            ->squish()
+            ->explode(' ')
+            ->take(2)
+            ->map(fn (string $word): string => str($word)->substr(0, 1)->toString())
+            ->join('');
+
+        return str($initials)->upper()->toString();
+    }
     public function getDisplayRoleAttribute(): string { return $this->roles->first()?->display_name ?? $this->roles->first()?->name ?? 'Tanpa role'; }
     public function getHasLoggedInAttribute(): bool { return $this->last_login_at !== null; }
 }
