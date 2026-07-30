@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;use App\Http\Requests\Access\StoreRoleReques
 class RoleController extends Controller
 {
  public function __construct(private RoleService $service){}
- public function index():View{return view('access.roles.index',['roles'=>Role::withCount(['users','permissions'])->orderByDesc('is_system')->orderBy('display_name')->get(),'stats'=>['total'=>Role::count(),'system'=>Role::where('is_system',true)->count(),'custom'=>Role::where('is_system',false)->count(),'permissions'=>Permission::count()]]);}
+ public function index():View{return view('access.roles.index',['roles'=>Role::withCount(['users','permissions'])->inDisplayOrder()->get(),'stats'=>['total'=>Role::count(),'system'=>Role::where('is_system',true)->count(),'custom'=>Role::where('is_system',false)->count(),'permissions'=>Permission::count()]]);}
  public function show(Role $role):View{return view('access.roles.show',compact('role'));}
  public function create():View{return view('access.roles.form',['role'=>new Role,'groups'=>config('permissions'),'selected'=>[],'editing'=>false]);}
  public function store(StoreRoleRequest $r):RedirectResponse{$role=$this->service->create($r->user(),$r->validated());return redirect()->route('roles.show',$role)->with('status','Role berhasil ditambahkan.');}

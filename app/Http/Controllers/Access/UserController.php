@@ -22,5 +22,5 @@ class UserController extends Controller
     public function show(User $user):View{$user->load('roles');$lastLogin=LoginHistory::where('user_id',$user->id)->where('successful',true)->latest('attempted_at')->first();return view('access.users.show',compact('user','lastLogin'));}
     public function edit(Request $request,User $user):View{$this->service->guard($request->user(),$user);return view('access.users.form',['user'=>$user->load('roles'),'roles'=>$this->roles($request),'editing'=>true]);}
     public function update(UpdateUserRequest $request,User $user):RedirectResponse{$this->service->update($request->user(),$user,$request->validated());return redirect()->route('users.show',$user)->with('status','Data pengguna berhasil diperbarui.');}
-    private function roles(Request $request){return Role::query()->when(!$request->user()->hasRole('super-admin'),fn($q)=>$q->where('name','!=','super-admin'))->orderBy('display_name')->get();}
+    private function roles(Request $request){return Role::query()->when(!$request->user()->hasRole('super-admin'),fn($q)=>$q->where('name','!=','super-admin'))->inDisplayOrder()->get();}
 }
