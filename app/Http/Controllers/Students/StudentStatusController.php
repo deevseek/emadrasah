@@ -1,0 +1,4 @@
+<?php
+declare(strict_types=1); namespace App\Http\Controllers\Students;
+use App\Http\Controllers\Controller; use App\Http\Requests\Students\UpdateStudentStatusRequest; use App\Models\Student; use App\Services\Students\StudentService; use Illuminate\Http\RedirectResponse; use Illuminate\View\View;
+class StudentStatusController extends Controller {public function __construct(private StudentService $service){}public function edit(Student $student):View{return view('students.status',['title'=>'Ubah Status Siswa','student'=>$student]);}public function update(UpdateStudentStatusRequest $request,Student $student):RedirectResponse{$this->service->changeStatus($student,$request->validated('status'),$request->validated('note'),$request->user());return redirect()->route('students.show',$student)->with('status','Status siswa berhasil diubah.');}}

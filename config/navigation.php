@@ -22,6 +22,12 @@ return [
         ],
     ],
     [
+        'label' => 'Kesiswaan',
+        'items' => [
+            ['label' => 'Data Siswa', 'route' => 'students.index', 'active' => 'students.*', 'permission' => 'students.view', 'icon' => 'students'],
+        ],
+    ],
+    [
         'label' => 'Akun & Akses',
         'items' => [
             ['label' => 'Pengguna', 'route' => 'users.index', 'active' => 'users.*', 'permission' => 'users.view', 'icon' => 'users'],

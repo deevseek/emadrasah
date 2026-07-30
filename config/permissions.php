@@ -20,6 +20,9 @@ return [
     'personnel' => ['label'=>'Data Personalia','description'=>'Kelola data guru dan tenaga kependidikan.','permissions'=>[
         'personnel.view'=>'Melihat data personalia','personnel.create'=>'Menambahkan personalia','personnel.update'=>'Mengubah data personalia','personnel.activate'=>'Mengaktifkan dan menonaktifkan personalia','personnel.manage-account'=>'Menghubungkan akun aplikasi','personnel.view-sensitive'=>'Melihat data pribadi dan rekening','personnel.import'=>'Mengimpor data personalia','personnel.export'=>'Mengekspor data dan mengunduh template',
     ]],
+    'students' => ['label'=>'Data Siswa','description'=>'Kelola identitas, orang tua, dan status siswa.','permissions'=>[
+        'students.view'=>'Melihat data siswa','students.create'=>'Menambahkan siswa','students.update'=>'Mengubah data siswa','students.change-status'=>'Mengubah status siswa','students.view-sensitive'=>'Melihat data pribadi siswa','students.import'=>'Mengimpor data siswa','students.export'=>'Mengekspor data dan mengunduh template',
+    ]],
     'users' => ['label' => 'Pengguna', 'permissions' => [
         'users.view' => 'Melihat pengguna', 'users.create' => 'Menambah pengguna',
         'users.update' => 'Mengubah pengguna', 'users.activate' => 'Mengaktifkan dan menonaktifkan akun',
