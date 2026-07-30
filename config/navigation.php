@@ -13,4 +13,11 @@ return [
             ],
         ],
     ],
+    [
+        'label' => 'Akun & Akses',
+        'items' => [
+            ['label' => 'Pengguna', 'route' => 'users.index', 'active' => 'users.*', 'permission' => 'users.view', 'icon' => 'users'],
+            ['label' => 'Role & Hak Akses', 'route' => 'roles.index', 'active' => 'roles.*', 'permission' => 'roles.view', 'icon' => 'roles'],
+        ],
+    ],
 ];

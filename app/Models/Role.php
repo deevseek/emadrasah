@@ -10,5 +10,9 @@ class Role extends \Spatie\Permission\Models\Role
         'name',
         'guard_name',
         'display_name',
+        'description',
+        'is_system',
     ];
+
+    protected function casts(): array { return ['is_system' => 'boolean']; }
 }

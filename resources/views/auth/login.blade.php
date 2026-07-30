@@ -23,9 +23,9 @@
 
             <div class="mt-6 space-y-4">
                 <div>
-                    <label for="email" class="block text-sm font-medium text-slate-700">Email</label>
-                    <input id="email" name="email" type="email" value="{{ old('email') }}" required autofocus class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2">
-                    @error('email')
+                    <label for="login" class="block text-sm font-medium text-slate-700">Email atau Username</label>
+                    <input id="login" name="login" type="text" value="{{ old('login') }}" required autofocus autocomplete="username" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2">
+                    @error('login')
                         <p class="mt-1 text-sm text-red-700">{{ $message }}</p>
                     @enderror
                 </div>

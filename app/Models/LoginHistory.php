@@ -10,7 +10,7 @@ class LoginHistory extends Model
 {
     public $timestamps = false;
 
-    protected $fillable = ['user_id', 'email', 'ip_address', 'user_agent', 'successful', 'failure_reason', 'attempted_at'];
+    protected $fillable = ['user_id', 'email', 'login_identifier', 'ip_address', 'user_agent', 'successful', 'failure_reason', 'attempted_at'];
 
     protected $casts = ['successful' => 'boolean', 'attempted_at' => 'datetime'];
 }

@@ -22,7 +22,7 @@ class AuthenticationTest extends TestCase
     {
         $user = User::factory()->create(['password' => Hash::make('rahasia')]);
 
-        $this->post('/login', ['email' => $user->email, 'password' => 'rahasia'])
+        $this->post('/login', ['login' => $user->email, 'password' => 'rahasia'])
             ->assertRedirect('/dashboard');
         $this->assertAuthenticatedAs($user);
 
@@ -34,9 +34,9 @@ class AuthenticationTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $this->from('/login')->post('/login', ['email' => $user->email, 'password' => 'keliru'])
+        $this->from('/login')->post('/login', ['login' => $user->email, 'password' => 'keliru'])
             ->assertRedirect('/login')
-            ->assertSessionHasErrors('email');
+            ->assertSessionHasErrors('login');
         $this->assertGuest();
     }
 
@@ -44,8 +44,8 @@ class AuthenticationTest extends TestCase
     {
         $user = User::factory()->inactive()->create(['password' => Hash::make('rahasia')]);
 
-        $this->post('/login', ['email' => $user->email, 'password' => 'rahasia'])
-            ->assertSessionHasErrors('email');
+        $this->post('/login', ['login' => $user->email, 'password' => 'rahasia'])
+            ->assertSessionHasErrors('login');
         $this->assertGuest();
     }
 

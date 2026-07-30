@@ -22,20 +22,22 @@ class AuthenticatedSessionController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $credentials = $request->validate(['email' => ['required', 'email'], 'password' => ['required', 'string']]);
-        $key = 'login:'.$request->ip().':'.strtolower($credentials['email']);
+        $credentials = $request->validate(['login' => ['required', 'string'], 'password' => ['required', 'string']]);
+        $login = strtolower(trim($credentials['login']));
+        $key = 'login:'.$request->ip().':'.$login;
         if (RateLimiter::tooManyAttempts($key, 5)) {
-            throw ValidationException::withMessages(['email' => 'Terlalu banyak percobaan login. Silakan coba beberapa menit lagi.']);
+            throw ValidationException::withMessages(['login' => 'Terlalu banyak percobaan login. Silakan coba beberapa menit lagi.']);
         }
-        if (! Auth::attempt($credentials, $request->boolean('remember'))) {
+        $field = filter_var($login, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
+        if (! Auth::attempt([$field => $login, 'password' => $credentials['password']], $request->boolean('remember'))) {
             RateLimiter::hit($key, 60);
             $this->record($request, null, false, 'Kredensial tidak sesuai.');
-            throw ValidationException::withMessages(['email' => 'Email atau password tidak sesuai.']);
+            throw ValidationException::withMessages(['login' => 'Email/username atau password tidak sesuai.']);
         }
         if (! $request->user()->is_active) {
             $this->record($request, $request->user()->id, false, 'Akun nonaktif.');
             Auth::logout();
-            throw ValidationException::withMessages(['email' => 'Akun Anda sedang dinonaktifkan.']);
+            throw ValidationException::withMessages(['login' => 'Akun Anda sedang dinonaktifkan.']);
         }
         RateLimiter::clear($key);
         $request->session()->regenerate();
@@ -56,6 +58,7 @@ class AuthenticatedSessionController extends Controller
 
     private function record(Request $request, ?int $userId, bool $successful, ?string $reason = null): void
     {
-        LoginHistory::create(['user_id' => $userId, 'email' => (string) $request->input('email'), 'ip_address' => $request->ip(), 'user_agent' => (string) $request->userAgent(), 'successful' => $successful, 'failure_reason' => $reason, 'attempted_at' => now()]);
+        $identifier = strtolower((string) $request->input('login'));
+        LoginHistory::create(['user_id' => $userId, 'email' => $identifier, 'login_identifier' => $identifier, 'ip_address' => $request->ip(), 'user_agent' => (string) $request->userAgent(), 'successful' => $successful, 'failure_reason' => $reason, 'attempted_at' => now()]);
     }
 }
