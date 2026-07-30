@@ -22,7 +22,7 @@ class AccessControlSeeder extends Seeder
 
         $roles = [
             'super-admin' => ['Super Admin', 'Akses penuh dan terlindungi.', $permissions->keys()->all()],
-            'operator' => ['Operator', 'Mengelola akun pengguna sekolah.', ['dashboard.view', 'users.view', 'users.create', 'users.update', 'users.activate', 'users.reset-password', 'users.assign-role', 'roles.view', 'school-profile.view', 'school-profile.update', 'school-profile.update-logo', 'school-profile.update-leader', 'academic-periods.view', 'academic-periods.create', 'academic-periods.update', 'academic-periods.activate']],
+            'operator' => ['Operator', 'Mengelola akun pengguna sekolah.', ['dashboard.view', 'users.view', 'users.create', 'users.update', 'users.activate', 'users.reset-password', 'users.assign-role', 'roles.view', 'school-profile.view', 'school-profile.update', 'school-profile.update-logo', 'school-profile.update-leader', 'academic-periods.view', 'academic-periods.create', 'academic-periods.update', 'academic-periods.activate','personnel.view','personnel.create','personnel.update','personnel.activate','personnel.manage-account','personnel.view-sensitive','personnel.import','personnel.export']],
             'guru' => ['Guru', 'Mengakses layanan untuk guru.', ['dashboard.view', 'school-profile.view', 'academic-periods.view']],
         ];
         foreach ($roles as $slug => [$label, $description, $grants]) {
