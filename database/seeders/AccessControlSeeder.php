@@ -22,13 +22,13 @@ class AccessControlSeeder extends Seeder
 
         $roles = [
             'super-admin' => ['Super Admin', 'Akses penuh dan terlindungi.', $permissions->keys()->all()],
-            'operator' => ['Operator', 'Mengelola akun pengguna sekolah.', ['dashboard.view', 'users.view', 'users.create', 'users.update', 'users.activate', 'users.reset-password', 'users.assign-role', 'roles.view', 'school-profile.view', 'school-profile.update', 'school-profile.update-logo', 'school-profile.update-leader']],
-            'guru' => ['Guru', 'Mengakses layanan untuk guru.', ['dashboard.view', 'school-profile.view']],
+            'operator' => ['Operator', 'Mengelola akun pengguna sekolah.', ['dashboard.view', 'users.view', 'users.create', 'users.update', 'users.activate', 'users.reset-password', 'users.assign-role', 'roles.view', 'school-profile.view', 'school-profile.update', 'school-profile.update-logo', 'school-profile.update-leader', 'academic-periods.view', 'academic-periods.create', 'academic-periods.update', 'academic-periods.activate']],
+            'guru' => ['Guru', 'Mengakses layanan untuk guru.', ['dashboard.view', 'school-profile.view', 'academic-periods.view']],
         ];
         foreach ($roles as $slug => [$label, $description, $grants]) {
-            $role = Role::query()->firstOrCreate(['name' => $slug, 'guard_name' => 'web']);
+            $role = Role::findOrCreate($slug, 'web');
             $role->update(['display_name' => $label, 'description' => $description, 'is_system' => true]);
-            $role->syncPermissions($grants);
+            $role->givePermissionTo($grants);
         }
 
         $password = (string) env('SEED_ADMIN_PASSWORD', '');
@@ -38,6 +38,7 @@ class AccessControlSeeder extends Seeder
             'username' => strtolower((string) env('SEED_ADMIN_USERNAME', 'administrator')),
             'password' => Hash::make($password ?: 'password'), 'is_active' => true, 'must_change_password' => false,
         ]);
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
         $user->syncRoles([Role::query()->where('name', 'super-admin')->firstOrFail()]);
     }
 }
