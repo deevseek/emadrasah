@@ -14,10 +14,15 @@ class UserService
     {
         abort_if($target->hasRole('super-admin') && ! $actor->hasRole('super-admin'), 403, 'Akun Super Admin tidak dapat diubah oleh Operator.');
         abort_if($role === 'super-admin' && ! $actor->hasRole('super-admin'), 403, 'Role yang dipilih tidak tersedia.');
+        if ($role !== null && ! $actor->hasRole('super-admin')) {
+            $selected = Role::query()->where('name', $role)->first();
+            foreach (['roles.manage-permissions', 'roles.update', 'roles.delete'] as $permission) abort_if($selected?->hasPermissionTo($permission) && ! $actor->can($permission), 403, 'Role yang dipilih memiliki hak akses yang tidak dapat Anda berikan.');
+        }
         abort_if($active === false && $actor->is($target), 403, 'Anda tidak dapat menonaktifkan akun sendiri.');
         if ($active === false && $target->hasRole('super-admin')) abort_if(User::role('super-admin')->where('is_active', true)->count() <= 1, 403, 'Minimal harus terdapat satu Super Admin aktif.');
         if ($actor->is($target) && $role !== null && $role !== $target->roles->first()?->name) abort(403, 'Anda tidak dapat menghapus role milik sendiri.');
     }
+    public function assignRole(User $actor,User $user,Role $role):void{$this->guard($actor,$user,$role->name);$old=$user->roles->first()?->display_name??'Tanpa role';$user->syncRoles([$role]);activity('akses')->causedBy($actor)->performedOn($user)->withProperties(['role_lama'=>$old,'role_baru'=>$role->name])->log("Mengubah role akun {$user->name} menjadi {$role->display_name}.");}
     public function create(User $actor, array $data): User
     {
         return DB::transaction(function () use($actor,$data) { $role=Role::where('name',$data['role'])->firstOrFail(); $this->guard($actor,new User, $role->name); $user=User::create([...Arr::except($data,['role','password_confirmation']),'password'=>Hash::make($data['password']),'must_change_password'=>true]); $user->syncRoles([$role]); activity('akses')->causedBy($actor)->performedOn($user)->withProperties(['role'=>$role->name])->log("Menambahkan pengguna {$user->name}."); return $user; });
