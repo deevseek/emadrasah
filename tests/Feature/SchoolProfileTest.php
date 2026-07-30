@@ -104,6 +104,13 @@ class SchoolProfileTest extends TestCase
         $this->actingAs($user)->get(route('dashboard'))->assertSee('MD');
     }
 
+    public function test_profile_initials_are_generated_as_an_uppercase_string(): void
+    {
+        $profile = new SchoolProfile(['name' => '  madrasah   ibtidaiyah demak  ']);
+
+        $this->assertSame('MI', $profile->initials);
+    }
+
     public function test_school_profile_seeder_is_idempotent(): void
     {
         $this->seed(SchoolProfileSeeder::class); $this->seed(SchoolProfileSeeder::class);

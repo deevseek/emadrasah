@@ -37,7 +37,14 @@ class SchoolProfile extends Model
 
     public function getInitialsAttribute(): string
     {
-        return str($this->display_name)->squish()->explode(' ')->take(2)->map(fn (string $word) => str($word)->substr(0, 1))->join('')->upper()->toString();
+        $initials = str($this->display_name)
+            ->squish()
+            ->explode(' ')
+            ->take(2)
+            ->map(fn (string $word) => str($word)->substr(0, 1))
+            ->join('');
+
+        return str($initials)->upper()->toString();
     }
 
     public function getCompletenessPercentageAttribute(): int
