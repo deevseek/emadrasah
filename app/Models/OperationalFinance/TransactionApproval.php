@@ -1,1 +1,0 @@
-<?php declare(strict_types=1); namespace App\Models\OperationalFinance; use Illuminate\Database\Eloquent\Model; class TransactionApproval extends Model { protected $guarded=[]; public function transaction(){return $this->belongsTo(OperationalTransaction::class,'operational_transaction_id');} }
