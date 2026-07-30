@@ -24,10 +24,12 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
 
-Route::middleware(['auth', 'active'])->group(function (): void {
+Route::middleware(['auth', 'active', 'force-password-change'])->group(function (): void {
     Route::get('/dashboard', DashboardController::class)
         ->middleware('permission:dashboard.view')
         ->name('dashboard');
     Route::get('/password/change', [PasswordUpdateController::class, 'edit'])->name('password.change');
     Route::put('/password/change', [PasswordUpdateController::class, 'update'])->name('password.change.update');
 });
+
+require __DIR__.'/access.php';

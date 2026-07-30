@@ -29,7 +29,7 @@
       @php $visible = collect($group['items'])->filter(fn ($item) => Gate::allows($item['permission'])); @endphp
       @if($visible->isNotEmpty())
         <div><p class="sidebar-section px-3 pb-2 text-xs font-bold uppercase tracking-wider text-emerald-200/80">{{ $group['label'] }}</p><div class="space-y-1">
-          @foreach($visible as $item)@php($isActive = request()->routeIs($item['active']))<a href="{{ route($item['route']) }}" onclick="closeMobileSidebar()" @class(['nav-link','nav-link-active'=>$isActive])><svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5Zm4 2v2h8V7H8Zm0 4v2h8v-2H8Zm0 4v2h5v-2H8Z"/></svg><span class="sidebar-label flex-1 truncate">{{ $item['label'] }}</span></a>@endforeach
+          @foreach($visible as $item)@php($isActive = request()->routeIs($item['active']))<a href="{{ route($item['route']) }}" onclick="closeMobileSidebar()" @class(['nav-link','nav-link-active'=>$isActive])><x-ui.icon :name="$item['icon']" /><span class="sidebar-label flex-1 truncate">{{ $item['label'] }}</span></a>@endforeach
         </div></div>
       @endif
     @endforeach

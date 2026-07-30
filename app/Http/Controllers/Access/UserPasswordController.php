@@ -1,0 +1,4 @@
+<?php
+namespace App\Http\Controllers\Access;
+use App\Http\Controllers\Controller;use App\Http\Requests\Access\ResetUserPasswordRequest;use App\Models\User;use App\Services\Access\UserService;use Illuminate\Http\RedirectResponse;use Illuminate\Http\Request;use Illuminate\View\View;
+class UserPasswordController extends Controller {public function edit(Request $r,User $user):View{(new UserService)->guard($r->user(),$user);abort_if($r->user()->is($user),403);return view('access.users.reset-password',compact('user'));}public function update(ResetUserPasswordRequest $r,User $user):RedirectResponse{(new UserService)->resetPassword($r->user(),$user,$r->string('password')->toString());return redirect()->route('users.show',$user)->with('status','Password berhasil diatur ulang. Pengguna wajib membuat password baru saat login berikutnya.');}}

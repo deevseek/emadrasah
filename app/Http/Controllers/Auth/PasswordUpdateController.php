@@ -19,10 +19,10 @@ class PasswordUpdateController extends Controller
 
     public function update(PasswordUpdateRequest $request): RedirectResponse
     {
-        $request->user()->update($request->safe()->only('password'));
+        $request->user()->update([...$request->safe()->only('password'), 'must_change_password' => false]);
 
         Auth::logoutOtherDevices($request->string('password')->toString());
 
-        return back()->with('status', 'Password berhasil diperbarui.');
+        return redirect()->route('dashboard')->with('status', 'Password berhasil diperbarui.');
     }
 }
