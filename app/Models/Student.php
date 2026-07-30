@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\{BelongsTo, HasMany, BelongsToMany, HasOne};
 
 class Student extends Model
 {
@@ -20,4 +20,8 @@ class Student extends Model
     public function getParentOrGuardianNameAttribute(): string { return $this->mother_name ?: ($this->father_name ?: ($this->guardian_name ?: '—')); }
     public function getInitialsAttribute(): string { return str($this->full_name)->replaceMatches('/[^\pL\s]/u', '')->squish()->explode(' ')->take(2)->map(fn ($word) => str($word)->substr(0, 1))->join('')->upper()->toString(); }
     public function getHasSpecialConditionAttribute(): bool { return filled($this->special_needs) || filled($this->disability); }
+    public function classroomMemberships(): HasMany { return $this->hasMany(ClassroomMembership::class); }
+    public function activeClassroomMembership(): HasOne { return $this->hasOne(ClassroomMembership::class)->where('status', 'active')->latestOfMany(); }
+    public function classrooms(): BelongsToMany { return $this->belongsToMany(Classroom::class, 'classroom_memberships')->withPivot(['status', 'joined_at', 'left_at']); }
+    public function getCurrentClassroomNameAttribute(): string { return $this->activeClassroomMembership?->classroom?->display_name ?: ($this->classroom_label ?: 'Belum ditempatkan'); }
 }

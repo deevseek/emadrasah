@@ -1,0 +1,3 @@
+<?php
+declare(strict_types=1); namespace App\Http\Requests\Classrooms; use Illuminate\Validation\Rule;
+class UpdateClassroomRequest extends StoreClassroomRequest { public function authorize():bool{return $this->user()->can('classrooms.update');} public function rules():array{$r=parent::rules();$r['code']=['required','max:50',Rule::unique('classrooms')->ignore($this->route('classroom'))->where(fn($q)=>$q->where('academic_year_id',$this->academic_year_id)->where('grade_level_id',$this->grade_level_id))];if(!$this->user()->can('classrooms.assign-homeroom'))unset($r['homeroom_personnel_id']);return $r;} }

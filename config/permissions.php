@@ -23,6 +23,9 @@ return [
     'students' => ['label'=>'Data Siswa','description'=>'Kelola identitas, orang tua, dan status siswa.','permissions'=>[
         'students.view'=>'Melihat data siswa','students.create'=>'Menambahkan siswa','students.update'=>'Mengubah data siswa','students.change-status'=>'Mengubah status siswa','students.view-sensitive'=>'Melihat data pribadi siswa','students.import'=>'Mengimpor data siswa','students.export'=>'Mengekspor data dan mengunduh template',
     ]],
+    'classrooms' => ['label'=>'Kelas & Rombel','description'=>'Kelola rombongan belajar, wali kelas, dan penempatan siswa.','permissions'=>[
+        'classrooms.view'=>'Melihat seluruh kelas dan rombel','classrooms.view-own'=>'Melihat rombel yang menjadi tanggung jawab sendiri','classrooms.create'=>'Menambahkan rombongan belajar','classrooms.update'=>'Mengubah rombongan belajar','classrooms.activate'=>'Mengaktifkan dan menonaktifkan rombel','classrooms.assign-homeroom'=>'Menentukan wali kelas','classrooms.manage-students'=>'Mengelola anggota rombel','classrooms.map-legacy'=>'Memetakan data kelas lama','classrooms.copy-structure'=>'Menyalin struktur rombel','classrooms.promote'=>'Memproses kenaikan kelas',
+    ]],
     'users' => ['label' => 'Pengguna', 'permissions' => [
         'users.view' => 'Melihat pengguna', 'users.create' => 'Menambah pengguna',
         'users.update' => 'Mengubah pengguna', 'users.activate' => 'Mengaktifkan dan menonaktifkan akun',

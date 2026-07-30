@@ -13,5 +13,6 @@ class DatabaseSeeder extends Seeder
         $this->call(AccessControlSeeder::class);
         $this->call(SchoolProfileSeeder::class);
         $this->call(AcademicPeriodSeeder::class);
+        $this->call(GradeLevelSeeder::class);
     }
 }
