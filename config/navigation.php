@@ -29,6 +29,14 @@ return [
         ],
     ],
     [
+        'label' => 'Akademik',
+        'items' => [
+            ['label' => 'Mata Pelajaran & JP', 'route' => 'subjects.index', 'active' => 'subjects.*', 'permission' => 'subjects.view', 'icon' => 'calendar'],
+            ['label' => 'Pembagian Tugas Mengajar', 'route' => 'teaching-assignments.index', 'active' => 'teaching-assignments.*', 'permission' => 'teaching-assignments.view', 'icon' => 'calendar'],
+            ['label' => 'Tugas Mengajar Saya', 'route' => 'teaching-assignments.my', 'active' => 'teaching-assignments.my', 'permission' => 'teaching-assignments.view-own', 'icon' => 'calendar'],
+        ],
+    ],
+    [
         'label' => 'Akun & Akses',
         'items' => [
             ['label' => 'Pengguna', 'route' => 'users.index', 'active' => 'users.*', 'permission' => 'users.view', 'icon' => 'users'],

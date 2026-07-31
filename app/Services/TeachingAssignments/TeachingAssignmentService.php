@@ -1,0 +1,14 @@
+<?php
+
+declare(strict_types=1);
+namespace App\Services\TeachingAssignments;
+use App\Models\{Classroom,Personnel,Subject,SubjectGradeLoad,TeachingAssignment,TeachingAssignmentSet,User};
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+class TeachingAssignmentService
+{
+ public function save(User $actor,TeachingAssignmentSet $set,array $data,?TeachingAssignment $assignment=null):TeachingAssignment{return DB::transaction(function()use($actor,$set,$data,$assignment){$this->ensureDraft($set);$classroom=Classroom::with('gradeLevel')->findOrFail($data['classroom_id']);$subject=Subject::findOrFail($data['subject_id']);$personnel=Personnel::findOrFail($data['personnel_id']);if(!$classroom->is_active)throw ValidationException::withMessages(['classroom_id'=>'Rombel nonaktif tidak dapat diberi penugasan.']);if(!$subject->is_active)throw ValidationException::withMessages(['subject_id'=>'Mata pelajaran nonaktif tidak dapat ditugaskan.']);if(!$personnel->is_active)throw ValidationException::withMessages(['personnel_id'=>'Personalia nonaktif tidak dapat ditugaskan.']);if((int)$classroom->academic_year_id!==(int)$set->academic_year_id)throw ValidationException::withMessages(['classroom_id'=>'Rombel tidak berada pada tahun ajaran set.']);$load=SubjectGradeLoad::where('subject_id',$subject->id)->where('grade_level_id',$classroom->grade_level_id)->where('program_type',$classroom->program_type->value)->value('weekly_hours');if(!$load)throw ValidationException::withMessages(['subject_id'=>'Mata pelajaran tidak berlaku pada tingkat dan program kelas ini.']);$payload=[...$data,'assignment_set_id'=>$set->id,'academic_year_id'=>$set->academic_year_id,'weekly_periods'=>(int)$load,'is_primary'=>($data['teacher_role']??'primary')==='primary','updated_by'=>$actor->id];if($assignment){abort_unless($assignment->assignment_set_id===$set->id,404);$assignment->update($payload);$verb='Mengubah';}else{$assignment=TeachingAssignment::create([...$payload,'created_by'=>$actor->id]);$verb='Menambah';}activity('teaching-assignments')->causedBy($actor)->performedOn($assignment)->log("{$verb} penugasan pada draft {$set->name}.");return $assignment;});}
+ public function delete(User $actor,TeachingAssignment $assignment):void{$this->ensureDraft($assignment->assignmentSet);DB::transaction(function()use($actor,$assignment){activity('teaching-assignments')->causedBy($actor)->performedOn($assignment)->log('Menghapus penugasan dari draft.');$assignment->delete();});}
+ public function officialLoad(Classroom $classroom,Subject $subject):?int{return SubjectGradeLoad::where('subject_id',$subject->id)->where('grade_level_id',$classroom->grade_level_id)->where('program_type',$classroom->program_type->value)->value('weekly_hours');}
+ private function ensureDraft(TeachingAssignmentSet $set):void{if(!$set->isEditable())throw ValidationException::withMessages(['assignment_set_id'=>'Set aktif atau diarsipkan tidak dapat diubah.']);}
+}

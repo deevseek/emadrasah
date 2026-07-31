@@ -1,0 +1,3 @@
+<?php
+declare(strict_types=1);namespace App\Http\Controllers\TeachingAssignments;use App\Http\Controllers\Controller;use App\Models\TeachingAssignmentSet;use App\Services\TeachingAssignments\TeachingAssignmentActivationService;use Illuminate\Http\{RedirectResponse,Request};
+class TeachingAssignmentActivationController extends Controller {public function __invoke(Request $r,TeachingAssignmentSet $set,TeachingAssignmentActivationService $s):RedirectResponse{abort_unless($r->user()->can('teaching-assignments.activate'),403);$s->activate($r->user(),$set);return redirect()->route('teaching-assignments.index',['set'=>$set->id,'tab'=>'history'])->with('success','Pembagian tugas berhasil diaktifkan.');}}

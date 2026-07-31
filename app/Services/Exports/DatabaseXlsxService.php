@@ -1,0 +1,4 @@
+<?php
+
+declare(strict_types=1);namespace App\Services\Exports;use App\Services\Personnel\SimpleXlsxService;
+class DatabaseXlsxService {public function __construct(private SimpleXlsxService $fallback){}public function write(array $sheets,string $path):void{if(class_exists(\PhpOffice\PhpSpreadsheet\Spreadsheet::class)){$book=new \PhpOffice\PhpSpreadsheet\Spreadsheet();$index=0;foreach($sheets as $name=>$rows){$sheet=$index===0?$book->getActiveSheet():$book->createSheet();$sheet->setTitle(mb_substr($name,0,31));$sheet->fromArray(array_values($rows),null,'A1');$index++;}(new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($book))->save($path);$book->disconnectWorksheets();return;}$rows=[];foreach($sheets as $name=>$sheetRows){$rows[]=[mb_strtoupper($name)];$rows=[...$rows,...$sheetRows,[]];}$this->fallback->write($rows,$path);}}

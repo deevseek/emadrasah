@@ -18,6 +18,9 @@ class AcademicYear extends Model
         return ['starts_at' => 'date', 'ends_at' => 'date', 'is_active' => 'boolean'];
     }
 
+    public function teachingAssignmentSets(): HasMany { return $this->hasMany(TeachingAssignmentSet::class); }
+    public function teachingAssignments(): HasMany { return $this->hasMany(TeachingAssignment::class); }
+    public function additionalDuties(): HasMany { return $this->hasMany(AdditionalDuty::class); }
     public function semesters(): HasMany { return $this->hasMany(Semester::class); }
     public function createdBy(): BelongsTo { return $this->belongsTo(User::class, 'created_by'); }
     public function updatedBy(): BelongsTo { return $this->belongsTo(User::class, 'updated_by'); }

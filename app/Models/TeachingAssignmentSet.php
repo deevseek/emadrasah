@@ -1,0 +1,6 @@
+<?php
+declare(strict_types=1);
+namespace App\Models;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\{BelongsTo,HasMany};
+class TeachingAssignmentSet extends Model { protected $guarded=[]; protected static function booted():void{static::saving(function(self $set):void{$set->active_academic_year_guard=$set->status==='active'?$set->academic_year_id:null;});} protected function casts():array{return ['activated_at'=>'datetime'];} public function teachingImportBatch():BelongsTo{return $this->belongsTo(TeachingImportBatch::class);} public function activatedBy():BelongsTo{return $this->belongsTo(User::class,'activated_by');} public function academicYear():BelongsTo{return $this->belongsTo(AcademicYear::class);} public function assignments():HasMany{return $this->hasMany(TeachingAssignment::class,'assignment_set_id');} public function exceptions():HasMany{return $this->hasMany(TeachingAssignmentException::class,'assignment_set_id');} public function additionalDuties():HasMany{return $this->hasMany(AdditionalDuty::class,'assignment_set_id');} public function createdBy():BelongsTo{return $this->belongsTo(User::class,'created_by');} public function isEditable():bool{return $this->status==='draft';} }
