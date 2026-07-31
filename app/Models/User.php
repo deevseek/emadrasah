@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
-use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\{HasMany, HasOne};
 
 class User extends Authenticatable
 {
@@ -46,5 +46,7 @@ class User extends Authenticatable
     }
     public function getDisplayRoleAttribute(): string { return $this->roles->first()?->display_name ?? $this->roles->first()?->name ?? 'Tanpa role'; }
     public function getHasLoggedInAttribute(): bool { return $this->last_login_at !== null; }
+    public function createdTeachingAssignmentSets(): HasMany { return $this->hasMany(TeachingAssignmentSet::class, 'created_by'); }
+    public function createdTeachingAssignments(): HasMany { return $this->hasMany(TeachingAssignment::class, 'created_by'); }
     public function personnel(): HasOne { return $this->hasOne(Personnel::class); }
 }

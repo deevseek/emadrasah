@@ -1,0 +1,3 @@
+<?php
+declare(strict_types=1); namespace App\Http\Requests\TeachingAssignments; use Illuminate\Foundation\Http\FormRequest; use Illuminate\Validation\Rule;
+class SaveAdditionalDutyRequest extends FormRequest {public function authorize():bool{return $this->user()->can('teaching-assignments.manage-duties');}public function rules():array{return ['assignment_set_id'=>['required','exists:teaching_assignment_sets,id'],'personnel_id'=>['required','exists:personnel,id'],'duty_type'=>['required',Rule::in(['headmaster','homeroom_teacher','operator','administration_staff','other'])],'duty_name'=>['required','max:150'],'classroom_id'=>['nullable','exists:classrooms,id'],'equivalent_periods'=>['nullable','integer','between:0,99'],'notes'=>['nullable','string']];}}

@@ -1,0 +1,3 @@
+<?php
+declare(strict_types=1); namespace App\Http\Requests\TeachingAssignments; use Illuminate\Foundation\Http\FormRequest; use Illuminate\Validation\Rule;
+class SaveTeachingAssignmentRequest extends FormRequest {public function authorize():bool{return $this->user()->can($this->route('assignment')?'teaching-assignments.update':'teaching-assignments.create');}public function rules():array{return ['assignment_set_id'=>['required','exists:teaching_assignment_sets,id'],'personnel_id'=>['required','exists:personnel,id'],'classroom_id'=>['required','exists:classrooms,id'],'subject_id'=>['required','exists:subjects,id'],'teacher_role'=>['required',Rule::in(['primary','co_teacher'])],'notes'=>['nullable','string','max:2000']];}}
