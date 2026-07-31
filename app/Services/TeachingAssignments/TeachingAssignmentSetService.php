@@ -4,12 +4,24 @@ declare(strict_types=1);
 
 namespace App\Services\TeachingAssignments;
 
-use App\Models\{Subject, TeachingAssignmentSet, TeachingImportBatch, User};
+use App\Models\{Subject, SubjectGradeLoad, TeachingAssignmentSet, TeachingImportBatch, User};
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 final class TeachingAssignmentSetService
 {
+    private const EXPECTED_LOAD_COUNT = 117;
+
+    private const EXPECTED_TOTALS = [
+        '1:full_day' => 62,
+        '1:regular' => 42,
+        '2:regular' => 42,
+        '3:regular' => 50,
+        '4:regular' => 50,
+        '5:regular' => 50,
+        '6:regular' => 50,
+    ];
+
     public function fromImport(TeachingImportBatch $batch, User $actor): TeachingAssignmentSet
     {
         return DB::transaction(function () use ($batch, $actor): TeachingAssignmentSet {
@@ -41,12 +53,25 @@ final class TeachingAssignmentSetService
             throw ValidationException::withMessages(['set' => 'Draft tidak mempunyai batch import sumber.']);
         }
 
-        return DB::transaction(fn (): TeachingAssignmentSet => $this->rebuildWithinTransaction($set, $set->teachingImportBatch, $actor));
+        return DB::transaction(function () use ($set, $actor): TeachingAssignmentSet {
+            $lockedSet = TeachingAssignmentSet::query()->lockForUpdate()->findOrFail($set->id);
+            if (! $lockedSet->isEditable()) {
+                throw ValidationException::withMessages(['set' => 'Hanya set berstatus draft yang dapat dibangun ulang.']);
+            }
+
+            $batch = $lockedSet->teachingImportBatch;
+            if (! $batch) {
+                throw ValidationException::withMessages(['set' => 'Draft tidak mempunyai batch import sumber.']);
+            }
+
+            return $this->rebuildWithinTransaction($lockedSet, $batch, $actor);
+        });
     }
 
     private function rebuildWithinTransaction(TeachingAssignmentSet $set, TeachingImportBatch $batch, User $actor): TeachingAssignmentSet
     {
         (new WorkbookGradeLoadSynchronizer)->synchronize($batch, $actor);
+        $this->ensureWorkbookLoadsAreComplete($set);
         $this->refreshCandidateSubjects($batch);
 
         $set->assignments()->delete();
@@ -97,7 +122,33 @@ final class TeachingAssignmentSetService
         activity('teaching-assignments')->causedBy($actor)->performedOn($set)
             ->log('Membangun draft dari Struktur JP dan LEGGER batch import.');
 
+        app(TeachingAssignmentReadinessService::class)->inspect($set);
+
         return $set->fresh()->loadCount(['assignments', 'additionalDuties']);
+    }
+
+    private function ensureWorkbookLoadsAreComplete(TeachingAssignmentSet $set): void
+    {
+        $totals = SubjectGradeLoad::query()
+            ->join('grade_levels', 'grade_levels.id', '=', 'subject_grade_loads.grade_level_id')
+            ->where('subject_grade_loads.academic_year_id', $set->academic_year_id)
+            ->selectRaw('grade_levels.number as grade_number, subject_grade_loads.program_type, SUM(subject_grade_loads.weekly_hours) as total')
+            ->groupBy('grade_levels.number', 'subject_grade_loads.program_type')
+            ->get()
+            ->mapWithKeys(fn ($load): array => [
+                $load->grade_number.':'.$load->getRawOriginal('program_type') => (int) $load->total,
+            ]);
+
+        $count = SubjectGradeLoad::where('academic_year_id', $set->academic_year_id)->count();
+        $actualTotals = $totals->all();
+        ksort($actualTotals);
+        $expectedTotals = self::EXPECTED_TOTALS;
+        ksort($expectedTotals);
+        if ($count !== self::EXPECTED_LOAD_COUNT || $actualTotals !== $expectedTotals) {
+            throw ValidationException::withMessages([
+                'structure' => 'Struktur JP dari workbook belum berhasil disinkronkan. Draft tidak diubah.',
+            ]);
+        }
     }
 
     private function refreshCandidateSubjects(TeachingImportBatch $batch): void
