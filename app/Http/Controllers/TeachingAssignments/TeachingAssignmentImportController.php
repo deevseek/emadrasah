@@ -28,7 +28,7 @@ class TeachingAssignmentImportController extends Controller
     public function show(Request $request, TeachingImportBatch $batch): View
     {
         $this->authorizeBatch($request, $batch);
-        return view('teaching-assignments.import.show', ['batch' => $batch->load('academicYear'), 'rows' => $batch->rows()->with(['personnel', 'subject', 'classroom'])->when($request->string('status')->isNotEmpty(), fn ($query) => $query->where('status', $request->string('status')->toString()))->orderBy('sheet_name')->orderBy('row_number')->paginate(75)->withQueryString()]);
+        $status = $request->string('status')->toString(); $base = fn (string $type) => $batch->rows()->with(['personnel', 'subject', 'classroom'])->where('row_type', $type)->when($status !== '', fn ($query) => $query->where('status', $status))->orderBy('row_number')->orderBy('source_sequence')->get(); return view('teaching-assignments.import.show', ['batch' => $batch->load('academicYear'), 'status' => $status, 'subjects' => $base('subject'), 'personnelRows' => $base('personnel'), 'classroomRows' => $base('classroom'), 'candidateRows' => $base('assignment_candidate'), 'dutyRows' => $base('additional_duty')]);
     }
 
     public function errors(Request $request, TeachingImportBatch $batch): View

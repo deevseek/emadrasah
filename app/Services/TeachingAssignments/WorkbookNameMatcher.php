@@ -12,6 +12,7 @@ class WorkbookNameMatcher
     {
         $value = str_replace(["’", "‘", "`", "´"], "'", trim((string) $value));
         $value = preg_replace('/\.(?=\s|$)/u', '', $value);
+        $value = preg_replace('/[-‐‑‒–—]+/u', ' ', $value);
         $value = preg_replace('/\s+/u', ' ', $value);
 
         return mb_strtolower(trim((string) $value));

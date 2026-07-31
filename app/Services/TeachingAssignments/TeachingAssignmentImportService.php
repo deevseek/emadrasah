@@ -1,111 +1,43 @@
 <?php
 
 declare(strict_types=1);
-
 namespace App\Services\TeachingAssignments;
-
-use App\Models\{Classroom, Personnel, Subject, TeachingImportBatch, TeachingImportRow, User};
-use App\Services\Personnel\SimpleXlsxService;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\{DB, Storage};
-use RuntimeException;
-
+use App\Models\{Classroom,Personnel,Subject,TeachingImportBatch,TeachingImportRow,User};use App\Services\Personnel\SimpleXlsxService;use Illuminate\Http\UploadedFile;use Illuminate\Support\Collection;use Illuminate\Support\Facades\{DB,Storage};use RuntimeException;
 class TeachingAssignmentImportService
 {
-    public const DATABASE = 'DATABASE';
-    public const LEGGER = 'LEGGER';
-    public const REFERENCE = 'PEMBAGIAN TUGAS MAPEL';
-
-    public function __construct(
-        private SimpleXlsxService $xlsx,
-        private WorkbookNameMatcher $names,
-        private WorkbookClassroomParser $classrooms,
-    ) {}
-
-    public function preview(UploadedFile $file, int $academicYearId, User $actor): TeachingImportBatch
-    {
-        $stored = $file->store('teaching-assignment-imports', 'local');
-        try {
-            $sheets = $this->canonicalSheets($this->xlsx->read(Storage::disk('local')->path($stored)));
-            $this->assertRequiredSheets($sheets);
-
-            return DB::transaction(function () use ($file, $stored, $sheets, $academicYearId, $actor): TeachingImportBatch {
-                $batch = TeachingImportBatch::create(['academic_year_id' => $academicYearId, 'user_id' => $actor->id, 'original_filename' => $file->getClientOriginalName(), 'stored_filename' => $stored, 'status' => 'parsing', 'sheet_count' => count($sheets), 'sheet_names' => array_keys($sheets)]);
-                $personnel = Personnel::where('is_active', true)->get();
-                $subjects = Subject::where('is_active', true)->get();
-                $classrooms = Classroom::with('gradeLevel')->where('academic_year_id', $academicYearId)->where('is_active', true)->get();
-                $found = ['personnel' => collect(), 'subject' => collect(), 'classroom' => collect()];
-
-                foreach ($sheets as $sheet => $rows) {
-                    foreach ($rows as $number => $values) {
-                        if (collect($values)->every(fn ($value) => trim((string) $value) === '')) continue;
-                        $analysis = $this->analyzeRow($sheet, $values, $personnel, $subjects, $classrooms);
-                        foreach (array_keys($found) as $type) $found[$type] = $found[$type]->merge($analysis[$type.'_ids']);
-                        TeachingImportRow::create(['batch_id' => $batch->id, 'sheet_name' => $sheet, 'row_number' => $number, 'row_type' => $this->rowType($sheet), 'raw_data' => $values, 'normalized_data' => $analysis['normalized'], 'status' => $analysis['status'], 'messages' => $analysis['messages'], 'matched_personnel_id' => $analysis['personnel_ids'][0] ?? null, 'matched_subject_id' => $analysis['subject_ids'][0] ?? null, 'matched_classroom_id' => $analysis['classroom_ids'][0] ?? null]);
-                    }
-                }
-
-                $counts = collect(['matched', 'unmatched', 'selection', 'review'])->mapWithKeys(fn ($status) => [$status => $batch->rows()->where('status', $status)->count()]);
-                $summary = ['sheets' => array_keys($sheets), 'subjects_checked' => $found['subject']->unique()->count(), 'personnel_checked' => $found['personnel']->unique()->count(), 'classrooms_checked' => $found['classroom']->unique()->count(), 'source_sheets' => [self::DATABASE, self::LEGGER], 'reference_sheet' => array_key_exists(self::REFERENCE, $sheets) ? self::REFERENCE : null];
-                $batch->update(['status' => 'previewed', 'subject_count' => $summary['subjects_checked'], 'personnel_count' => $summary['personnel_checked'], 'classroom_count' => $summary['classrooms_checked'], 'matched_rows' => $counts['matched'], 'unmatched_rows' => $counts['unmatched'], 'selection_rows' => $counts['selection'], 'review_rows' => $counts['review'], 'summary' => $summary]);
-                activity('teaching-assignments')->causedBy($actor)->performedOn($batch)->withProperties($summary)->log('Membuat pratinjau import pembagian tugas XLSX.');
-
-                return $batch->fresh();
-            });
-        } catch (\Throwable $exception) {
-            Storage::disk('local')->delete($stored);
-            throw $exception;
-        }
-    }
-
-    public function canonicalSheets(array $sheets): array
-    {
-        $wanted = [self::DATABASE, self::LEGGER, self::REFERENCE];
-        $result = [];
-        foreach ($sheets as $name => $rows) {
-            $canonical = collect($wanted)->first(fn ($value) => mb_strtoupper(trim($name)) === $value);
-            if ($canonical) $result[$canonical] = $rows;
-        }
-        return $result;
-    }
-
-    public function assertRequiredSheets(array $sheets): void
-    {
-        $missing = array_values(array_diff([self::DATABASE, self::LEGGER], array_keys($sheets)));
-        if ($missing !== []) throw new RuntimeException('Sheet wajib tidak ditemukan: '.implode(', ', $missing).'.');
-    }
-
-    private function analyzeRow(string $sheet, array $values, Collection $personnel, Collection $subjects, Collection $classrooms): array
-    {
-        $ids = ['personnel' => [], 'subject' => [], 'classroom' => []]; $ambiguous = false;
-        foreach ($values as $value) {
-            $text = trim((string) $value); if ($text === '') continue;
-            $person = $this->names->match($text, $personnel); $subject = $this->names->match($text, $subjects, 'name'); $room = $this->classrooms->match($text, $classrooms);
-            if ($person['match']) $ids['personnel'][] = $person['match']->id;
-            if ($subject['match']) $ids['subject'][] = $subject['match']->id;
-            if ($room['match']) $ids['classroom'][] = $room['match']->id;
-            $ambiguous = $ambiguous || in_array('selection', [$person['status'], $subject['status'], $room['status']], true);
-            if (preg_match('/,|&|\bdan\b/iu', $text) && preg_match('/\bkelas\b/iu', $text)) $ids['classroom'] = [...$ids['classroom'], ...$this->classrooms->expand($text, $classrooms)->pluck('id')->all()];
-        }
-        foreach ($ids as &$valuesForType) $valuesForType = array_values(array_unique($valuesForType)); unset($valuesForType);
-        $hasMatch = collect($ids)->flatten()->isNotEmpty();
-        $homeroomComparison = $this->homeroomComparison($sheet, $ids, $classrooms);
-        $status = $homeroomComparison === 'different' ? 'review' : ($ambiguous ? 'selection' : ($hasMatch ? 'matched' : ($sheet === self::LEGGER ? 'unmatched' : 'review')));
-        $messages = match (true) { $homeroomComparison === 'different' => ['Wali kelas pada XLSX berbeda dengan aplikasi dan tidak akan diganti otomatis.'], $status === 'matched' => ['Data referensi ditemukan pada aplikasi.'], $status === 'selection' => ['Ditemukan lebih dari satu kandidat; operator perlu memilih.'], $status === 'unmatched' => ['Data sumber belum cocok dengan data aplikasi.'], default => ['Baris referensi perlu diperiksa.'] };
-        return ['status' => $status, 'messages' => $messages, 'normalized' => ['cells' => collect($values)->map(fn ($value) => $this->names->normalize((string) $value))->all(), 'personnel_ids' => $ids['personnel'], 'subject_ids' => $ids['subject'], 'classroom_ids' => $ids['classroom'], 'homeroom_comparison' => $homeroomComparison], 'personnel_ids' => $ids['personnel'], 'subject_ids' => $ids['subject'], 'classroom_ids' => $ids['classroom']];
-    }
-
-    private function homeroomComparison(string $sheet, array $ids, Collection $classrooms): ?string
-    {
-        if ($sheet !== self::DATABASE || count($ids['personnel']) !== 1 || count($ids['classroom']) !== 1) return null;
-        $classroom = $classrooms->firstWhere('id', $ids['classroom'][0]);
-        if (! $classroom || ! $classroom->homeroom_personnel_id) return 'not_set';
-        return (int) $classroom->homeroom_personnel_id === (int) $ids['personnel'][0] ? 'same' : 'different';
-    }
-
-    private function rowType(string $sheet): string
-    {
-        return match ($sheet) { self::DATABASE => 'database', self::LEGGER => 'teaching_assignment', default => 'validation_reference' };
-    }
+ public const DATABASE='DATABASE';public const LEGGER='LEGGER';public const REFERENCE='PEMBAGIAN TUGAS MAPEL';private const EMPTY=['','-','–','—'];
+ public function __construct(private SimpleXlsxService $xlsx,private WorkbookNameMatcher $names,private WorkbookClassroomParser $classrooms){}
+ public function preview(UploadedFile $file,int $academicYearId,User $actor):TeachingImportBatch
+ {
+  $stored=$file->store('teaching-assignment-imports','local');
+  try{$sheets=$this->canonicalSheets($this->xlsx->read(Storage::disk('local')->path($stored)));$this->assertRequiredSheets($sheets);return DB::transaction(function()use($file,$stored,$sheets,$academicYearId,$actor){$batch=TeachingImportBatch::create(['academic_year_id'=>$academicYearId,'user_id'=>$actor->id,'original_filename'=>$file->getClientOriginalName(),'stored_filename'=>$stored,'status'=>'parsing','sheet_count'=>count($sheets),'sheet_names'=>array_keys($sheets)]);$people=Personnel::where('is_active',true)->get();$subjects=Subject::where('is_active',true)->get();$rooms=Classroom::with(['gradeLevel','homeroomPersonnel'])->where('academic_year_id',$academicYearId)->where('is_active',true)->get();$database=$this->parseDatabase($batch,$sheets[self::DATABASE],$people,$subjects,$rooms);$legger=$this->parseLegger($batch,$sheets[self::LEGGER],$people,$subjects,$rooms,$database['classrooms']);$template=$this->validateTemplate($sheets[self::REFERENCE]??null);$matchable=$batch->rows()->whereIn('row_type',['subject','personnel','classroom']);$statusCounts=collect(['matched','unmatched','selection','review'])->mapWithKeys(fn($status)=>[$status=>(clone $matchable)->where('status',$status)->count()]);$summary=['sheets'=>array_keys($sheets),'database'=>$database,'legger'=>$legger,'template'=>$template,'matching'=>['matched'=>$statusCounts['matched'],'unmatched'=>$statusCounts['unmatched'],'selection'=>$statusCounts['selection'],'review'=>$statusCounts['review']]];$batch->update(['status'=>'previewed','subject_count'=>$database['subject_count'],'structure_load_count'=>$database['structure_load_count'],'personnel_count'=>$database['personnel_count'],'classroom_count'=>$database['classroom_count'],'assignment_candidate_count'=>$legger['assignment_candidate_count'],'additional_duty_count'=>$legger['additional_duty_count'],'conflict_count'=>$legger['conflict_count'],'matched_rows'=>$statusCounts['matched'],'unmatched_rows'=>$statusCounts['unmatched'],'selection_rows'=>$statusCounts['selection'],'review_rows'=>$statusCounts['review'],'summary'=>$summary]);activity('teaching-assignments')->causedBy($actor)->performedOn($batch)->withProperties(['sheet_count'=>count($sheets),'subjects'=>$database['subject_count'],'personnel'=>$database['personnel_count'],'classrooms'=>$database['classroom_count'],'candidates'=>$legger['assignment_candidate_count']])->log('Membuat pratinjau import pembagian tugas XLSX.');return $batch->fresh();});}catch(\Throwable $e){Storage::disk('local')->delete($stored);throw $e instanceof RuntimeException?$e:new RuntimeException('File XLSX tidak dapat dibaca. Pastikan file tidak rusak dan gunakan format yang benar.',0,$e);}
+ }
+ public function canonicalSheets(array $sheets):array{$wanted=[self::DATABASE,self::LEGGER,self::REFERENCE];$result=[];foreach($sheets as $name=>$rows){$canonical=collect($wanted)->first(fn($value)=>mb_strtoupper(trim($name))===$value);if($canonical)$result[$canonical]=$rows;}return $result;}
+ public function assertRequiredSheets(array $sheets):void{$missing=array_values(array_diff([self::DATABASE,self::LEGGER],array_keys($sheets)));if($missing!==[])throw new RuntimeException('Sheet wajib tidak ditemukan: '.implode(', ',$missing).'.');}
+ private function parseDatabase(TeachingImportBatch $batch,array $rows,Collection $people,Collection $subjects,Collection $rooms):array
+ {
+  $subjectCount=$personnelCount=$classroomCount=$loadCount=0;$totals=[];$sourceClassrooms=[];
+  for($row=10;$row<=33;$row++)if($this->present($rows[$row][3]??null)){$name=trim((string)$rows[$row][3]);$match=$this->names->match($name,$people);$this->row($batch,self::DATABASE,$row,1,'personnel',['name'=>$name],['source_name'=>$name],$match['status'],['personnel'=>$match['match']]);$personnelCount++;}
+  for($row=10;$row<=31;$row++){$name=trim((string)($rows[$row][6]??''));if(!$this->present($name))continue;$code=trim((string)($rows[$row][5]??''));$match=$this->names->match($name,$subjects,'name');$loads=[];foreach(range(8,14) as $column){$value=$rows[$row][$column]??null;$hours=$this->hours($value);$loads[]=$hours;if($hours!==null)$loadCount++;}$this->row($batch,self::DATABASE,$row,2,'subject',['code'=>$code,'name'=>$name,'category'=>$rows[$row][7]??null,'loads'=>$loads],['source_code'=>$code,'source_name'=>$name,'loads'=>$loads],$match['status'],['subject'=>$match['match']]);$subjectCount++;}
+  for($row=10;$row<=21;$row++){$p=trim((string)($rows[$row][16]??''));$q=trim((string)($rows[$row][17]??''));$r=trim((string)($rows[$row][18]??''));$label=$this->classLabel($p,$q);if(!$this->present($label))continue;$match=$this->classrooms->match($label,$rooms);$homeroom=$this->names->match($r,$people);$comparison=$match['match']&&$homeroom['match']?($match['match']->homeroom_personnel_id===$homeroom['match']->id?'same':'different'):'unresolved';$status=$match['status']==='matched'&&$comparison==='different'?'review':$match['status'];$program=str_contains($this->names->normalize($label),'as-salam')?'full_day':'regular';$this->row($batch,self::DATABASE,$row,3,'classroom',['label'=>$label,'homeroom'=>$r],['source_name'=>$label,'suggested_program'=>$program,'homeroom_source'=>$r,'homeroom_match_id'=>$homeroom['match']?->id,'homeroom_comparison'=>$comparison],$status,['classroom'=>$match['match'],'personnel'=>$homeroom['match']]);$classroomCount++;$sourceClassrooms[]=$label;}
+  foreach(range(8,14) as $column)$totals[]=$this->hours($rows[34][$column]??null);
+  return compact('subjectCount','loadCount','personnelCount','classroomCount','totals')+['subject_count'=>$subjectCount,'structure_load_count'=>$loadCount,'personnel_count'=>$personnelCount,'classroom_count'=>$classroomCount,'reference_totals'=>$totals,'classrooms'=>$sourceClassrooms];
+ }
+ private function parseLegger(TeachingImportBatch $batch,array $rows,Collection $people,Collection $subjects,Collection $rooms,array $sourceClassrooms):array
+ {
+  $headers=[];foreach(range(5,26) as $column)$headers[$column]=trim((string)($rows[4][$column]??''));$candidates=[];$duties=0;
+  for($row=5;$row<=28;$row++){$teacher=trim((string)($rows[$row][2]??''));if(!$this->present($teacher))continue;$personMatch=$this->names->match($teacher,$people);$classText=trim((string)($rows[$row][4]??''));$sourceClassParts=$this->expandSourceClasses($classText,$sourceClassrooms);$duty=trim((string)($rows[$row][3]??''));if($this->present($duty)){$this->row($batch,self::LEGGER,$row,1,'additional_duty',['teacher'=>$teacher,'duty'=>$duty,'equivalent_periods'=>$this->hours($rows[$row][27]??null)??0],['source_name'=>$teacher,'duty_name'=>$duty,'equivalent_periods'=>$this->hours($rows[$row][27]??null)??0],$personMatch['status'],['personnel'=>$personMatch['match']]);$duties++;}$sequence=10;foreach($headers as $column=>$subjectName){if(!$this->present($subjectName)||!$this->selected($rows[$row][$column]??null))continue;$subjectMatch=$this->names->match($subjectName,$subjects,'name');foreach($sourceClassParts as $sourceClass){$roomMatch=$this->classrooms->match($sourceClass,$rooms);$status=$this->combinedStatus([$personMatch['status'],$subjectMatch['status'],$roomMatch['status']]);$normalized=['teacher_source'=>$teacher,'subject_source'=>$subjectName,'classroom_source'=>$sourceClass,'personnel_ids'=>$personMatch['match']?[$personMatch['match']->id]:[],'subject_ids'=>$subjectMatch['match']?[$subjectMatch['match']->id]:[],'classroom_ids'=>$roomMatch['match']?[$roomMatch['match']->id]:[]];$this->row($batch,self::LEGGER,$row,$sequence++,'assignment_candidate',['teacher'=>$teacher,'subject'=>$subjectName,'classroom'=>$sourceClass,'selection'=>$rows[$row][$column]],$normalized,$status,['personnel'=>$personMatch['match'],'subject'=>$subjectMatch['match'],'classroom'=>$roomMatch['match']]);$candidates[]=$normalized;}}
+  }
+  $conflictGroups=collect($candidates)->filter(fn($item)=>$item['personnel_ids'])->groupBy(fn($item)=>$this->names->normalize($item['classroom_source']).'_'.$this->names->normalize($item['subject_source']))->filter(fn($group)=>$group->pluck('personnel_ids.0')->unique()->count()>1);$conflictDetails=$conflictGroups->map(fn($group)=>['classroom'=>$group->first()['classroom_source'],'subject'=>$group->first()['subject_source'],'teachers'=>$group->pluck('teacher_source')->unique()->values()->all()])->values()->all();
+  return ['assignment_candidate_count'=>count($candidates),'additional_duty_count'=>$duties,'conflict_count'=>$conflictGroups->count(),'conflicts'=>$conflictDetails,'ignored_rows'=>'29-34'];
+ }
+ private function validateTemplate(?array $rows):array{if($rows===null)return ['available'=>false,'status'=>'Template cetak tidak ditemukan.'];$values=collect($rows)->flatten()->filter(fn($value)=>$this->present($value));return ['available'=>true,'status'=>'Template cetak ditemukan dan berhasil divalidasi.','sample_teacher'=>$values->first(fn($value)=>preg_match('/S\.?Pd|S\.?Ag/iu',(string)$value)),'calculated_value_available'=>$values->contains(fn($value)=>is_numeric($value))];}
+ private function row(TeachingImportBatch $batch,string $sheet,int $number,int $sequence,string $type,array $raw,array $normalized,string $status,array $matches=[]):void{TeachingImportRow::create(['batch_id'=>$batch->id,'sheet_name'=>$sheet,'row_number'=>$number,'source_sequence'=>$sequence,'row_type'=>$type,'raw_data'=>$raw,'normalized_data'=>$normalized,'status'=>$status,'messages'=>[$this->statusMessage($status)],'matched_personnel_id'=>($matches['personnel']??null)?->id,'matched_subject_id'=>($matches['subject']??null)?->id,'matched_classroom_id'=>($matches['classroom']??null)?->id]);}
+ private function combinedStatus(array $statuses):string{return in_array('selection',$statuses,true)?'selection':(in_array('unmatched',$statuses,true)?'unmatched':(in_array('review',$statuses,true)?'review':'matched'));}
+ private function statusMessage(string $status):string{return match($status){'matched'=>'Data sudah cocok.','selection'=>'Ditemukan beberapa pilihan. Pilih data yang benar.','review'=>'Data perlu diperiksa.','conflict'=>'Konflik pengampu perlu diselesaikan.',default=>'Data belum cocok dengan aplikasi.'};}
+ private function present(mixed $value):bool{return !in_array(trim((string)$value),self::EMPTY,true);}
+ private function hours(mixed $value):?int{$hours=$this->present($value)&&is_numeric($value)?(int)round((float)$value):null;return $hours!==null&&$hours>0?$hours:null;}
+ private function selected(mixed $value):bool{return $this->present($value)&&(!is_numeric($value)||(float)$value>0);}
+ private function classLabel(string $p,string $q):string{return $this->present($q)&&!is_numeric($q)?$q:$p;}
+ private function expandSourceClasses(string $text,array $sourceClassrooms):array{$normalized=$this->names->normalize($text);preg_match_all('/\b(?:VI|IV|V|III|II|I)\b/iu',$text,$matches);$grades=array_values(array_unique(array_map('strtoupper',$matches[0])));if(str_contains($text,',')&&$grades)return array_values(array_filter($sourceClassrooms,fn($room)=>collect($grades)->contains(fn($grade)=>preg_match('/\b'.preg_quote($grade,'/').'\b/iu',$room))));$parts=array_values(array_filter(array_map('trim',preg_split('/\s*&\s*/u',$text)?:[]),fn($part)=>$this->present($part)));if(count($parts)>1)return collect($parts)->map(fn($part)=>collect($sourceClassrooms)->first(fn($room)=>$this->names->normalize($room)===$this->names->normalize($part))??$part)->all();$exact=collect($sourceClassrooms)->first(fn($room)=>$this->names->normalize($room)===$normalized);if($exact)return[$exact];if(count($grades)===1)return array_values(array_filter($sourceClassrooms,fn($room)=>preg_match('/\b'.preg_quote($grades[0],'/').'\b/iu',$room)));return $this->present($text)?[$text]:[];}
 }

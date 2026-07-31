@@ -15,7 +15,7 @@ class WorkbookClassroomParser
     {
         $candidates = Collection::make($classrooms);
         $needle = $this->normalize($label);
-        $matches = $candidates->filter(fn (Classroom $classroom): bool => collect([$classroom->name, $classroom->code, $classroom->display_name])->filter()->contains(fn ($value) => $this->normalize((string) $value) === $needle))->values();
+        $matches = $candidates->filter(fn (Classroom $classroom): bool => collect([$classroom->name, $classroom->code, $classroom->display_name, trim(($classroom->gradeLevel?->name ?? '').' '.($classroom->name ?? '')), trim(($classroom->gradeLevel?->name ?? '').' '.$classroom->code)])->filter()->contains(fn ($value) => $this->normalize((string) $value) === $needle))->values();
 
         return match ($matches->count()) {
             0 => ['status' => 'unmatched', 'match' => null, 'matches' => $matches],
@@ -31,9 +31,9 @@ class WorkbookClassroomParser
             return $this->match($text, $classrooms)['matches'];
         }
         $numbers = $this->gradeNumbers($text);
-        if ($numbers !== []) return $classrooms->filter(fn (Classroom $classroom): bool => in_array((int) $classroom->gradeLevel?->number, $numbers, true))->values();
+        if (str_contains($text, ',') && $numbers !== []) return $classrooms->filter(fn (Classroom $classroom): bool => in_array((int) $classroom->gradeLevel?->number, $numbers, true))->values();
 
-        $parts = preg_split('/\s*(?:,|&|\bdan\b)\s*/iu', preg_replace('/^kelas\s+/iu', '', trim($text)));
+        $parts = preg_split('/\s*(?:&|\bdan\b)\s*/iu', trim($text));
         return collect($parts)->flatMap(function (string $part) use ($classrooms) {
             $result = $this->match($part, $classrooms);
             return $result['matches'];
