@@ -12,10 +12,12 @@ class RfidAttendanceService
 {
     public function __construct(private ApplicationSettingService $settings) {}
 
-    public function record(string $rawUid, RfidDevice $device): array
+    public function record(string $rawToken, string $rawUid, RfidDevice $device): array
     {
         if (! $this->settings->get('attendance_rfid_enabled', false)) return ['http' => 403, 'success' => false, 'code' => 'RFID_DISABLED', 'message' => 'Absensi RFID sedang dinonaktifkan'];
-        $card = StudentRfidCard::with('student')->where('uid', StudentRfidCard::normalizeUid($rawUid))->where('is_active', true)->first();
+        $token = strtoupper($rawToken);
+        if (! preg_match('/^[A-F0-9]{32}$/', $token)) return ['http' => 422, 'success' => false, 'code' => 'CARD_NOT_PROVISIONED', 'message' => 'Kartu belum diprogram untuk e-Madrasah.'];
+        $card = StudentRfidCard::with('student')->where('card_token', $token)->where('is_active', true)->first();
         if (! $card) return ['http' => 404, 'success' => false, 'code' => 'CARD_NOT_REGISTERED', 'message' => 'Kartu RFID belum terdaftar'];
         $membership = ClassroomMembership::where('student_id', $card->student_id)->where('status', 'active')->latest('joined_at')->first();
         $year = AcademicYear::where('is_active', true)->first();
