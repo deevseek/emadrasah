@@ -26,12 +26,6 @@ return [
     'classrooms' => ['label'=>'Kelas & Rombel','description'=>'Kelola rombongan belajar, wali kelas, dan penempatan siswa.','permissions'=>[
         'classrooms.view'=>'Melihat seluruh kelas dan rombel','classrooms.view-own'=>'Melihat rombel yang menjadi tanggung jawab sendiri','classrooms.create'=>'Menambahkan rombongan belajar','classrooms.update'=>'Mengubah rombongan belajar','classrooms.activate'=>'Mengaktifkan dan menonaktifkan rombel','classrooms.assign-homeroom'=>'Menentukan wali kelas','classrooms.manage-students'=>'Mengelola anggota rombel','classrooms.map-legacy'=>'Memetakan data kelas lama','classrooms.copy-structure'=>'Menyalin struktur rombel','classrooms.promote'=>'Memproses kenaikan kelas',
     ]],
-    'subjects' => ['label'=>'Mata Pelajaran & Struktur JP','description'=>'Kelola master mata pelajaran dan beban JP per tingkat.','permissions'=>[
-        'subjects.view'=>'Melihat daftar mata pelajaran','subjects.create'=>'Menambahkan mata pelajaran','subjects.update'=>'Mengubah mata pelajaran','subjects.view-loads'=>'Melihat matriks struktur JP','subjects.manage-loads'=>'Mengubah matriks struktur JP','subjects.activate'=>'Mengaktifkan atau menonaktifkan mata pelajaran','subjects.export'=>'Mengekspor Mata Pelajaran dan Struktur JP',
-    ]],
-    'teaching-assignments' => ['label'=>'Pembagian Tugas Mengajar','description'=>'Pratinjau dan pencocokan workbook pembagian tugas.','permissions'=>[
-        'teaching-assignments.import'=>'Mengimpor dan memeriksa pratinjau pembagian tugas XLSX','teaching-assignments.view'=>'Melihat pembagian tugas dan rekap JP','teaching-assignments.create'=>'Membuat draft dan penugasan','teaching-assignments.update'=>'Mengubah penugasan draft','teaching-assignments.manage-duties'=>'Mengelola tugas tambahan','teaching-assignments.activate'=>'Mengaktifkan pembagian tugas','teaching-assignments.export'=>'Mengekspor pembagian tugas','teaching-assignments.print'=>'Mencetak pembagian tugas','teaching-assignments.view-own'=>'Melihat tugas mengajar sendiri','teaching-assignments.print-own'=>'Mencetak tugas mengajar sendiri',
-    ]],
     'users' => ['label' => 'Pengguna', 'permissions' => [
         'users.view' => 'Melihat pengguna', 'users.create' => 'Menambah pengguna',
         'users.update' => 'Mengubah pengguna', 'users.activate' => 'Mengaktifkan dan menonaktifkan akun',

@@ -14,6 +14,5 @@ class DatabaseSeeder extends Seeder
         $this->call(SchoolProfileSeeder::class);
         $this->call(AcademicPeriodSeeder::class);
         $this->call(GradeLevelSeeder::class);
-        $this->call(SubjectSeeder::class);
     }
 }

@@ -1,3 +1,0 @@
-<?php
-declare(strict_types=1);namespace App\Http\Requests\TeachingAssignments;use Illuminate\Foundation\Http\FormRequest;use Illuminate\Validation\Rule;
-class ResolveTeachingConflictRequest extends FormRequest {public function authorize():bool{return $this->user()->can('teaching-assignments.update');}public function rules():array{return ['classroom_id'=>['required','exists:classrooms,id'],'subject_id'=>['required','exists:subjects,id'],'strategy'=>['required',Rule::in(['single','shared'])],'primary_personnel_id'=>['required','exists:personnel,id'],'periods'=>['nullable','array'],'periods.*'=>['integer','min:1']];}}
