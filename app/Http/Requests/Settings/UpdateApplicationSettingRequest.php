@@ -16,6 +16,7 @@ class UpdateApplicationSettingRequest extends FormRequest
         $data = collect($this->except(['_token', '_method']))->map(fn ($value) => is_string($value) ? trim($value) : $value)->all();
         $data['maintenance_mode'] = $this->boolean('maintenance_mode');
         $data['attendance_rfid_enabled'] = $this->boolean('attendance_rfid_enabled');
+        $data['rfid_writer_enabled'] = $this->boolean('rfid_writer_enabled');
         if (isset($data['app_email'])) $data['app_email'] = strtolower($data['app_email']);
         $this->merge($data);
     }
@@ -36,6 +37,7 @@ class UpdateApplicationSettingRequest extends FormRequest
             'maintenance_mode' => ['required', 'boolean'], 'maintenance_message' => ['required', 'string', 'max:500'],
             'pagination_size' => ['required', 'integer', Rule::in([10, 20, 25, 50, 100])],
             'attendance_rfid_enabled' => ['required', 'boolean'],
+            'rfid_writer_enabled' => ['required', 'boolean'],
         ];
     }
 
