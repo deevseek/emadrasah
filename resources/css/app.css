@@ -18,7 +18,7 @@
 
 @layer components {
   .app-shell { @apply min-h-screen bg-slate-100 text-slate-900; }
-  .app-sidebar { @apply fixed inset-y-0 left-0 z-40 flex w-72 -translate-x-full flex-col border-r border-emerald-900/40 bg-emerald-950 text-white shadow-xl transition-transform duration-300 lg:translate-x-0; }
+  .app-sidebar { @apply fixed inset-y-0 left-0 z-40 flex w-72 -translate-x-full flex-col border-r border-emerald-900/40 text-white shadow-xl transition-transform duration-300 lg:translate-x-0; background-color: color-mix(in srgb, var(--app-primary, #047857) 38%, #022c22); }
   .mobile-sidebar-open .app-sidebar { @apply translate-x-0; }
   .sidebar-collapsed .app-sidebar { @apply lg:w-24; }
   .sidebar-collapsed .sidebar-label, .sidebar-collapsed .sidebar-section, .sidebar-collapsed .sidebar-user-detail { @apply lg:hidden; }

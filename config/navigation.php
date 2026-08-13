@@ -33,6 +33,7 @@ return [
         'items' => [
             ['label' => 'Pengguna', 'route' => 'users.index', 'active' => 'users.*', 'permission' => 'users.view', 'icon' => 'users'],
             ['label' => 'Role & Hak Akses', 'route' => 'roles.index', 'active' => 'roles.*', 'permission' => 'roles.view', 'icon' => 'roles'],
+            ['label' => 'Pengaturan Aplikasi', 'route' => 'application-settings.edit', 'active' => 'application-settings.*', 'permission' => 'application-settings.view', 'icon' => 'filter'],
         ],
     ],
     ['label'=>'Akademik','items'=>[

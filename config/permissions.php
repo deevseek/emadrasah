@@ -36,6 +36,9 @@ return [
         'roles.view' => 'Melihat role', 'roles.create' => 'Menambah role', 'roles.update' => 'Mengubah role',
         'roles.delete' => 'Menghapus role', 'roles.manage-permissions' => 'Mengatur hak akses role',
     ]],
+    'application-settings' => ['category' => 'SISTEM', 'label' => 'Pengaturan Aplikasi', 'permissions' => [
+        'application-settings.view' => 'Melihat pengaturan aplikasi', 'application-settings.update' => 'Mengubah pengaturan aplikasi',
+    ]],
     'academic-attendance'=>['category'=>'AKADEMIK','label'=>'Absensi Siswa','permissions'=>['academic-attendance.view'=>'Melihat absensi siswa','academic-attendance.manage'=>'Mengelola absensi siswa']],
     'academic-grades'=>['category'=>'AKADEMIK','label'=>'Daftar Nilai','permissions'=>['academic-grades.view'=>'Melihat daftar nilai','academic-grades.manage'=>'Mengelola daftar nilai']],
     'academic-subjects'=>['category'=>'AKADEMIK','label'=>'Mata Pelajaran','permissions'=>['academic-subjects.view'=>'Melihat mata pelajaran','academic-subjects.manage'=>'Mengelola mata pelajaran']],

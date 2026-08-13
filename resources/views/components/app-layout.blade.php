@@ -2,9 +2,10 @@
 @php
     use Illuminate\Support\Facades\Gate;
 
-    $schoolName = $schoolProfile->display_name;
-    $appName = (string) config('emadrasah.app_name');
-    $logo = $schoolProfile->logo_url;
+    $schoolName = (string) $applicationSettings->get('institution_name', $schoolProfile->display_name);
+    $appName = (string) $applicationSettings->get('app_name', config('emadrasah.app_name'));
+    $logo = $applicationSettings->assetUrl('primary_logo') ?: $schoolProfile->logo_url;
+    $favicon = $applicationSettings->assetUrl('favicon');
     $user = auth()->user();
     $role = $user?->roles?->pluck('display_name')->filter()->first() ?? $user?->roles?->pluck('name')->first() ?? 'Pengguna';
     $navGroups = config('navigation', []);
@@ -13,8 +14,8 @@
 @endphp
 <!doctype html>
 <html lang="id">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{{ $title }} - {{ $schoolName }}</title>@vite(['resources/css/app.css','resources/js/app.js'])</head>
-<body class="app-shell">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{{ $title }} - {{ $appName }}</title>@if($favicon)<link rel="icon" href="{{ $favicon }}">@endif<style>:root{--app-primary:{{ $applicationSettings->get('primary_color', '#047857') }}}</style>@vite(['resources/css/app.css','resources/js/app.js'])</head>
+<body class="app-shell" data-sidebar-default="{{ $applicationSettings->get('sidebar_mode', 'expanded') }}">
 <div class="app-sidebar-overlay" onclick="closeMobileSidebar()" aria-hidden="true"></div>
 <aside class="app-sidebar">
   <div class="flex items-center gap-3 border-b border-white/10 p-5">
