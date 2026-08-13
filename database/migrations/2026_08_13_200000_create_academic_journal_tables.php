@@ -11,11 +11,11 @@ return new class extends Migration {
     {
         Schema::create('teaching_journals', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('academic_year_id')->constrained()->restrictOnDelete()->index();
-            $table->foreignId('semester_id')->constrained()->restrictOnDelete()->index();
-            $table->foreignId('classroom_id')->constrained()->restrictOnDelete()->index();
-            $table->foreignId('academic_subject_id')->constrained()->restrictOnDelete()->index();
-            $table->foreignId('personnel_id')->constrained('personnel')->restrictOnDelete()->index();
+            $table->foreignId('academic_year_id')->index()->constrained()->restrictOnDelete();
+            $table->foreignId('semester_id')->index()->constrained()->restrictOnDelete();
+            $table->foreignId('classroom_id')->index()->constrained()->restrictOnDelete();
+            $table->foreignId('academic_subject_id')->index()->constrained()->restrictOnDelete();
+            $table->foreignId('personnel_id')->index()->constrained('personnel')->restrictOnDelete();
             $table->date('journal_date')->index();
             $table->string('lesson_number', 50)->nullable();
             $table->string('topic');
@@ -32,9 +32,9 @@ return new class extends Migration {
 
         Schema::create('classroom_journals', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('academic_year_id')->constrained()->restrictOnDelete()->index();
-            $table->foreignId('semester_id')->constrained()->restrictOnDelete()->index();
-            $table->foreignId('classroom_id')->constrained()->restrictOnDelete()->index();
+            $table->foreignId('academic_year_id')->index()->constrained()->restrictOnDelete();
+            $table->foreignId('semester_id')->index()->constrained()->restrictOnDelete();
+            $table->foreignId('classroom_id')->index()->constrained()->restrictOnDelete();
             $table->date('journal_date')->index();
             $table->text('agenda')->nullable();
             $table->text('classroom_condition')->nullable();
