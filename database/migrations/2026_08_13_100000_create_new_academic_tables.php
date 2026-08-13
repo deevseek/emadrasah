@@ -16,7 +16,7 @@ return new class extends Migration {
         Schema::create('student_attendances', function (Blueprint $table): void {
             $table->id(); $table->foreignId('academic_year_id')->constrained()->restrictOnDelete(); $table->foreignId('semester_id')->constrained()->restrictOnDelete(); $table->foreignId('classroom_id')->constrained()->restrictOnDelete(); $table->foreignId('student_id')->constrained()->restrictOnDelete();
             $table->date('attendance_date'); $table->string('status', 20); $table->text('notes')->nullable(); $table->foreignId('recorded_by')->constrained('users')->restrictOnDelete(); $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete(); $table->timestamps();
-            $table->unique(['student_id','classroom_id','attendance_date']); $table->index(['academic_year_id','semester_id','classroom_id','attendance_date'], 'attendance_filters');
+            $table->unique(['student_id','classroom_id','attendance_date'], 'attendance_unique'); $table->index(['academic_year_id','semester_id','classroom_id','attendance_date'], 'attendance_filters');
         });
         Schema::create('student_grades', function (Blueprint $table): void {
             $table->id(); $table->foreignId('academic_year_id')->constrained()->restrictOnDelete(); $table->foreignId('semester_id')->constrained()->restrictOnDelete(); $table->foreignId('classroom_id')->constrained()->restrictOnDelete(); $table->foreignId('student_id')->constrained()->restrictOnDelete(); $table->foreignId('academic_subject_id')->constrained()->restrictOnDelete();
