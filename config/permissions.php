@@ -37,5 +37,8 @@ return [
     ]],
     'academic-attendance'=>['label'=>'Absensi Siswa','permissions'=>['academic-attendance.view'=>'Melihat absensi siswa','academic-attendance.manage'=>'Mengelola absensi siswa']],
     'academic-grades'=>['label'=>'Daftar Nilai','permissions'=>['academic-grades.view'=>'Melihat daftar nilai','academic-grades.manage'=>'Mengelola daftar nilai']],
+    'academic-subjects'=>['label'=>'Mata Pelajaran','permissions'=>['academic-subjects.view'=>'Melihat mata pelajaran','academic-subjects.manage'=>'Mengelola mata pelajaran']],
+    'teaching-journals'=>['label'=>'Jurnal Mengajar','permissions'=>['teaching-journals.view'=>'Melihat jurnal mengajar','teaching-journals.manage'=>'Mengelola jurnal mengajar','teaching-journals.view-all'=>'Melihat semua jurnal mengajar']],
+    'classroom-journals'=>['label'=>'Jurnal Kelas','permissions'=>['classroom-journals.view'=>'Melihat jurnal kelas','classroom-journals.manage'=>'Mengelola jurnal kelas','classroom-journals.view-all'=>'Melihat semua jurnal kelas']],
     'academic-reports'=>['label'=>'Laporan Akademik','permissions'=>['academic-reports.view'=>'Melihat laporan akademik','academic-reports.export'=>'Mencetak atau mengekspor laporan akademik']],
 ];
