@@ -11,6 +11,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call(AccessControlSeeder::class);
+        $this->call(ApplicationSettingSeeder::class);
         $this->call(SchoolProfileSeeder::class);
         $this->call(AcademicPeriodSeeder::class);
         $this->call(GradeLevelSeeder::class);

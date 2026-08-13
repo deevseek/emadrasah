@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Services\Foundation\AcademicPeriodService;
 use App\Services\Foundation\SchoolProfileService;
+use App\Services\Settings\ApplicationSettingService;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -14,14 +15,19 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->singleton(SchoolProfileService::class);
         $this->app->singleton(AcademicPeriodService::class);
+        $this->app->singleton(ApplicationSettingService::class);
     }
 
     public function boot(): void
     {
+        $settings = app(ApplicationSettingService::class);
+        date_default_timezone_set((string) $settings->get('timezone', config('app.timezone')));
+        config(['app.timezone' => $settings->get('timezone', config('app.timezone'))]);
         Gate::before(fn ($user, string $ability): ?bool => $user->hasRole('super-admin') ? true : null);
         View::composer('*', function ($view): void {
             $view->with('schoolProfile', app(SchoolProfileService::class)->current());
             $view->with('activeAcademicPeriod', app(AcademicPeriodService::class)->current());
+            $view->with('applicationSettings', app(ApplicationSettingService::class));
         });
     }
 }

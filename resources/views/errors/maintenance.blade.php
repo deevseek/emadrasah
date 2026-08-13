@@ -1,0 +1,3 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Pemeliharaan Sistem</title>@vite(['resources/css/app.css'])</head>
+<body class="grid min-h-screen place-items-center bg-emerald-950 p-6"><main class="w-full max-w-lg rounded-3xl bg-white p-8 text-center shadow-2xl"><div class="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-amber-100 text-3xl">⚙</div><h1 class="mt-5 text-2xl font-bold text-emerald-950">Sistem dalam pemeliharaan</h1><p class="mt-3 text-sm leading-6 text-slate-600">{{ $message }}</p><p class="mt-6 text-xs text-slate-400">Terima kasih atas pengertian Anda.</p></main></body></html>
