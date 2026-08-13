@@ -39,6 +39,7 @@ return [
     'application-settings' => ['category' => 'SISTEM', 'label' => 'Pengaturan Aplikasi', 'permissions' => [
         'application-settings.view' => 'Melihat pengaturan aplikasi', 'application-settings.update' => 'Mengubah pengaturan aplikasi',
     ]],
+    'rfid-cards' => ['category'=>'DATA MASTER','label'=>'Kartu RFID Siswa','permissions'=>['rfid-cards.manage'=>'Mendaftarkan, mengganti, dan menonaktifkan kartu RFID siswa']],
     'academic-attendance'=>['category'=>'AKADEMIK','label'=>'Absensi Siswa','permissions'=>['academic-attendance.view'=>'Melihat absensi siswa','academic-attendance.manage'=>'Mengelola absensi siswa']],
     'academic-grades'=>['category'=>'AKADEMIK','label'=>'Daftar Nilai','permissions'=>['academic-grades.view'=>'Melihat daftar nilai','academic-grades.manage'=>'Mengelola daftar nilai']],
     'academic-subjects'=>['category'=>'AKADEMIK','label'=>'Mata Pelajaran','permissions'=>['academic-subjects.view'=>'Melihat mata pelajaran','academic-subjects.manage'=>'Mengelola mata pelajaran']],
