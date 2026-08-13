@@ -13,7 +13,7 @@ class RfidAttendanceController extends Controller
 {
     public function __invoke(RecordRfidAttendanceRequest $request, RfidAttendanceService $service): JsonResponse
     {
-        $result = $service->record($request->string('uid')->toString(), $request->attributes->get('rfid_device'));
+        $result = $service->record($request->string('card_token')->toString(), $request->string('uid')->toString(), $request->attributes->get('rfid_device'));
         $status = $result['http']; unset($result['http']);
         return response()->json($result, $status);
     }
