@@ -31,4 +31,15 @@ class AcademicTablesMigrationTest extends TestCase
         $this->assertTrue(Schema::hasTable('student_grades'));
         $this->assertDatabaseHas('academic_subjects', ['name' => 'Fikih']);
     }
+
+    public function test_journal_migration_recovers_when_teaching_journals_table_already_exists(): void
+    {
+        Schema::drop('classroom_journals');
+
+        $migration = require database_path('migrations/2026_08_13_200000_create_academic_journal_tables.php');
+        $migration->up();
+
+        $this->assertTrue(Schema::hasTable('teaching_journals'));
+        $this->assertTrue(Schema::hasTable('classroom_journals'));
+    }
 }
