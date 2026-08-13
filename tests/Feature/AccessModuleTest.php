@@ -78,9 +78,23 @@ class AccessModuleTest extends TestCase
         $this->assertTrue($kepala->hasAllPermissions(['academic-reports.export', 'teaching-journals.view-all', 'classroom-journals.view-all']));
         $this->assertFalse($kepala->hasPermissionTo('academic-attendance.manage'));
         $this->assertTrue($operator->hasAllPermissions(['academic-attendance.manage', 'users.assign-role', 'roles.view']));
+        $this->assertTrue($operator->hasAllPermissions([
+            'rfid-card.view',
+            'rfid-card.issue',
+            'rfid-card.replace',
+            'rfid-card.disable',
+            'rfid-writer.use',
+        ]));
         $this->assertFalse($operator->hasPermissionTo('roles.manage-permissions'));
         $this->assertTrue($guru->hasAllPermissions(['academic-attendance.manage', 'academic-grades.manage', 'classroom-journals.manage']));
         $this->assertFalse($guru->hasAnyPermission(['teaching-journals.view-all', 'classroom-journals.view-all']));
+        $this->assertFalse($guru->hasAnyPermission([
+            'rfid-card.view',
+            'rfid-card.issue',
+            'rfid-card.replace',
+            'rfid-card.disable',
+            'rfid-writer.use',
+        ]));
     }
 
     public function test_reseeding_preserves_adjusted_and_custom_roles(): void
