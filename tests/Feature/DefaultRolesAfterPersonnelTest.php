@@ -63,6 +63,20 @@ class DefaultRolesAfterPersonnelTest extends TestCase
         $this->actingAs($admin)->get(route('roles.edit',Role::findByName('super-admin')))->assertForbidden();
     }
 
+    public function test_seeder_creates_default_role_permissions_when_configuration_is_stale(): void
+    {
+        $permissions = config('permissions');
+        unset($permissions['academic-subjects']);
+        config()->set('permissions', $permissions);
+        Permission::query()->where('name', 'like', 'academic-subjects.%')->delete();
+
+        $this->seed(AccessControlSeeder::class);
+
+        $this->assertTrue(Role::findByName('kepala-madrasah')->hasPermissionTo('academic-subjects.view'));
+        $this->assertTrue(Role::findByName('operator')->hasPermissionTo('academic-subjects.manage'));
+        $this->assertTrue(Role::findByName('guru')->hasPermissionTo('academic-subjects.view'));
+    }
+
     public function test_role_pages_and_user_forms_use_configured_order_and_protect_system_roles(): void
     {
         $admin=User::where('username','administrator')->firstOrFail();
