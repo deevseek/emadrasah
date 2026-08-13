@@ -40,7 +40,3 @@ require __DIR__.'/personnel.php';
 require __DIR__.'/students.php';
 
 require __DIR__.'/classrooms.php';
-
-require __DIR__.'/subjects.php';
-
-require __DIR__.'/teaching-assignments.php';

@@ -46,7 +46,5 @@ class User extends Authenticatable
     }
     public function getDisplayRoleAttribute(): string { return $this->roles->first()?->display_name ?? $this->roles->first()?->name ?? 'Tanpa role'; }
     public function getHasLoggedInAttribute(): bool { return $this->last_login_at !== null; }
-    public function createdTeachingAssignmentSets(): HasMany { return $this->hasMany(TeachingAssignmentSet::class, 'created_by'); }
-    public function createdTeachingAssignments(): HasMany { return $this->hasMany(TeachingAssignment::class, 'created_by'); }
     public function personnel(): HasOne { return $this->hasOne(Personnel::class); }
 }
