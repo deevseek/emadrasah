@@ -35,4 +35,9 @@ return [
             ['label' => 'Role & Hak Akses', 'route' => 'roles.index', 'active' => 'roles.*', 'permission' => 'roles.view', 'icon' => 'roles'],
         ],
     ],
+    ['label'=>'Akademik','items'=>[
+        ['label'=>'Absensi Siswa','route'=>'academic.attendance.index','active'=>'academic.attendance.*','permission'=>'academic-attendance.view','icon'=>'calendar'],
+        ['label'=>'Daftar Nilai','route'=>'academic.grades.index','active'=>'academic.grades.*','permission'=>'academic-grades.view','icon'=>'academic'],
+        ['label'=>'Laporan Akademik','route'=>'academic.reports.index','active'=>'academic.reports.*','permission'=>'academic-reports.view','icon'=>'document'],
+    ]],
 ];
