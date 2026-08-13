@@ -17,15 +17,23 @@ class AccessControlSeeder extends Seeder
     public function run(): void
     {
         app(PermissionRegistrar::class)->forgetCachedPermissions();
-        $permissions = collect(config('permissions'))->flatMap(fn (array $group) => array_keys($group['permissions']))
-            ->mapWithKeys(fn (string $name) => [$name => Permission::findOrCreate($name, 'web')]);
-
         $roles = [
-            'super-admin' => ['Super Admin', 'Memiliki seluruh akses aplikasi dan terlindungi oleh sistem.', $permissions->keys()->all()],
+            'super-admin' => ['Super Admin', 'Memiliki seluruh akses aplikasi dan terlindungi oleh sistem.', []],
             'kepala-madrasah' => ['Kepala Madrasah', 'Memantau data utama madrasah, periode akademik, personalia, pengguna, dan hak akses.', ['academic-subjects.view', 'teaching-journals.view', 'teaching-journals.view-all', 'classroom-journals.view', 'classroom-journals.view-all', 'academic-attendance.view', 'academic-grades.view', 'academic-reports.view', 'academic-reports.export', 'dashboard.view', 'school-profile.view', 'academic-periods.view', 'personnel.view', 'personnel.view-sensitive', 'personnel.export', 'students.view', 'students.view-sensitive', 'students.export', 'classrooms.view', 'users.view', 'roles.view']],
             'operator' => ['Operator', 'Mengelola data operasional, akun, periode akademik, dan personalia madrasah.', ['academic-subjects.view', 'academic-subjects.manage', 'teaching-journals.view', 'teaching-journals.manage', 'teaching-journals.view-all', 'classroom-journals.view', 'classroom-journals.manage', 'classroom-journals.view-all', 'academic-attendance.view', 'academic-attendance.manage', 'academic-grades.view', 'academic-grades.manage', 'academic-reports.view', 'academic-reports.export', 'dashboard.view', 'school-profile.view', 'school-profile.update', 'school-profile.update-logo', 'school-profile.update-leader', 'academic-periods.view', 'academic-periods.create', 'academic-periods.update', 'academic-periods.activate', 'personnel.view', 'personnel.create', 'personnel.update', 'personnel.activate', 'personnel.manage-account', 'personnel.view-sensitive', 'personnel.import', 'personnel.export', 'students.view', 'students.create', 'students.update', 'students.change-status', 'students.view-sensitive', 'students.import', 'students.export', 'classrooms.view', 'classrooms.create', 'classrooms.update', 'classrooms.activate', 'classrooms.assign-homeroom', 'classrooms.manage-students', 'classrooms.map-legacy', 'classrooms.copy-structure', 'classrooms.promote', 'users.view', 'users.create', 'users.update', 'users.activate', 'users.reset-password', 'users.assign-role', 'roles.view']],
             'guru' => ['Guru', 'Mengakses layanan dasar yang disediakan untuk guru.', ['academic-subjects.view', 'teaching-journals.view', 'teaching-journals.manage', 'classroom-journals.view', 'classroom-journals.manage', 'academic-attendance.view', 'academic-attendance.manage', 'academic-grades.view', 'academic-grades.manage', 'academic-reports.view', 'dashboard.view', 'school-profile.view', 'academic-periods.view', 'classrooms.view-own']],
         ];
+
+        $configuredPermissions = collect(config('permissions'))
+            ->flatMap(fn (array $group) => array_keys($group['permissions']));
+        $defaultRolePermissions = collect($roles)
+            ->flatMap(fn (array $role) => $role[2]);
+        $permissions = $configuredPermissions
+            ->merge($defaultRolePermissions)
+            ->unique()
+            ->mapWithKeys(fn (string $name) => [$name => Permission::findOrCreate($name, 'web')]);
+        $roles['super-admin'][2] = $permissions->keys()->all();
+
         foreach ($roles as $slug => [$label, $description, $grants]) {
             $isNew = ! Role::query()->where('name', $slug)->where('guard_name', 'web')->exists();
             $role = Role::findOrCreate($slug, 'web');
