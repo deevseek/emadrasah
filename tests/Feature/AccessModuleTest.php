@@ -15,6 +15,17 @@ class AccessModuleTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_production_seeder_without_password_still_seeds_roles_without_creating_admin(): void
+    {
+        User::query()->delete();
+        config(['app.env' => 'production']);
+
+        $this->seed(AccessControlSeeder::class);
+
+        $this->assertDatabaseHas('roles', ['name' => 'super-admin']);
+        $this->assertDatabaseMissing('users', ['email' => 'admin@example.test']);
+    }
+
     protected function setUp(): void
     {
         parent::setUp();

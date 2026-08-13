@@ -26,7 +26,7 @@ npm run build
 php artisan serve
 ```
 
-Sesuaikan koneksi database di `.env`. Kredensial development bawaan adalah `admin@example.test` dengan password `password` hanya jika `SEED_ADMIN_PASSWORD` kosong dan aplikasi tidak berjalan di production.
+Sesuaikan koneksi database di `.env`. Kredensial development bawaan adalah `admin@example.test` dengan password `password` hanya jika `SEED_ADMIN_PASSWORD` kosong dan aplikasi tidak berjalan di production. Pada production, seeder tetap membuat role dan permission, tetapi melewati pembuatan akun super admin baru apabila `SEED_ADMIN_PASSWORD` belum diisi.
 
 ## Konfigurasi identitas
 

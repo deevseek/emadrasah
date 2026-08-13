@@ -8,7 +8,6 @@ use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
-use RuntimeException;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
 
@@ -43,12 +42,32 @@ class AccessControlSeeder extends Seeder
         }
 
         $password = (string) env('SEED_ADMIN_PASSWORD', '');
-        if ($password === '' && app()->environment('production')) throw new RuntimeException('SEED_ADMIN_PASSWORD wajib diisi pada lingkungan production.');
-        $user = User::query()->updateOrCreate(['email' => strtolower((string) env('SEED_ADMIN_EMAIL', 'admin@example.test'))], [
+        $email = strtolower((string) env('SEED_ADMIN_EMAIL', 'admin@example.test'));
+        $attributes = [
             'name' => (string) env('SEED_ADMIN_NAME', 'Administrator'),
             'username' => strtolower((string) env('SEED_ADMIN_USERNAME', 'administrator')),
-            'password' => Hash::make($password ?: 'password'), 'is_active' => true, 'must_change_password' => false,
-        ]);
+            'is_active' => true,
+            'must_change_password' => false,
+        ];
+
+        if ($password === '' && app()->environment('production')) {
+            $user = User::query()->where('email', $email)->first();
+
+            if ($user === null) {
+                $this->command?->warn('Akun super admin tidak dibuat karena SEED_ADMIN_PASSWORD belum diisi.');
+                app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+                return;
+            }
+
+            $user->update($attributes);
+        } else {
+            $user = User::query()->updateOrCreate(['email' => $email], [
+                ...$attributes,
+                'password' => Hash::make($password ?: 'password'),
+            ]);
+        }
+
         app(PermissionRegistrar::class)->forgetCachedPermissions();
         $user->syncRoles([Role::query()->where('name', 'super-admin')->firstOrFail()]);
     }
