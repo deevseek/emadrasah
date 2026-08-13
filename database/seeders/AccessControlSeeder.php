@@ -37,7 +37,7 @@ class AccessControlSeeder extends Seeder
             $isNew = ! Role::query()->where('name', $slug)->where('guard_name', 'web')->exists();
             $role = Role::findOrCreate($slug, 'web');
             $role->update(['display_name' => $label, 'description' => $description, 'is_system' => true]);
-            $slug === 'super-admin' ? $role->syncPermissions($grants) : $role->givePermissionTo($grants);
+            $slug === 'super-admin' ? $role->syncPermissions($grants) : ($isNew ? $role->syncPermissions($grants) : null);
             if ($isNew && $slug === 'kepala-madrasah') activity('akses')->performedOn($role)->log('Membuat role sistem Kepala Madrasah.');
         }
 

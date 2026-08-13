@@ -59,6 +59,43 @@ class AccessModuleTest extends TestCase
         $this->actingAs($admin)->delete(route('roles.destroy', $role))->assertStatus(422);
     }
 
+    public function test_four_system_roles_are_available_in_display_order(): void
+    {
+        $roles = Role::query()->inDisplayOrder()->where('is_system', true)->pluck('name')->all();
+
+        $this->assertSame(['super-admin', 'kepala-madrasah', 'operator', 'guru'], $roles);
+    }
+
+    public function test_default_role_permission_matrix_is_safe(): void
+    {
+        $all = collect(config('permissions'))->flatMap(fn (array $module) => array_keys($module['permissions']));
+        $superAdmin = Role::where('name', 'super-admin')->firstOrFail();
+        $kepala = Role::where('name', 'kepala-madrasah')->firstOrFail();
+        $operator = Role::where('name', 'operator')->firstOrFail();
+        $guru = Role::where('name', 'guru')->firstOrFail();
+
+        $this->assertEqualsCanonicalizing($all->all(), $superAdmin->permissions->pluck('name')->all());
+        $this->assertTrue($kepala->hasAllPermissions(['academic-reports.export', 'teaching-journals.view-all', 'classroom-journals.view-all']));
+        $this->assertFalse($kepala->hasPermissionTo('academic-attendance.manage'));
+        $this->assertTrue($operator->hasAllPermissions(['academic-attendance.manage', 'users.assign-role', 'roles.view']));
+        $this->assertFalse($operator->hasPermissionTo('roles.manage-permissions'));
+        $this->assertTrue($guru->hasAllPermissions(['academic-attendance.manage', 'academic-grades.manage', 'classroom-journals.manage']));
+        $this->assertFalse($guru->hasAnyPermission(['teaching-journals.view-all', 'classroom-journals.view-all']));
+    }
+
+    public function test_reseeding_preserves_adjusted_and_custom_roles(): void
+    {
+        $operator = Role::where('name', 'operator')->firstOrFail();
+        $operator->revokePermissionTo('academic-attendance.manage');
+        $custom = Role::create(['name'=>'auditor', 'guard_name'=>'web', 'display_name'=>'Auditor', 'is_system'=>false]);
+        $custom->givePermissionTo('dashboard.view');
+
+        $this->seed(AccessControlSeeder::class);
+
+        $this->assertFalse($operator->refresh()->hasPermissionTo('academic-attendance.manage'));
+        $this->assertTrue($custom->refresh()->hasPermissionTo('dashboard.view'));
+    }
+
     public function test_derived_permission_automatically_includes_view_permission(): void
     {
         $admin = User::where('username', 'administrator')->firstOrFail();
