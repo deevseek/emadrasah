@@ -46,6 +46,7 @@ class DefaultRolesAfterPersonnelTest extends TestCase
         foreach(['personnel.create','personnel.update','personnel.activate','personnel.manage-account','personnel.import','users.create','users.assign-role','roles.manage-permissions'] as $permission)$this->assertFalse($head->hasPermissionTo($permission));
         $operator=Role::findByName('operator');
         foreach(['personnel.view','personnel.create','personnel.update','personnel.activate','personnel.manage-account','personnel.view-sensitive','personnel.import','personnel.export'] as $permission)$this->assertTrue($operator->hasPermissionTo($permission));
+        foreach(['rfid-card.view','rfid-card.issue','rfid-card.replace','rfid-card.disable','rfid-writer.use'] as $permission)$this->assertTrue($operator->hasPermissionTo($permission));
         $this->assertFalse($operator->hasPermissionTo('roles.manage-permissions'));$this->assertFalse($operator->hasPermissionTo('academic-periods.delete'));
         $teacher=Role::findByName('guru');$this->assertFalse($teacher->hasPermissionTo('personnel.view'));
         foreach(['dashboard.view','school-profile.view','academic-periods.view'] as $permission)$this->assertTrue($teacher->hasPermissionTo($permission));
