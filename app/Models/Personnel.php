@@ -11,6 +11,7 @@ class Personnel extends Model
     public function createdBy():BelongsTo{return $this->belongsTo(User::class,'created_by');}
     public function updatedBy():BelongsTo{return $this->belongsTo(User::class,'updated_by');}
     public function attendances():HasMany{return $this->hasMany(PersonnelAttendance::class);}
+    public function attendanceDevices():HasMany{return $this->hasMany(PersonnelAttendanceDevice::class);}
     public function leaveRequests():HasMany{return $this->hasMany(PersonnelLeaveRequest::class);}
     public function payrolls():HasMany{return $this->hasMany(PersonnelPayroll::class);}
     public function cashAdvances():HasMany{return $this->hasMany(PersonnelCashAdvance::class);}

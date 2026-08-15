@@ -8,6 +8,8 @@ use App\Http\Middleware\AuthenticateRfidDevice;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use App\Exceptions\AttendanceSecurityException;
+use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -26,5 +28,8 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->render(function (AttendanceSecurityException $exception, Request $request) {
+            if ($request->expectsJson()) return response()->json(['error'=>['code'=>$exception->errorCode,'message'=>$exception->getMessage()]],$exception->status);
+            return back()->withErrors(['attendance'=>$exception->getMessage()]);
+        });
     })->create();
