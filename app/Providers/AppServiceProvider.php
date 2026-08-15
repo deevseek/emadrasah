@@ -8,6 +8,8 @@ use App\Services\Settings\ApplicationSettingService;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use App\Contracts\FaceRecognitionService;
+use App\Services\Hrd\UnavailableFaceRecognitionService;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -16,6 +18,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(SchoolProfileService::class);
         $this->app->singleton(AcademicPeriodService::class);
         $this->app->singleton(ApplicationSettingService::class);
+        $this->app->bind(FaceRecognitionService::class, UnavailableFaceRecognitionService::class);
     }
 
     public function boot(): void

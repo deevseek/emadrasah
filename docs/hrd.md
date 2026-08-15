@@ -22,3 +22,29 @@ Permission HRD didefinisikan di `config/permissions.php`; role HRD memperoleh ak
 ## Tidak dipindahkan
 
 Bon Sparepart Karyawan tidak dipindahkan karena bergantung pada Product/StockMovement/Finance milik POSLaravel dan tidak mempunyai padanan inventory di e-Madrasah. Finance POS juga tidak disalin; payroll dan kasbon berdiri mandiri agar integrasi keuangan dapat ditambahkan melalui event tanpa coupling.
+# Attendance Security
+
+Absensi mandiri pegawai menerapkan pertahanan berlapis. Browser-based geolocation tidak dapat menjamin deteksi Fake GPS 100%. Sistem dapat memvalidasi geofence, batas akurasi, freshness, nonce, perangkat, dan (bila provider tersedia) identitas wajah. Perubahan lokasi tidak realistis atau sinyal lain hanya boleh menjadi anomali untuk tinjauan HRD, bukan bukti tunggal pelanggaran.
+
+## Face Recognition
+
+- Provider diakses melalui abstraction `FaceRecognitionService`; instalasi bawaan memakai provider `unavailable` dan gagal secara tertutup ketika verifikasi diwajibkan. Tidak ada fallback otomatis yang melewati wajah.
+- Aktivasi menggunakan `hrd_attendance_face_enabled`; hasil provider harus tepat satu wajah, cocok dengan personnel akun login, dan memenuhi threshold provider (`hrd_face_confidence_threshold`).
+- Bukti verifikasi terikat ke challenge dan berlaku sesuai `hrd_face_verification_ttl_seconds` (default 120 detik). Snapshot tidak disimpan oleh aplikasi setelah request selesai dan tidak masuk audit.
+- Capability liveness dilaporkan provider. Liveness hanya diwajibkan/dinilai bila provider benar-benar mendukungnya; instalasi bawaan tidak mengklaim liveness maupun anti-spoof foto/layar.
+
+## Location Lock
+
+Titik pusat menggunakan `hrd_attendance_latitude` dan `hrd_attendance_longitude`, radius default 20 meter, akurasi maksimum default 50 meter, dan umur lokasi maksimum default 30 detik. Browser meminta lokasi high-accuracy baru tepat sebelum submit dengan cache dimatikan. Server—bukan JavaScript—menghitung jarak Haversine dan menolak koordinat, akurasi, atau timestamp yang tidak valid. Waktu masuk, pulang, tanggal, keterlambatan, dan lembur selalu berasal dari jam server.
+
+## Anti Replay dan Perangkat
+
+Challenge default berlaku 60 detik, menyimpan hash nonce, dan terikat pada user, personnel, hash sesi, aksi check-in/check-out, serta hash UUID perangkat. Challenge dikunci `lockForUpdate`, ditandai `used_at` dalam transaction yang sama dengan absensi, dan constraint unik attendance menjadi proteksi terakhir terhadap double submit. CSRF, autentikasi sesi normal, dan rate limit tetap aktif.
+
+UUID perangkat pseudonymous dibuat di browser; server hanya menyimpan SHA-256 beserta nama/browser/platform yang mudah dipahami, hash user-agent untuk audit, status trusted/revoked, dan waktu penggunaan. Default maksimum dua perangkat dan perangkat baru langsung trusted; approval dapat diwajibkan. IP hanya metadata audit dan tidak pernah menjadi bukti lokasi tunggal.
+
+## Audit, risiko, dan privasi
+
+Audit mencatat hasil, IP, device, akurasi, jarak hasil server, bukti verifikasi, challenge, dan risk flag tanpa citra biometrik. Koordinat merupakan data sensitif dan detailnya hanya boleh dibuka dengan permission `personnel-attendance.view-location-audit`. Permission override lokasi/wajah hanya ditujukan kepada HRD berwenang; koreksi manual harus tetap berlabel `manual` dan memiliki alasan.
+
+Mitigasi Fake GPS yang benar-benar diterapkan adalah geofence, GPS accuracy, freshness, face recognition opsional, nonce single-use, server timestamp, device binding, rate limiting, audit, dan risk detection. Browser tidak menyediakan attestation sumber GPS: aplikasi secara teknis tidak dapat memastikan koordinat tidak dimanipulasi, dan tidak mengklaim anti-spoof 100%.
