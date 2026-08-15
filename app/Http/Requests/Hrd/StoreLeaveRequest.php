@@ -1,0 +1,3 @@
+<?php
+declare(strict_types=1);namespace App\Http\Requests\Hrd;use App\Enums\Hrd\LeaveType;use Illuminate\Foundation\Http\FormRequest;use Illuminate\Validation\Rule;
+class StoreLeaveRequest extends FormRequest{public function authorize():bool{return $this->user()?->can('personnel-leave.request')===true;}public function rules():array{return ['start_date'=>['required','date'],'end_date'=>['required','date','after_or_equal:start_date'],'leave_type'=>['required',Rule::enum(LeaveType::class)],'reason'=>['required','string','max:2000'],'attachment'=>['nullable','file','mimes:jpg,jpeg,png,pdf','max:4096']];}}

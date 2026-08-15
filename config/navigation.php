@@ -18,9 +18,19 @@ return [
         'items' => [
             ['label' => 'Profil Madrasah', 'route' => 'school-profile.show', 'active' => 'school-profile.*', 'permission' => 'school-profile.view', 'icon' => 'school'],
             ['label' => 'Tahun Ajaran & Semester', 'route' => 'academic-periods.index', 'active' => 'academic-periods.*', 'permission' => 'academic-periods.view', 'icon' => 'calendar'],
-            ['label' => 'Data Personalia', 'route' => 'personnel.index', 'active' => 'personnel.*', 'permission' => 'personnel.view', 'icon' => 'personnel'],
         ],
     ],
+    ['label'=>'HRD / Kepegawaian','items'=>[
+        ['label'=>'Dashboard HRD','route'=>'hrd.dashboard','active'=>'hrd.dashboard','permission'=>'hrd.dashboard.view','icon'=>'dashboard'],
+        ['label'=>'Data Personalia','route'=>'personnel.index','active'=>'personnel.*','permission'=>'personnel.view','icon'=>'personnel'],
+        ['label'=>'Absensi Pegawai','route'=>'hrd.attendance.index','active'=>'hrd.attendance.index','permission'=>'personnel-attendance.view-all','icon'=>'calendar'],
+        ['label'=>'Absensi Saya','route'=>'hrd.attendance.mine','active'=>'hrd.attendance.mine','permission'=>'personnel-attendance.check','icon'=>'calendar'],
+        ['label'=>'Izin & Cuti','route'=>'hrd.leave.index','active'=>'hrd.leave.*','permission'=>'personnel-leave.view','icon'=>'document'],
+        ['label'=>'Payroll & Gaji','route'=>'hrd.payroll.index','active'=>'hrd.payroll.*','permission_any'=>['personnel-payroll.view','personnel-payroll.view-own'],'icon'=>'document'],
+        ['label'=>'Kasbon Pegawai','route'=>'hrd.cash-advance.index','active'=>'hrd.cash-advance.*','permission_any'=>['personnel-cash-advance.view','personnel-cash-advance.view-own'],'icon'=>'document'],
+        ['label'=>'Laporan HRD','route'=>'hrd.reports.index','active'=>'hrd.reports.*','permission'=>'personnel-attendance.report','icon'=>'document'],
+        ['label'=>'Pengaturan HRD','route'=>'application-settings.edit','active'=>'application-settings.*','permission'=>'hrd-settings.view','icon'=>'filter'],
+    ]],
     [
         'label' => 'Kesiswaan',
         'items' => [
