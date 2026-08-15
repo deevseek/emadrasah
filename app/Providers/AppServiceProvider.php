@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use App\Contracts\FaceRecognitionService;
 use App\Services\Hrd\UnavailableFaceRecognitionService;
+use App\Services\Hrd\PythonFaceRecognitionService;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -18,7 +19,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(SchoolProfileService::class);
         $this->app->singleton(AcademicPeriodService::class);
         $this->app->singleton(ApplicationSettingService::class);
-        $this->app->bind(FaceRecognitionService::class, UnavailableFaceRecognitionService::class);
+        $this->app->bind(FaceRecognitionService::class, config('face-recognition.driver') === 'python' ? PythonFaceRecognitionService::class : UnavailableFaceRecognitionService::class);
     }
 
     public function boot(): void

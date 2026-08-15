@@ -2,7 +2,7 @@
 declare(strict_types=1);
 namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\{BelongsTo,HasMany};
+use Illuminate\Database\Eloquent\Relations\{BelongsTo,HasMany,HasOne};
 class Personnel extends Model
 {
     protected $table='personnel'; protected $guarded=[];
@@ -12,6 +12,7 @@ class Personnel extends Model
     public function updatedBy():BelongsTo{return $this->belongsTo(User::class,'updated_by');}
     public function attendances():HasMany{return $this->hasMany(PersonnelAttendance::class);}
     public function attendanceDevices():HasMany{return $this->hasMany(PersonnelAttendanceDevice::class);}
+    public function faceProfile():HasOne{return $this->hasOne(PersonnelFaceProfile::class)->where('status','active');}
     public function leaveRequests():HasMany{return $this->hasMany(PersonnelLeaveRequest::class);}
     public function payrolls():HasMany{return $this->hasMany(PersonnelPayroll::class);}
     public function cashAdvances():HasMany{return $this->hasMany(PersonnelCashAdvance::class);}
