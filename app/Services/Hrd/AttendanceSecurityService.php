@@ -8,7 +8,7 @@ class AttendanceSecurityService
  /** @return array{id:string,nonce:string,expires_at:string,face_required:bool} */
  public function challenge(User $user,Personnel $personnel,string $action,Request $request):array
  {
-  $this->assertPersonnel($personnel);$device=$this->device($personnel,$request);
+  $this->assertPersonnel($personnel);if($this->settings->get('hrd_attendance_face_enabled',false)&&!$personnel->faceProfile()->exists())throw new AttendanceSecurityException('FACE_NOT_ENROLLED','Wajah Anda belum terdaftar untuk absensi. Silakan hubungi HRD.',422);$device=$this->device($personnel,$request);
   $nonce=Str::random(64);$expires=now()->addSeconds((int)$this->settings->get('hrd_attendance_challenge_ttl_seconds',60));
   $row=AttendanceChallenge::create(['id'=>(string)Str::uuid(),'nonce_hash'=>hash('sha256',$nonce),'user_id'=>$user->id,'personnel_id'=>$personnel->id,'session_hash'=>$this->sessionHash($request),'device_uuid_hash'=>$device?->device_uuid_hash,'intended_action'=>$action,'expires_at'=>$expires]);
   return['id'=>$row->id,'nonce'=>$nonce,'expires_at'=>$expires->toIso8601String(),'face_required'=>(bool)$this->settings->get('hrd_attendance_face_enabled',false)];
