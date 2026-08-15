@@ -1,0 +1,3 @@
+<?php
+declare(strict_types=1);namespace App\Http\Requests\Hrd;use Illuminate\Foundation\Http\FormRequest;
+class StorePayrollRequest extends FormRequest{public function authorize():bool{return $this->user()?->can('personnel-payroll.create')===true;}public function rules():array{return ['personnel_id'=>['required','exists:personnel,id'],'period_start'=>['required','date'],'period_end'=>['required','date','after_or_equal:period_start'],'pay_date'=>['nullable','date'],'allowance'=>['nullable','numeric','min:0'],'deduction'=>['nullable','numeric','min:0'],'note'=>['nullable','string','max:2000']];}}

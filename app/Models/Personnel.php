@@ -6,10 +6,14 @@ use Illuminate\Database\Eloquent\Relations\{BelongsTo,HasMany};
 class Personnel extends Model
 {
     protected $table='personnel'; protected $guarded=[];
-    protected function casts():array{return ['birth_date'=>'date','weekly_teaching_hours'=>'integer','is_active'=>'boolean'];}
+    protected function casts():array{return ['birth_date'=>'date','employment_start_date'=>'date','base_salary'=>'decimal:2','weekly_teaching_hours'=>'integer','is_active'=>'boolean','payroll_enabled'=>'boolean'];}
     public function user():BelongsTo{return $this->belongsTo(User::class);}
     public function createdBy():BelongsTo{return $this->belongsTo(User::class,'created_by');}
     public function updatedBy():BelongsTo{return $this->belongsTo(User::class,'updated_by');}
+    public function attendances():HasMany{return $this->hasMany(PersonnelAttendance::class);}
+    public function leaveRequests():HasMany{return $this->hasMany(PersonnelLeaveRequest::class);}
+    public function payrolls():HasMany{return $this->hasMany(PersonnelPayroll::class);}
+    public function cashAdvances():HasMany{return $this->hasMany(PersonnelCashAdvance::class);}
     public function getGenderLabelAttribute():string{return $this->gender==='male'?'L':'P';}
     public function getEmploymentStatusLabelAttribute():string{return config("personnel.employment_statuses.{$this->employment_status}",$this->employment_status);}
     public function getDisplayBirthInformationAttribute():string{return collect([$this->birth_place,$this->birth_date?->translatedFormat('d F Y')])->filter()->join(', ')?:'—';}

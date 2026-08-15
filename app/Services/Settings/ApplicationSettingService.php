@@ -28,6 +28,11 @@ class ApplicationSettingService
         'pagination_size' => 20,
         'attendance_rfid_enabled' => false,
         'rfid_writer_enabled' => false,
+        'hrd_attendance_latitude' => null, 'hrd_attendance_longitude' => null, 'hrd_attendance_radius_meter' => 20,
+        'hrd_shift_count' => 1, 'hrd_shift_1_start' => '07:00', 'hrd_shift_1_end' => '15:00',
+        'hrd_shift_2_start' => '15:00', 'hrd_shift_2_end' => '23:00', 'hrd_shift_3_start' => '22:00', 'hrd_shift_3_end' => '06:00',
+        'hrd_early_checkin_minutes' => 60, 'hrd_max_late_checkin_hours' => 4, 'hrd_face_recognition_enabled' => false,
+        'hrd_payroll_by_attendance_enabled' => false, 'hrd_payroll_auto_late_deduction_enabled' => false, 'hrd_payroll_auto_cash_advance_deduction_enabled' => false,
     ];
 
     private ?array $resolved = null;
@@ -85,6 +90,6 @@ class ApplicationSettingService
     public function clearCache(): void { $this->resolved = null; Cache::forget(self::CACHE_KEY); }
     public function assetUrl(string $key, ?string $fallback = null): ?string { $path = $this->get($key) ?: $fallback; return $path ? asset('storage/'.$path) : null; }
     private function cast(mixed $value, mixed $default): mixed { return is_bool($default) ? filter_var($value, FILTER_VALIDATE_BOOL) : (is_int($default) ? (int) $value : $value); }
-    private function typeFor(string $key): string { return match ($key) { 'maintenance_mode', 'attendance_rfid_enabled', 'rfid_writer_enabled' => 'boolean', 'pagination_size' => 'integer', 'primary_logo', 'login_logo', 'print_logo', 'favicon' => 'file', default => 'string' }; }
-    private function groupFor(string $key): string { return match ($key) { 'attendance_rfid_enabled', 'rfid_writer_enabled' => 'attendance', 'primary_logo', 'login_logo', 'print_logo', 'favicon' => 'branding', 'primary_color', 'default_theme', 'sidebar_mode' => 'appearance', 'default_language', 'timezone', 'date_format', 'time_format', 'first_day_of_week' => 'localization', 'maintenance_mode', 'maintenance_message', 'pagination_size' => 'system', default => 'general' }; }
+    private function typeFor(string $key): string { return match ($key) { 'maintenance_mode', 'attendance_rfid_enabled', 'rfid_writer_enabled', 'hrd_face_recognition_enabled', 'hrd_payroll_by_attendance_enabled', 'hrd_payroll_auto_late_deduction_enabled', 'hrd_payroll_auto_cash_advance_deduction_enabled' => 'boolean', 'pagination_size', 'hrd_attendance_radius_meter', 'hrd_shift_count', 'hrd_early_checkin_minutes', 'hrd_max_late_checkin_hours' => 'integer', 'primary_logo', 'login_logo', 'print_logo', 'favicon' => 'file', default => 'string' }; }
+    private function groupFor(string $key): string { if (str_starts_with($key, 'hrd_')) return 'hrd'; return match ($key) { 'attendance_rfid_enabled', 'rfid_writer_enabled' => 'attendance', 'primary_logo', 'login_logo', 'print_logo', 'favicon' => 'branding', 'primary_color', 'default_theme', 'sidebar_mode' => 'appearance', 'default_language', 'timezone', 'date_format', 'time_format', 'first_day_of_week' => 'localization', 'maintenance_mode', 'maintenance_message', 'pagination_size' => 'system', default => 'general' }; }
 }

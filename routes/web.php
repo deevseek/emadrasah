@@ -42,3 +42,5 @@ require __DIR__.'/students.php';
 
 require __DIR__.'/classrooms.php';
 require __DIR__.'/academic.php';
+
+require __DIR__.'/hrd.php';
