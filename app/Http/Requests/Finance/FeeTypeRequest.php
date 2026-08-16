@@ -1,0 +1,2 @@
+<?php
+declare(strict_types=1);namespace App\Http\Requests\Finance;use Illuminate\Foundation\Http\FormRequest;use Illuminate\Validation\Rule;class FeeTypeRequest extends FormRequest{public function authorize():bool{return $this->user()?->can('finance.fee-type.manage')??false;}public function rules():array{return ['code'=>['required','string','max:30',Rule::unique('fee_types')->ignore($this->route('feeType'))],'name'=>'required|string|max:255','active'=>'nullable|boolean'];}}
