@@ -1,0 +1,3 @@
+<?php
+namespace App\Http\Requests\Website; use Illuminate\Foundation\Http\FormRequest;
+class UpdateSettingsRequest extends FormRequest {public function authorize():bool{return $this->user()?->can('website.settings.update')??false;}public function rules():array{return ['group'=>['required','in:hero,about,ppdb,contact,seo,publication'],'hero_image'=>['nullable','image','mimes:jpg,jpeg,png,webp','max:4096'],'about_image'=>['nullable','image','mimes:jpg,jpeg,png,webp','max:4096'],'ppdb_image'=>['nullable','image','mimes:jpg,jpeg,png,webp','max:4096'],'og_image'=>['nullable','image','mimes:jpg,jpeg,png,webp','max:4096'],'values'=>['nullable','array'],'values.*'=>['nullable','string','max:5000']];}}
