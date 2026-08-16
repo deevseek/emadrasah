@@ -38,6 +38,13 @@ return [
             'report' => false,
         ],
 
+        'bri_private' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/bri'),
+            'serve' => false,
+            'throw' => false,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
