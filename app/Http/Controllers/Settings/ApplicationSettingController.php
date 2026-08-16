@@ -4,21 +4,33 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Settings;
 
+use App\Actions\Hrd\GetFaceRecognitionStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\UpdateApplicationSettingRequest;
 use App\Services\Settings\ApplicationSettingService;
-use App\Contracts\FaceRecognitionService;
 use DateTimeZone;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class ApplicationSettingController extends Controller
 {
     public function __construct(private ApplicationSettingService $settings) {}
 
-    public function edit(FaceRecognitionService $faces): View
+    public function edit(Request $request, GetFaceRecognitionStatus $faceStatus): View
     {
-        return view('settings.application.edit', ['settings' => $this->settings->all(), 'timezones' => DateTimeZone::listIdentifiers(), 'title' => 'Pengaturan Aplikasi', 'faceService' => ['provider' => $faces->provider(), ...$faces->health()]]);
+        return view('settings.application.edit', [
+            'settings' => $this->settings->all(),
+            'timezones' => DateTimeZone::listIdentifiers(),
+            'title' => 'Pengaturan Aplikasi',
+            'faceStatus' => $request->user()->can('hrd-settings.view') ? $faceStatus->handle() : null,
+        ]);
+    }
+
+    public function faceRecognitionStatus(GetFaceRecognitionStatus $faceStatus): JsonResponse
+    {
+        return response()->json($faceStatus->handle());
     }
 
     public function update(UpdateApplicationSettingRequest $request): RedirectResponse
