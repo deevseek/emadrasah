@@ -5,7 +5,9 @@ namespace App\Providers;
 use App\Services\Foundation\AcademicPeriodService;
 use App\Services\Foundation\SchoolProfileService;
 use App\Services\Settings\ApplicationSettingService;
-use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\{Event,Gate};
+use App\Events\StudentPaymentCompleted;
+use App\Listeners\SendSppPaymentReceiptEmail;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use App\Contracts\FaceRecognitionService;
@@ -29,6 +31,7 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        Event::listen(StudentPaymentCompleted::class, SendSppPaymentReceiptEmail::class);
         $settings = app(ApplicationSettingService::class);
         date_default_timezone_set((string) $settings->get('timezone', config('app.timezone')));
         config(['app.timezone' => $settings->get('timezone', config('app.timezone'))]);
