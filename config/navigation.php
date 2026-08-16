@@ -29,7 +29,6 @@ return [
         ['label'=>'Payroll & Gaji','route'=>'hrd.payroll.index','active'=>'hrd.payroll.*','permission_any'=>['personnel-payroll.view','personnel-payroll.view-own'],'icon'=>'document'],
         ['label'=>'Kasbon Pegawai','route'=>'hrd.cash-advance.index','active'=>'hrd.cash-advance.*','permission_any'=>['personnel-cash-advance.view','personnel-cash-advance.view-own'],'icon'=>'document'],
         ['label'=>'Laporan HRD','route'=>'hrd.reports.index','active'=>'hrd.reports.*','permission'=>'personnel-attendance.report','icon'=>'document'],
-        ['label'=>'Pengaturan HRD','route'=>'application-settings.edit','active'=>'application-settings.*','permission'=>'hrd-settings.view','icon'=>'filter'],
     ]],
     [
         'label' => 'Kesiswaan',
@@ -43,7 +42,6 @@ return [
         'items' => [
             ['label' => 'Pengguna', 'route' => 'users.index', 'active' => 'users.*', 'permission' => 'users.view', 'icon' => 'users'],
             ['label' => 'Role & Hak Akses', 'route' => 'roles.index', 'active' => 'roles.*', 'permission' => 'roles.view', 'icon' => 'roles'],
-            ['label' => 'Pengaturan Aplikasi', 'route' => 'application-settings.edit', 'active' => 'application-settings.*', 'permission' => 'application-settings.view', 'icon' => 'filter'],
         ],
     ],
     ['label'=>'Akademik','items'=>[
@@ -70,6 +68,8 @@ return [
         ['label'=>'Pembayaran Siswa','route'=>'finance.payments.index','active'=>'finance.payments.*','permission'=>'finance.payment.view','icon'=>'document'],
         ['label'=>'Rekonsiliasi BRI','route'=>'finance.bri.reconciliation','active'=>'finance.bri.*','permission'=>'finance.bri.reconcile','icon'=>'filter'],
         ['label'=>'Laporan Keuangan Siswa','route'=>'finance.reports.index','active'=>'finance.reports.*','permission'=>'finance.report.view','icon'=>'document'],
-        ['label'=>'Pengaturan Pembayaran','route'=>'application-settings.edit','active'=>'application-settings.*','permission'=>'finance.bri.configure','icon'=>'filter'],
+    ]],
+    ['label'=>'Pengaturan','items'=>[
+        ['label'=>'Pengaturan Aplikasi','route'=>'application-settings.edit','active'=>'application-settings.*','permission_any'=>['application-settings.view','hrd-settings.view','finance.bri.configure'],'icon'=>'filter'],
     ]],
 ];
