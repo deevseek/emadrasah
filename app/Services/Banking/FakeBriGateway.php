@@ -1,0 +1,3 @@
+<?php
+declare(strict_types=1); namespace App\Services\Banking; use App\Contracts\Banking\{BankPaymentGateway,BankTransferGateway};
+class FakeBriGateway implements BankPaymentGateway,BankTransferGateway { public function createVirtualAccount(array $r):array{return ['status'=>'active','external_id'=>$r['external_id'],'virtual_account_number'=>'FAKE'.str_pad((string)$r['student_id'],12,'0',STR_PAD_LEFT)];} public function transfer(array $r):array{return ['status'=>'succeeded','external_id'=>$r['external_id'],'provider_reference'=>'FAKE-'.substr(hash('sha256',$r['external_id']),0,16)];} public function inquire(string $id):array{return ['status'=>'succeeded','external_id'=>$id];} }

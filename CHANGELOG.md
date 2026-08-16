@@ -32,3 +32,7 @@
 
 ## Inventaris dan Aset
 - Modul inventaris menambahkan master kategori, lokasi, kondisi, satuan, barang, saldo ledger, transaksi, stock opname, laporan, print, PDF, CSV, permission, test, dan dokumentasi.
+
+## 2026-08-16
+- Menambahkan fondasi aman portal orang tua, jadwal pelajaran, izin siswa, Finance/SPP, BRIVA, transaksi bank, dan perluasan payroll HRD dengan batch maker-checker.
+- Menambahkan abstraction gateway BRI dengan fake testing dan kondisi produksi nonaktif sampai onboarding resmi tersedia.
