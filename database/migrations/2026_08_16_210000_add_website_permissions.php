@@ -1,0 +1,3 @@
+<?php
+use Illuminate\Database\Migrations\Migration;use Spatie\Permission\Models\{Permission,Role};use Spatie\Permission\PermissionRegistrar;
+return new class extends Migration {public function up():void{app(PermissionRegistrar::class)->forgetCachedPermissions();$p=collect(['website.dashboard.view','website.settings.view','website.settings.update','website.content.manage'])->map(fn($x)=>Permission::findOrCreate($x,'web'));if($r=Role::where('name','super-admin')->first())$r->givePermissionTo($p);app(PermissionRegistrar::class)->forgetCachedPermissions();}public function down():void{Permission::whereIn('name',['website.dashboard.view','website.settings.view','website.settings.update','website.content.manage'])->delete();}};

@@ -1,0 +1,3 @@
+<?php
+namespace App\Http\Controllers\Website;use App\Http\Controllers\Controller;use App\Models\LandingNews;use App\Services\Website\LandingPageService;
+class PublicWebsiteController extends Controller {public function home(LandingPageService $service){$data=$service->data();if(($data['settings']['landing_enabled']??'1')!=='1')return view('website.public.disabled',$data);return view('website.public.home',$data);}public function news(){return view('website.public.news-index',['items'=>LandingNews::published()->latest('published_at')->paginate(9)]);}public function showNews(string $slug){$item=LandingNews::published()->where('slug',$slug)->firstOrFail();$item->increment('views');return view('website.public.news-show',compact('item'));}}

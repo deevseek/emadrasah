@@ -9,7 +9,6 @@ use App\Http\Controllers\Auth\PasswordUpdateController;
 use App\Http\Controllers\Foundation\DashboardController;
 use Illuminate\Support\Facades\Route;
 
-Route::redirect('/', '/dashboard');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
@@ -47,3 +46,5 @@ require __DIR__.'/hrd.php';
 
 require __DIR__.'/parent.php';
 require __DIR__.'/finance.php';
+
+require __DIR__.'/website.php';

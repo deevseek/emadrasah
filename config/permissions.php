@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'website' => ['category'=>'WEBSITE','label'=>'Website Sekolah','permissions'=>['website.dashboard.view'=>'Melihat dashboard website','website.settings.view'=>'Melihat pengaturan website','website.settings.update'=>'Mengubah pengaturan website','website.content.manage'=>'Mengelola program, fasilitas, prestasi, berita, dan testimoni']],
     'dashboard' => ['category' => 'UMUM', 'label' => 'Dashboard', 'permissions' => ['dashboard.view' => 'Melihat dashboard']],
     'school-profile' => ['category' => 'UMUM', 'label' => 'Profil Madrasah', 'permissions' => [
         'school-profile.view' => 'Melihat profil madrasah', 'school-profile.update' => 'Mengubah profil madrasah',
