@@ -63,6 +63,13 @@ return [
         ['label'=>'Profil','route'=>'parent.profile','active'=>'parent.profile','permission'=>'parent.dashboard.view','icon'=>'users'],
     ]],
     ['label'=>'Keuangan','items'=>[
-        ['label'=>'Dashboard','route'=>'finance.dashboard','active'=>'finance.dashboard','permission'=>'finance.dashboard.view','icon'=>'dashboard'],
+        ['label'=>'Dashboard Keuangan','route'=>'finance.dashboard','active'=>'finance.dashboard','permission'=>'finance.dashboard.view','icon'=>'dashboard'],
+        ['label'=>'Jenis Tagihan','route'=>'finance.fee-types.index','active'=>'finance.fee-types.*','permission'=>'finance.fee-type.manage','icon'=>'document'],
+        ['label'=>'Tagihan Siswa','route'=>'finance.invoices.index','active'=>'finance.invoices.*','permission'=>'finance.invoice.view','icon'=>'document'],
+        ['label'=>'Generate SPP Bulanan','route'=>'finance.spp.create','active'=>'finance.spp.*','permission'=>'finance.invoice.create','icon'=>'calendar'],
+        ['label'=>'Pembayaran Siswa','route'=>'finance.payments.index','active'=>'finance.payments.*','permission'=>'finance.payment.view','icon'=>'document'],
+        ['label'=>'Rekonsiliasi BRI','route'=>'finance.bri.reconciliation','active'=>'finance.bri.*','permission'=>'finance.bri.reconcile','icon'=>'filter'],
+        ['label'=>'Laporan Keuangan Siswa','route'=>'finance.reports.index','active'=>'finance.reports.*','permission'=>'finance.report.view','icon'=>'document'],
+        ['label'=>'Pengaturan Pembayaran','route'=>'application-settings.edit','active'=>'application-settings.*','permission'=>'finance.bri.configure','icon'=>'filter'],
     ]],
 ];
