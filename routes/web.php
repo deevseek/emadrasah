@@ -8,7 +8,10 @@ use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\PasswordUpdateController;
 use App\Http\Controllers\Foundation\DashboardController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Public\PaymentVerificationController;
 
+
+Route::get('/verify/payment/{token}', PaymentVerificationController::class)->where('token','[A-Za-z0-9]{48}')->name('payment.verify');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');

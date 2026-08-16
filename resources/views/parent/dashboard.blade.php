@@ -42,6 +42,17 @@
                         <div><dt class="text-sm text-gray-500">Jumlah anak terhubung</dt><dd class="font-semibold">{{ $children->count() }}</dd></div>
                     </dl>
                 </x-ui.card>
+                <x-ui.card>
+                    <h2 class="font-semibold">Riwayat Pembayaran</h2>
+                    <div class="mt-4 space-y-3">
+                        @forelse($payments as $payment)
+                            <div class="flex flex-col gap-3 rounded-lg border border-gray-200 p-3 sm:flex-row sm:items-center sm:justify-between">
+                                <div><div class="font-semibold">{{ $payment->payment_number }}</div><div class="text-sm text-gray-600">{{ $payment->paid_at->translatedFormat('d F Y') }} · {{ str($payment->payment_method)->replace('_',' ')->title() }}</div><div>Rp {{ number_format((float)$payment->amount,0,',','.') }}</div></div>
+                                <a class="inline-flex min-h-11 items-center justify-center rounded-lg bg-emerald-900 px-4 py-2 font-semibold text-white" href="{{ route('parent.payments.receipt.pdf',$payment) }}">Unduh Tanda Terima PDF</a>
+                            </div>
+                        @empty<p class="text-gray-600">Belum ada riwayat pembayaran.</p>@endforelse
+                    </div>
+                </x-ui.card>
             @elseif($student === null)
                 <x-ui.empty-state title="Belum ada anak terhubung" description="Profil wali sudah ada, tetapi belum dihubungkan dengan data siswa." />
             @elseif($section === 'children')
@@ -74,6 +85,17 @@
                         @endforelse
                     </div>
                 </x-ui.card>
+                <x-ui.card>
+                    <h2 class="font-semibold">Riwayat Pembayaran</h2>
+                    <div class="mt-4 space-y-3">
+                        @forelse($payments as $payment)
+                            <div class="flex flex-col gap-3 rounded-lg border border-gray-200 p-3 sm:flex-row sm:items-center sm:justify-between">
+                                <div><div class="font-semibold">{{ $payment->payment_number }}</div><div class="text-sm text-gray-600">{{ $payment->paid_at->translatedFormat('d F Y') }} · {{ str($payment->payment_method)->replace('_',' ')->title() }}</div><div>Rp {{ number_format((float)$payment->amount,0,',','.') }}</div></div>
+                                <a class="inline-flex min-h-11 items-center justify-center rounded-lg bg-emerald-900 px-4 py-2 font-semibold text-white" href="{{ route('parent.payments.receipt.pdf',$payment) }}">Unduh Tanda Terima PDF</a>
+                            </div>
+                        @empty<p class="text-gray-600">Belum ada riwayat pembayaran.</p>@endforelse
+                    </div>
+                </x-ui.card>
             @elseif($section === 'attendance')
                 <div class="grid gap-4 sm:grid-cols-2">
                     <x-ui.card>
@@ -104,6 +126,17 @@
                         @endforelse
                     </div>
                 </x-ui.card>
+                <x-ui.card>
+                    <h2 class="font-semibold">Riwayat Pembayaran</h2>
+                    <div class="mt-4 space-y-3">
+                        @forelse($payments as $payment)
+                            <div class="flex flex-col gap-3 rounded-lg border border-gray-200 p-3 sm:flex-row sm:items-center sm:justify-between">
+                                <div><div class="font-semibold">{{ $payment->payment_number }}</div><div class="text-sm text-gray-600">{{ $payment->paid_at->translatedFormat('d F Y') }} · {{ str($payment->payment_method)->replace('_',' ')->title() }}</div><div>Rp {{ number_format((float)$payment->amount,0,',','.') }}</div></div>
+                                <a class="inline-flex min-h-11 items-center justify-center rounded-lg bg-emerald-900 px-4 py-2 font-semibold text-white" href="{{ route('parent.payments.receipt.pdf',$payment) }}">Unduh Tanda Terima PDF</a>
+                            </div>
+                        @empty<p class="text-gray-600">Belum ada riwayat pembayaran.</p>@endforelse
+                    </div>
+                </x-ui.card>
             @elseif($section === 'finance')
                 <div class="grid gap-4 sm:grid-cols-3">
                     <x-ui.card><div class="text-sm text-gray-500">Total Tagihan</div><div class="mt-1 text-xl font-semibold">{{ $invoices->count() }}</div></x-ui.card>
@@ -127,6 +160,17 @@
                         @empty
                             <p class="text-gray-600">Belum ada tagihan untuk siswa ini.</p>
                         @endforelse
+                    </div>
+                </x-ui.card>
+                <x-ui.card>
+                    <h2 class="font-semibold">Riwayat Pembayaran</h2>
+                    <div class="mt-4 space-y-3">
+                        @forelse($payments as $payment)
+                            <div class="flex flex-col gap-3 rounded-lg border border-gray-200 p-3 sm:flex-row sm:items-center sm:justify-between">
+                                <div><div class="font-semibold">{{ $payment->payment_number }}</div><div class="text-sm text-gray-600">{{ $payment->paid_at->translatedFormat('d F Y') }} · {{ str($payment->payment_method)->replace('_',' ')->title() }}</div><div>Rp {{ number_format((float)$payment->amount,0,',','.') }}</div></div>
+                                <a class="inline-flex min-h-11 items-center justify-center rounded-lg bg-emerald-900 px-4 py-2 font-semibold text-white" href="{{ route('parent.payments.receipt.pdf',$payment) }}">Unduh Tanda Terima PDF</a>
+                            </div>
+                        @empty<p class="text-gray-600">Belum ada riwayat pembayaran.</p>@endforelse
                     </div>
                 </x-ui.card>
             @else
