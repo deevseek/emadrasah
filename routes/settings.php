@@ -7,5 +7,6 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'active', 'force-password-change'])->prefix('pengaturan')->group(function (): void {
     Route::get('/aplikasi', [ApplicationSettingController::class, 'edit'])->middleware('permission:application-settings.view')->name('application-settings.edit');
+    Route::post('/aplikasi/face-recognition/status', [ApplicationSettingController::class, 'faceRecognitionStatus'])->middleware('permission:hrd-settings.view')->name('application-settings.face-recognition.status');
     Route::put('/aplikasi', [ApplicationSettingController::class, 'update'])->middleware('permission:application-settings.update')->name('application-settings.update');
 });
