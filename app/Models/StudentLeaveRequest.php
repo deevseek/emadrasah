@@ -1,0 +1,3 @@
+<?php
+declare(strict_types=1); namespace App\Models; use Illuminate\Database\Eloquent\Model; use Illuminate\Database\Eloquent\Relations\{BelongsTo,HasMany};
+class StudentLeaveRequest extends Model { protected $guarded=[]; protected function casts():array{return ['start_date'=>'date','end_date'=>'date','submitted_at'=>'datetime','reviewed_at'=>'datetime'];} public function student():BelongsTo{return $this->belongsTo(Student::class);} public function guardian():BelongsTo{return $this->belongsTo(GuardianProfile::class);} public function transitions():HasMany{return $this->hasMany(StudentLeaveRequestTransition::class);} }

@@ -1,0 +1,1 @@
+<x-layouts.app title="Keuangan"><x-ui.page-header title="Keuangan" subtitle="Tagihan siswa, pembayaran, dan rekonsiliasi."/><x-ui.card><p>Gunakan menu keuangan untuk mengelola transaksi berdasarkan data aktual.</p></x-ui.card></x-layouts.app>

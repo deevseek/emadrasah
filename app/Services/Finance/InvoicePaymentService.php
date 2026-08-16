@@ -1,0 +1,4 @@
+<?php
+declare(strict_types=1); namespace App\Services\Finance;
+use App\Models\Finance\{StudentInvoice,StudentPayment}; use Illuminate\Support\Facades\DB;
+class InvoicePaymentService { public function record(StudentInvoice $invoice,array $data):StudentPayment{return DB::transaction(function()use($invoice,$data){$invoice=StudentInvoice::query()->lockForUpdate()->findOrFail($invoice->id);$payment=StudentPayment::query()->firstOrCreate(['bank_reference'=>$data['bank_reference']??null],$data+['student_id'=>$invoice->student_id,'invoice_id'=>$invoice->id]);$paid=(string)StudentPayment::query()->where('invoice_id',$invoice->id)->where('status','succeeded')->sum('amount');$out=max(0,(int)$invoice->total-(int)$paid);$invoice->update(['paid_amount'=>$paid,'outstanding_amount'=>$out,'status'=>$out===0?'paid':((int)$paid>0?'partial':'open')]);return $payment;});} }
