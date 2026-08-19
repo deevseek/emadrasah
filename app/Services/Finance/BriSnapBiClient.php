@@ -8,7 +8,6 @@ use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
@@ -59,7 +58,7 @@ class BriSnapBiClient
             'X-SIGNATURE' => $signature,
             'X-PARTNER-ID' => $this->required($this->configuration->partnerId(), 'Partner ID'),
             'CHANNEL-ID' => $this->required($this->configuration->channelId(), 'Channel ID'),
-            'X-EXTERNAL-ID' => $externalId ?: (string) Str::uuid(),
+            'X-EXTERNAL-ID' => $externalId ?: $this->externalId(),
         ])->withBody($bodyJson, 'application/json')->post($this->url($path));
 
         $this->ensureSuccessful($response, 'memanggil endpoint '.$path);
@@ -80,6 +79,13 @@ class BriSnapBiClient
     }
 
     private function timestamp(): string { return now()->format('Y-m-d\\TH:i:sP'); }
+
+    private function externalId(): string
+    {
+        // SNAP BI requires numeric X-EXTERNAL-ID (max 36 chars on BRI transfer APIs).
+        return now()->format('YmdHisv').(string) random_int(100000, 999999);
+    }
+
     private function url(string $path): string { return rtrim($this->required($this->configuration->baseUrl(), 'Base URL'), '/').'/'.ltrim($path, '/'); }
     private function required(?string $value, string $label): string { if (! is_string($value) || trim($value) === '') throw new RuntimeException($label.' BRI belum dikonfigurasi.'); return $value; }
     private function tokenCacheKey(): string { return 'bri:snap-bi:token:'.sha1((string) $this->configuration->clientId().'|'.$this->configuration->environment()); }
