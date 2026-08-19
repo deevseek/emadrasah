@@ -5,6 +5,7 @@ use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\ForcePasswordChange;
 use App\Http\Middleware\EnsureApplicationIsAvailable;
 use App\Http\Middleware\AuthenticateRfidDevice;
+use App\Http\Middleware\VerifyBriSnapBiCallback;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -25,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => EnsureUserHasPermission::class,
             'force-password-change' => ForcePasswordChange::class,
             'rfid.device' => AuthenticateRfidDevice::class,
+            'bri.callback' => VerifyBriSnapBiCallback::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

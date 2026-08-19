@@ -4,90 +4,108 @@ declare(strict_types=1);
 
 namespace App\Services\Finance;
 
-use Illuminate\Http\Client\PendingRequest;
+use App\Exceptions\BriApiException;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
-use RuntimeException;
 
-/**
- * Low-level outbound BRI SNAP BI client.
- * Credentials and private keys are resolved through BriConfigurationService.
- */
-class BriSnapBiClient
+/** Reusable SNAP BI transport. It never logs credentials, tokens, bodies, or account numbers. */
+final class BriSnapBiClient
 {
-    public function __construct(private BriConfigurationService $configuration) {}
+    public function __construct(private readonly BriConfigurationService $configuration) {}
 
     public function accessToken(): string
     {
-        if (! $this->configuration->enabled()) throw new RuntimeException('Integrasi BRI belum diaktifkan.');
+        if (! $this->configuration->enabled()) {
+            throw new BriApiException('Integrasi BRI belum diaktifkan.');
+        }
 
-        return Cache::remember($this->tokenCacheKey(), now()->addMinutes(13), function (): string {
-            $clientId = $this->required($this->configuration->clientId(), 'Client ID');
-            $privateKey = $this->required($this->configuration->privateKey(), 'Private Key');
-            $timestamp = $this->timestamp();
-            $signature = '';
+        $key = 'bri:snap-bi:token:'.hash('sha256', $this->required($this->configuration->clientId(), 'Client ID').'|'.$this->configuration->environment());
+        $cached = Cache::get($key);
+        if (is_string($cached) && $cached !== '') {
+            return $cached;
+        }
 
-            if (! openssl_sign($clientId.'|'.$timestamp, $signature, $privateKey, OPENSSL_ALGO_SHA256)) {
-                throw new RuntimeException('Gagal membuat signature SNAP BI untuk access token.');
-            }
+        $timestamp = $this->timestamp();
+        $signature = '';
+        if (! openssl_sign($this->required($this->configuration->clientId(), 'Client ID').'|'.$timestamp, $signature, $this->required($this->configuration->privateKey(), 'Private Key'), OPENSSL_ALGO_SHA256)) {
+            throw new BriApiException('Gagal membuat signature access token BRI.');
+        }
 
-            $response = Http::asJson()->acceptJson()->timeout(20)->withHeaders([
-                'X-CLIENT-KEY' => $clientId,
+        try {
+            $response = Http::acceptJson()->asJson()->timeout($this->configuration->timeout())->withHeaders([
+                'X-CLIENT-KEY' => $this->configuration->clientId(),
                 'X-TIMESTAMP' => $timestamp,
                 'X-SIGNATURE' => base64_encode($signature),
-            ])->post($this->url('/snap/v1.0/access-token/b2b'), ['grantType' => 'client_credentials']);
+            ])->post($this->url($this->configuration->path('access_token')), ['grantType' => 'client_credentials']);
+        } catch (ConnectionException $exception) {
+            throw new BriApiException('Koneksi access token BRI mengalami timeout.', outcomeUnknown: false, previous: $exception);
+        }
 
-            $this->ensureSuccessful($response, 'mengambil access token');
-            $token = $response->json('accessToken');
-            if (! is_string($token) || $token === '') throw new RuntimeException('BRI tidak mengembalikan access token yang valid.');
-            return $token;
-        });
+        $this->ensureSuccessful($response, 'autentikasi');
+        $token = $response->json('accessToken');
+        if (! is_string($token) || $token === '') {
+            throw new BriApiException('BRI tidak mengembalikan access token yang valid.', httpStatus: $response->status());
+        }
+        $expiresIn = filter_var($response->json('expiresIn'), FILTER_VALIDATE_INT) ?: 900;
+        Cache::put($key, $token, now()->addSeconds(max(30, $expiresIn - 60)));
+
+        return $token;
     }
 
-    /** @param array<string,mixed> $body */
+    /** @param array<string, mixed> $body */
     public function post(string $path, array $body, ?string $externalId = null): Response
     {
+        $path = '/'.ltrim($this->required($path, 'Path endpoint'), '/');
         $timestamp = $this->timestamp();
         $token = $this->accessToken();
-        $bodyJson = json_encode($body, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
-        $signature = $this->symmetricSignature('POST', $path, $token, $bodyJson, $timestamp);
+        $json = json_encode($body, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
 
-        $response = $this->request()->withToken($token)->withHeaders([
-            'X-TIMESTAMP' => $timestamp,
-            'X-SIGNATURE' => $signature,
-            'X-PARTNER-ID' => $this->required($this->configuration->partnerId(), 'Partner ID'),
-            'CHANNEL-ID' => $this->required($this->configuration->channelId(), 'Channel ID'),
-            'X-EXTERNAL-ID' => $externalId ?: (string) Str::uuid(),
-        ])->withBody($bodyJson, 'application/json')->post($this->url($path));
+        try {
+            $response = Http::acceptJson()->timeout($this->configuration->timeout())->withToken($token)->withHeaders([
+                'X-TIMESTAMP' => $timestamp,
+                'X-SIGNATURE' => $this->requestSignature('POST', $path, $token, $json, $timestamp),
+                'X-PARTNER-ID' => $this->required($this->configuration->partnerId(), 'Partner ID'),
+                'CHANNEL-ID' => $this->required($this->configuration->channelId(), 'Channel ID'),
+                'X-EXTERNAL-ID' => $externalId ?: str_replace('-', '', (string) Str::uuid()),
+            ])->withBody($json, 'application/json')->post($this->url($path));
+        } catch (ConnectionException $exception) {
+            // A timed-out financial POST can have reached BRI. Caller must inquire, never blindly retry.
+            throw new BriApiException('Koneksi BRI timeout; status transaksi harus diperiksa.', outcomeUnknown: true, previous: $exception);
+        }
 
-        $this->ensureSuccessful($response, 'memanggil endpoint '.$path);
+        $this->ensureSuccessful($response, 'permintaan API');
+
         return $response;
     }
 
-    private function request(): PendingRequest
+    public function requestSignature(string $method, string $path, string $token, string $rawBody, string $timestamp): string
     {
-        return Http::acceptJson()->asJson()->timeout(20)->retry(2, 250, throw: false);
-    }
+        $hash = strtolower(hash('sha256', $rawBody));
+        $canonical = strtoupper($method).':/'.ltrim($path, '/').':'.$token.':'.$hash.':'.$timestamp;
 
-    private function symmetricSignature(string $method, string $path, string $token, string $rawBody, string $timestamp): string
-    {
-        $secret = $this->required($this->configuration->clientSecret(), 'Client Secret');
-        $bodyHash = strtolower(hash('sha256', $rawBody));
-        $stringToSign = strtoupper($method).':'.$path.':'.$token.':'.$bodyHash.':'.$timestamp;
-        return base64_encode(hash_hmac('sha512', $stringToSign, $secret, true));
+        return base64_encode(hash_hmac('sha512', $canonical, $this->required($this->configuration->clientSecret(), 'Client Secret'), true));
     }
 
     private function timestamp(): string { return now()->format('Y-m-d\\TH:i:sP'); }
     private function url(string $path): string { return rtrim($this->required($this->configuration->baseUrl(), 'Base URL'), '/').'/'.ltrim($path, '/'); }
-    private function required(?string $value, string $label): string { if (! is_string($value) || trim($value) === '') throw new RuntimeException($label.' BRI belum dikonfigurasi.'); return $value; }
-    private function tokenCacheKey(): string { return 'bri:snap-bi:token:'.sha1((string) $this->configuration->clientId().'|'.$this->configuration->environment()); }
+    private function required(?string $value, string $name): string
+    {
+        if (! is_string($value) || trim($value) === '') throw new BriApiException($name.' BRI belum dikonfigurasi.');
+        return $value;
+    }
 
     private function ensureSuccessful(Response $response, string $operation): void
     {
         if ($response->successful()) return;
-        $message = $response->json('responseMessage') ?: $response->json('message') ?: 'HTTP '.$response->status();
-        throw new RuntimeException('Gagal '.$operation.': '.$message);
+        $code = $response->json('responseCode');
+        $message = $response->json('responseMessage');
+        throw new BriApiException(
+            'BRI menolak '.$operation.($message ? ': '.Str::limit((string) $message, 200) : '.'),
+            is_string($code) ? $code : null,
+            $response->status(),
+        );
     }
 }

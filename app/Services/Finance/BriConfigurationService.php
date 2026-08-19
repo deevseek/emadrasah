@@ -35,8 +35,19 @@ class BriConfigurationService
     public function clientSecret(): ?string { return $this->value('client_secret', 'client_secret'); }
     public function partnerId(): ?string { return $this->value('partner_id', 'partner_id'); }
     public function channelId(): ?string { return $this->value('channel_id', 'channel_id'); }
+    public function registeredAccountNumber(): ?string { return $this->value('registered_account_number', 'registered_account_number'); }
     public function brivaEnabled(): bool { return (bool) $this->value('briva_enabled', 'briva.enabled', false); }
+    public function partnerServiceId(): ?string { return $this->value('partner_service_id', 'briva.partner_service_id'); }
+    public function brivaMode(): string { return (string) $this->value('briva_mode', 'briva.mode', 'per_student'); }
+    public function customerNumberPrefix(): string { return (string) $this->value('customer_number_prefix', 'briva.customer_number_prefix', ''); }
+    public function qrisEnabled(): bool { return (bool) $this->value('qris_enabled', 'qris.enabled', false); }
+    public function merchantId(): ?string { return $this->value('merchant_id', 'qris.merchant_id'); }
+    public function terminalId(): ?string { return $this->value('terminal_id', 'qris.terminal_id'); }
     public function payrollEnabled(): bool { return (bool) $this->value('payroll_enabled', 'payroll.enabled', false); }
+    public function sourceAccount(): ?string { return $this->value('source_account', 'payroll.source_account'); }
+    public function timeout(): int { return max(1, (int) config('bri.timeout_seconds', 20)); }
+    public function path(string $name): ?string { $value = config('bri.paths.'.$name); return is_string($value) && $value !== '' ? $value : null; }
+    public function serviceCode(string $name): ?string { $value = config('bri.'.$name.'.service_code') ?? config('bri.payroll.'.$name.'_service_code'); return is_string($value) && $value !== '' ? $value : null; }
     public function privateKey(): ?string { return $this->keyContents('private_key_path', 'private_key_path'); }
     public function publicKey(): ?string { return $this->keyContents('public_key_path', 'public_key_path'); }
     public function hasPrivateKey(): bool { return $this->privateKey() !== null; }

@@ -13,9 +13,9 @@ class BriIntegrationSetting extends Model
     protected function casts(): array
     {
         return [
-            'enabled' => 'boolean', 'briva_enabled' => 'boolean', 'payroll_enabled' => 'boolean',
+            'enabled' => 'boolean', 'briva_enabled' => 'boolean', 'qris_enabled' => 'boolean', 'payroll_enabled' => 'boolean',
             'last_connection_success' => 'boolean', 'last_connection_at' => 'datetime',
-            'client_secret' => 'encrypted', 'source_account' => 'encrypted',
+            'client_secret' => 'encrypted', 'source_account' => 'encrypted', 'registered_account_number' => 'encrypted',
         ];
     }
 }
