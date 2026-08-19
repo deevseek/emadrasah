@@ -18,7 +18,7 @@ class BriSettingService
             $setting = BriIntegrationSetting::query()->firstOrNew();
             $changed = [];
             foreach ($data as $key => $value) {
-                if (in_array($key, ['client_secret', 'source_account'], true) && ($value === null || $value === '')) continue;
+                if (in_array($key, ['client_secret', 'source_account', 'registered_account_number'], true) && ($value === null || $value === '')) continue;
                 if ($setting->{$key} !== $value) $changed[] = $key;
                 $setting->{$key} = $value;
             }
