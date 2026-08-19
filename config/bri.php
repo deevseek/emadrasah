@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 return [
+    'env_file' => env('BRI_ENV_FILE', base_path('.env')),
     'enabled' => (bool) env('BRI_ENABLED', false),
     'environment' => env('BRI_ENV', 'sandbox'),
     'base_url' => env('BRI_BASE_URL'),

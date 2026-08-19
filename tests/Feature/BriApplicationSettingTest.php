@@ -49,6 +49,24 @@ class BriApplicationSettingTest extends TestCase
         $this->assertSame('rahasia-sangat-kuat',$setting->fresh()->client_secret);
     }
 
+    public function test_save_synchronizes_env_and_preserves_unrelated_values(): void
+    {
+        $user=$this->user(['finance.bri.configure']);
+        $this->actingAs($user)->put(route('application-settings.bri.update'),$this->payload(['client_secret'=>'nilai # dengan = tanda']))->assertSessionHasNoErrors();
+        $env=file_get_contents($this->briEnvFile);
+        $this->assertStringContainsString("UNRELATED=preserved",$env);
+        $this->assertStringContainsString("BRI_BASE_URL=https://sandbox.example.test",$env);
+        $this->assertStringContainsString('BRI_CLIENT_SECRET="nilai # dengan = tanda"',$env);
+        $this->assertNotEmpty(glob(storage_path('app/backups/env/.env-*')));
+    }
+
+    public function test_account_is_masked_and_never_returned_to_browser(): void
+    {
+        $user=$this->user(['finance.bri.configure']);
+        $this->actingAs($user)->put(route('application-settings.bri.update'),$this->payload(['registered_account_number'=>'123456789012']))->assertSessionHasNoErrors();
+        $this->actingAs($user)->get(route('application-settings.edit'))->assertOk()->assertSee('********9012')->assertDontSee('123456789012');
+    }
+
     public function test_disabled_fallback_is_safe_and_connection_test_is_non_transactional(): void
     {
         config(['bri.enabled'=>false]);$this->assertFalse(app(BriConfigurationService::class)->enabled());
