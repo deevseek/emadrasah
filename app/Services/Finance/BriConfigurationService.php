@@ -24,8 +24,9 @@ class BriConfigurationService
 
     private function value(string $column, string $configKey, mixed $default = null): mixed
     {
-        $value = $this->setting()?->{$column};
-        return $value !== null ? $value : config('bri.'.$configKey, $default);
+        $setting = $this->setting();
+        if ($setting !== null) return $setting->{$column} ?? $default;
+        return config('bri.'.$configKey, $default);
     }
 
     public function enabled(): bool { return (bool) $this->value('enabled', 'enabled', false); }
@@ -45,9 +46,10 @@ class BriConfigurationService
     public function terminalId(): ?string { return $this->value('terminal_id', 'qris.terminal_id'); }
     public function payrollEnabled(): bool { return (bool) $this->value('payroll_enabled', 'payroll.enabled', false); }
     public function sourceAccount(): ?string { return $this->value('source_account', 'payroll.source_account'); }
-    public function timeout(): int { return max(1, (int) config('bri.timeout_seconds', 20)); }
-    public function path(string $name): ?string { $value = config('bri.paths.'.$name); return is_string($value) && $value !== '' ? $value : null; }
-    public function serviceCode(string $name): ?string { $value = config('bri.'.$name.'.service_code') ?? config('bri.payroll.'.$name.'_service_code'); return is_string($value) && $value !== '' ? $value : null; }
+    public function timeout(): int { return max(1, (int) $this->value('timeout', 'timeout_seconds', 20)); }
+    public function timestampTolerance(): int { return max(1, (int) $this->value('timestamp_tolerance', 'timestamp_tolerance_seconds', 300)); }
+    public function path(string $name): ?string { $column = 'path_'.$name; $value = $this->setting() ? $this->setting()?->{$column} : config('bri.paths.'.$name); return is_string($value) && $value !== '' ? $value : null; }
+    public function serviceCode(string $name): ?string { $columns = ['qris'=>'qris_service_code','intrabank'=>'intrabank_service_code','interbank'=>'interbank_service_code','status_inquiry'=>'status_inquiry_service_code']; $value = $this->setting() && isset($columns[$name]) ? $this->setting()?->{$columns[$name]} : (config('bri.'.$name.'.service_code') ?? config('bri.payroll.'.$name.'_service_code')); return is_string($value) && $value !== '' ? $value : null; }
     public function privateKey(): ?string { return $this->keyContents('private_key_path', 'private_key_path'); }
     public function publicKey(): ?string { return $this->keyContents('public_key_path', 'public_key_path'); }
     public function hasPrivateKey(): bool { return $this->privateKey() !== null; }
@@ -57,6 +59,7 @@ class BriConfigurationService
     {
         $path = $this->setting()?->{$column};
         if ($path && Storage::disk('bri_private')->exists($path)) return Storage::disk('bri_private')->get($path);
+        if ($this->setting()) return null;
         $fallback = config('bri.'.$configKey);
         return is_string($fallback) && is_file($fallback) ? file_get_contents($fallback) ?: null : null;
     }

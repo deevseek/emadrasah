@@ -10,7 +10,7 @@ use Illuminate\Validation\Rule;
 class UpdateBriSettingRequest extends FormRequest
 {
     public function authorize(): bool { return $this->user()?->can('finance.bri.configure') === true; }
-    protected function prepareForValidation(): void { $this->merge(['enabled'=>$this->boolean('enabled'),'briva_enabled'=>$this->boolean('briva_enabled'),'qris_enabled'=>$this->boolean('qris_enabled'),'payroll_enabled'=>$this->boolean('payroll_enabled')]); }
+    protected function prepareForValidation(): void { $this->merge(['enabled'=>$this->boolean('enabled'),'briva_enabled'=>$this->boolean('briva_enabled'),'qris_enabled'=>$this->boolean('qris_enabled'),'payroll_enabled'=>$this->boolean('payroll_enabled'),'direct_debit_enabled'=>$this->boolean('direct_debit_enabled'),'timestamp_tolerance'=>$this->input('timestamp_tolerance',300),'timeout'=>$this->input('timeout',20)]); }
     public function rules(): array
     {
         return [
@@ -24,6 +24,10 @@ class UpdateBriSettingRequest extends FormRequest
             'qris_enabled'=>['required','boolean'], 'merchant_id'=>['nullable','string','max:255'], 'terminal_id'=>['nullable','string','max:255'], 'qris_service_code'=>['nullable','string','max:50'],
             'payroll_enabled'=>['required','boolean'], 'source_account'=>['nullable','string','max:100'], 'payroll_method'=>['required',Rule::in(['internal_bri','interbank'])],
             'intrabank_service_code'=>['nullable','string','max:50'], 'interbank_service_code'=>['nullable','string','max:50'], 'status_inquiry_service_code'=>['nullable','string','max:50'],
+            'timestamp_tolerance'=>['required','integer','min:1','max:3600'], 'timeout'=>['required','integer','min:1','max:300'],
+            'qris_notification_success_code'=>['nullable','string','max:50'], 'direct_debit_enabled'=>['required','boolean'],
+            'path_bank_statement'=>['nullable','string','max:255'], 'path_qris_generate'=>['nullable','string','max:255'],
+            'path_transaction_status'=>['nullable','string','max:255'], 'path_intrabank_transfer'=>['nullable','string','max:255'], 'path_interbank_transfer'=>['nullable','string','max:255'],
         ];
     }
 

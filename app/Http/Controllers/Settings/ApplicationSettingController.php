@@ -12,6 +12,8 @@ use App\Http\Requests\Settings\UpdateHrdSettingRequest;
 use App\Models\BriIntegrationSetting;
 use App\Services\Finance\BriConfigurationService;
 use App\Services\Finance\BriConnectionService;
+use App\Services\Finance\BriLegacyConfigurationImporter;
+use App\Services\Settings\EnvironmentSyncService;
 use App\Services\Finance\BriSettingService;
 use App\Services\Settings\ApplicationSettingService;
 use DateTimeZone;
@@ -19,13 +21,15 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use RuntimeException;
 
 class ApplicationSettingController extends Controller
 {
     public function __construct(private ApplicationSettingService $settings) {}
 
-    public function edit(Request $request, GetFaceRecognitionStatus $faceStatus, BriConfigurationService $bri): View
+    public function edit(Request $request, GetFaceRecognitionStatus $faceStatus, BriConfigurationService $bri, BriLegacyConfigurationImporter $importer, EnvironmentSyncService $environment): View
     {
+        $importer->importIfEmpty();
         return view('settings.application.edit', [
             'settings' => $this->settings->all(),
             'timezones' => DateTimeZone::listIdentifiers(),
@@ -33,6 +37,7 @@ class ApplicationSettingController extends Controller
             'faceStatus' => $request->user()->can('hrd-settings.view') ? $faceStatus->handle() : null,
             'bri' => $bri,
             'briSetting' => $bri->setting(),
+            'briEnvWritable' => $environment->writable(),
         ]);
     }
 
@@ -58,8 +63,12 @@ class ApplicationSettingController extends Controller
 
     public function updateBri(UpdateBriSettingRequest $request, BriSettingService $service): RedirectResponse
     {
-        $service->update($request->user(), $request->safe()->except(['private_key','public_key']), $request->file('private_key'), $request->file('public_key'));
-        return back()->with('status', 'Konfigurasi BRI berhasil diperbarui.');
+        try {
+            $service->update($request->user(), $request->safe()->except(['private_key','public_key']), $request->file('private_key'), $request->file('public_key'));
+        } catch (RuntimeException $exception) {
+            return back()->withInput($request->safe()->except(['client_secret','source_account','registered_account_number']))->with('error', $exception->getMessage());
+        }
+        return back()->with('status', 'Konfigurasi BRI berhasil diperbarui dan ENV telah disinkronkan.');
     }
 
     public function testBri(Request $request, BriConnectionService $connection): RedirectResponse
