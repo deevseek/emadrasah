@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use App\Contracts\FaceRecognitionService;
 use App\Contracts\Banking\{BankPaymentGateway, BankTransferGateway};
-use App\Services\Banking\{DisabledBriGateway, FakeBriGateway};
+use App\Services\Banking\{BriSnapBiPaymentGateway,BriSnapBiTransferGateway,FakeBriGateway};
 use App\Services\Hrd\UnavailableFaceRecognitionService;
 use App\Services\Hrd\PythonFaceRecognitionService;
 
@@ -23,9 +23,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(SchoolProfileService::class);
         $this->app->singleton(AcademicPeriodService::class);
         $this->app->singleton(ApplicationSettingService::class);
-        $bankGateway = app()->environment('testing') ? FakeBriGateway::class : DisabledBriGateway::class;
-        $this->app->bind(BankPaymentGateway::class, $bankGateway);
-        $this->app->bind(BankTransferGateway::class, $bankGateway);
+        $this->app->bind(BankPaymentGateway::class, app()->environment('testing') ? FakeBriGateway::class : BriSnapBiPaymentGateway::class);
+        $this->app->bind(BankTransferGateway::class, app()->environment('testing') ? FakeBriGateway::class : BriSnapBiTransferGateway::class);
         $this->app->bind(FaceRecognitionService::class, config('face-recognition.driver') === 'python' ? PythonFaceRecognitionService::class : UnavailableFaceRecognitionService::class);
     }
 
