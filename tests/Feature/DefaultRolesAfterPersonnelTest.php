@@ -101,6 +101,18 @@ class DefaultRolesAfterPersonnelTest extends TestCase
         $this->actingAs($head)->get(route('personnel.show',$personnel))->assertOk()->assertSee('Akun terhubung')->assertDontSee('kepala.madrasah')->assertDontSee('uswahasna82@gmail.com');
     }
 
+    public function test_personnel_face_enrollment_script_is_rendered_by_application_layout(): void
+    {
+        $admin = User::where('username', 'administrator')->firstOrFail();
+        $personnel = $this->personnel();
+
+        $this->actingAs($admin)
+            ->get(route('personnel.show', $personnel))
+            ->assertOk()
+            ->assertSee('id="face-enrollment-open"', false)
+            ->assertSee('navigator.mediaDevices.getUserMedia', false);
+    }
+
     public function test_role_suggestion_is_explicit_authorized_and_logged(): void
     {
         $personnel=$this->personnel();$account=User::factory()->create();$account->syncRoles(['guru']);
