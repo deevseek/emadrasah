@@ -16,7 +16,10 @@ return new class extends Migration {
             $table->string('status', 20);
             $table->string('notes', 1000)->nullable();
             $table->timestamps();
-            $table->unique(['teaching_journal_id', 'student_id']);
+            $table->unique(
+                ['teaching_journal_id', 'student_id'],
+                'tj_attendance_journal_student_unique',
+            );
         });
         Schema::create('teaching_journal_templates', function (Blueprint $table): void {
             $table->id();
