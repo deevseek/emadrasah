@@ -50,6 +50,26 @@ class AccessModuleTest extends TestCase
         $this->assertSame(['guru'], $user->roles->pluck('name')->all());
     }
 
+    public function test_email_address_can_be_used_as_username(): void
+    {
+        $admin = User::where('username', 'administrator')->firstOrFail();
+
+        $this->actingAs($admin)->post('/users', [
+            'name' => 'Wildan Inda',
+            'username' => 'WILDANINDA18@GMAIL.COM',
+            'email' => 'wildaninda18@gmail.com',
+            'role' => 'guru',
+            'password' => 'rahasia1',
+            'password_confirmation' => 'rahasia1',
+            'is_active' => 1,
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('users', [
+            'username' => 'wildaninda18@gmail.com',
+            'email' => 'wildaninda18@gmail.com',
+        ]);
+    }
+
     public function test_system_and_used_roles_cannot_be_deleted(): void
     {
         $admin = User::where('username', 'administrator')->firstOrFail();
