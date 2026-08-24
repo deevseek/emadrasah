@@ -9,10 +9,18 @@
                 <p class="mt-1">Saran berasal dari jabatan personalia dan tidak diterapkan secara otomatis.</p>
             </div>
         @endif
+        @if($accounts->isEmpty())
+            <div class="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <p class="font-semibold text-emerald-950">Belum ada akun yang dapat dihubungkan.</p>
+                <p class="mt-1 text-sm text-slate-600">Buat akun pengguna terlebih dahulu. Akun Super Admin, akun Anda sendiri, dan akun yang sudah terhubung tidak ditampilkan demi keamanan.</p>
+                @can('users.create')<a class="btn btn-primary mt-4" href="{{ route('users.create', ['name' => $personnel->full_name, 'email' => $personnel->email]) }}">Buat Akun Pengguna</a>@endcan
+            </div>
+        @else
         <form method="post" action="{{ route('personnel.account.update',$personnel) }}" class="mt-5" @if($suggestedRole && auth()->user()->can('users.assign-role')) onsubmit="return !this.apply_suggested_role.checked || confirm('Hubungkan akun dan ubah role akun menjadi {{ $suggestedRole->display_name }}?')" @endif>
             @csrf @method('PATCH')
+            <label for="user_id" class="label">Akun pengguna</label>
             <select name="user_id" class="input" required>
-                <option value="">Pilih akun baru</option>
+                <option value="">Pilih akun yang belum terhubung</option>
                 @foreach($accounts as $a)<option value="{{ $a->id }}" @selected(old('user_id')==$a->id)>{{ $a->name }} — {{ $a->email }} — {{ $a->display_role }}</option>@endforeach
             </select>
             @error('user_id')<p class="mt-1 text-sm text-red-700">{{ $message }}</p>@enderror
@@ -21,6 +29,7 @@
             @endif
             <div class="mt-4 flex gap-2"><a class="btn btn-secondary" href="{{ route('personnel.show',$personnel) }}">Batal</a><button class="btn btn-primary">Hubungkan Akun</button></div>
         </form>
+        @endif
         @if($personnel->user)<form method="post" action="{{ route('personnel.account.destroy',$personnel) }}" class="mt-4" onsubmit="return confirm('Lepaskan hubungan akun dari personalia ini?')">@csrf @method('DELETE')<button class="btn btn-danger">Lepaskan Akun</button></form>@endif
     </x-ui.card>
 </x-layouts.app>

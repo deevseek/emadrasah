@@ -130,6 +130,21 @@ class DefaultRolesAfterPersonnelTest extends TestCase
         $this->actingAs($head)->patch(route('personnel.account.update',$other),['user_id'=>User::factory()->create()->id,'apply_suggested_role'=>1])->assertForbidden();
     }
 
+    public function test_personnel_account_candidates_exclude_privileged_and_unsafe_accounts(): void
+    {
+        $admin=User::where('username','administrator')->firstOrFail();
+        $otherAdmin=User::factory()->create(['name'=>'Admin Lain']);$otherAdmin->syncRoles(['super-admin']);
+        $teacher=User::factory()->create(['name'=>'Nur Rohmah','email'=>'nur@example.test']);$teacher->syncRoles(['guru']);
+        $linked=User::factory()->create(['name'=>'Sudah Terhubung']);$linked->syncRoles(['guru']);
+        $this->personnel(['full_name'=>'Personalia Lain','user_id'=>$linked->id]);
+        $personnel=$this->personnel(['full_name'=>'Nur Rohmah','email'=>'nur@example.test']);
+
+        $response=$this->actingAs($admin)->get(route('personnel.account.edit',$personnel))->assertOk();
+
+        $this->assertSame([$teacher->id],$response->viewData('accounts')->pluck('id')->all());
+        $response->assertSee('Pilih akun yang belum terhubung')->assertDontSee('Admin Lain')->assertDontSee('Sudah Terhubung');
+    }
+
     public function test_head_authorization_matches_read_only_defaults(): void
     {
         $head=User::factory()->create(['must_change_password'=>false]);$head->syncRoles(['kepala-madrasah']);$personnel=$this->personnel();
