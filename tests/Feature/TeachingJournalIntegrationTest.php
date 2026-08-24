@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Enums\SemesterType;
-use App\Models\{AcademicYear, Semester, TeachingJournal, User};
+use App\Models\{AcademicYear, Personnel, Semester, TeachingJournal, User};
+use App\Services\Academic\TeachingJournalService;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\{Route, Schema};
@@ -78,5 +79,39 @@ class TeachingJournalIntegrationTest extends TestCase
 
         $response->assertRedirect(route('academic.teaching-journals.index', $query));
         $response->assertSessionHas('error', 'Laporan tidak dapat diunduh karena tidak ada jurnal pada filter yang dipilih.');
+    }
+
+    public function test_teacher_account_is_connected_to_active_personnel_with_the_same_email(): void
+    {
+        $user = User::factory()->create(['email' => 'guru@example.test']);
+        $personnel = Personnel::create([
+            'full_name' => 'Ustaz Ahmad',
+            'gender' => 'male',
+            'employment_status' => 'Tetap',
+            'position' => 'Guru',
+            'email' => 'GURU@example.test',
+            'is_active' => true,
+        ]);
+
+        $resolved = app(TeachingJournalService::class)->activePersonnel($user);
+
+        $this->assertTrue($resolved->is($personnel));
+        $this->assertSame($user->id, $personnel->refresh()->user_id);
+    }
+
+    public function test_teacher_account_is_not_connected_to_inactive_personnel(): void
+    {
+        $user = User::factory()->create(['email' => 'guru@example.test']);
+        $personnel = Personnel::create([
+            'full_name' => 'Ustaz Ahmad',
+            'gender' => 'male',
+            'employment_status' => 'Tetap',
+            'position' => 'Guru',
+            'email' => 'guru@example.test',
+            'is_active' => false,
+        ]);
+
+        $this->assertNull(app(TeachingJournalService::class)->activePersonnel($user));
+        $this->assertNull($personnel->refresh()->user_id);
     }
 }
