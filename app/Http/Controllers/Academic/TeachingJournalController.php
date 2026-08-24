@@ -69,12 +69,15 @@ class TeachingJournalController extends Controller
         return back()->with('success', 'Template Word jurnal berhasil diunggah dan diaktifkan.');
     }
 
-    public function report(Request $request, string $format, TeachingJournalReportService $reports, TeachingJournalTemplateService $templates): Response|BinaryFileResponse
+    public function report(Request $request, string $format, TeachingJournalReportService $reports, TeachingJournalTemplateService $templates): RedirectResponse|Response|BinaryFileResponse
     {
         abort_unless(in_array($format, ['docx', 'pdf'], true), 404);
         [$year, $semester, $date] = $this->filters($request);
         $journals = $this->journalQuery($request, $year, $semester, $date)->oldest('journal_date')->get();
-        abort_if($journals->isEmpty(), 422, 'Tidak ada jurnal pada filter laporan.');
+        if ($journals->isEmpty()) {
+            return redirect()->route('academic.teaching-journals.index', $request->query())
+                ->with('error', 'Laporan tidak dapat diunduh karena tidak ada jurnal pada filter yang dipilih.');
+        }
         $journals->load(['academicYear', 'semester', 'classroom.gradeLevel', 'subject', 'personnel', 'attendances']);
         $filename = 'laporan-jurnal-'.$date;
         if ($format === 'pdf') return Pdf::loadView('academic.teaching-journals.report', compact('journals'))->setPaper('a4', 'landscape')->download($filename.'.pdf');
