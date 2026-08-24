@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\Models\TeachingJournal;
+use App\Enums\SemesterType;
+use App\Models\{AcademicYear, Semester, TeachingJournal, User};
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\{Route, Schema};
@@ -45,5 +46,37 @@ class TeachingJournalIntegrationTest extends TestCase
         $this->assertSame('teaching_journal_id', (new TeachingJournal)->attendances()->getForeignKeyName());
         $this->assertTrue(Route::has('academic.teaching-journals.template.store'));
         $this->assertTrue(Route::has('academic.teaching-journals.report'));
+    }
+
+    public function test_empty_report_redirects_to_journal_index_with_a_helpful_message(): void
+    {
+        $year = AcademicYear::create([
+            'name' => '2026/2027',
+            'starts_at' => '2026-07-01',
+            'ends_at' => '2027-06-30',
+            'is_active' => true,
+        ]);
+        $semester = Semester::create([
+            'academic_year_id' => $year->id,
+            'name' => 'Semester Ganjil',
+            'type' => SemesterType::Ganjil,
+            'starts_at' => '2026-07-01',
+            'ends_at' => '2026-12-31',
+            'is_active' => true,
+        ]);
+        $user = User::factory()->create();
+        $query = [
+            'academic_year_id' => $year->id,
+            'semester_id' => $semester->id,
+            'journal_date' => '2026-08-24',
+        ];
+
+        $response = $this->withoutMiddleware()->actingAs($user)->get(route(
+            'academic.teaching-journals.report',
+            ['format' => 'docx'] + $query,
+        ));
+
+        $response->assertRedirect(route('academic.teaching-journals.index', $query));
+        $response->assertSessionHas('error', 'Laporan tidak dapat diunduh karena tidak ada jurnal pada filter yang dipilih.');
     }
 }

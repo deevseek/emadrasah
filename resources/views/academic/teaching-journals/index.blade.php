@@ -1,5 +1,6 @@
 <x-app-layout title="Jurnal Mengajar"><div class="index-stack">
 <x-ui.page-header title="Jurnal Mengajar" description="Jurnal guru sesuai format administrasi madrasah dan terintegrasi dengan absensi siswa."/>
+@if(session('error'))<x-ui.alert type="warning">{{ session('error') }}</x-ui.alert>@endif
 <div class="flex flex-wrap gap-2">@can('teaching-journals.manage')<a class="btn btn-primary" href="{{route('academic.teaching-journals.create')}}">Isi Jurnal Mengajar</a>@endcan
 <a class="btn btn-secondary" href="{{route('academic.teaching-journals.report',array_merge(request()->query(),['format'=>'pdf']))}}">Unduh PDF</a>
 @if($template)<a class="btn btn-secondary" href="{{route('academic.teaching-journals.report',array_merge(request()->query(),['format'=>'docx']))}}">Unduh Word</a>@endif</div>
