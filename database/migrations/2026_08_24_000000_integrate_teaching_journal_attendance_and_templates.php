@@ -9,27 +9,37 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::create('teaching_journal_attendances', function (Blueprint $table): void {
-            $table->id();
-            $table->foreignId('teaching_journal_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('student_id')->constrained()->restrictOnDelete();
-            $table->string('status', 20);
-            $table->string('notes', 1000)->nullable();
-            $table->timestamps();
-            $table->unique(
-                ['teaching_journal_id', 'student_id'],
-                'tj_attendance_journal_student_unique',
-            );
-        });
-        Schema::create('teaching_journal_templates', function (Blueprint $table): void {
-            $table->id();
-            $table->string('name');
-            $table->string('original_name');
-            $table->string('path');
-            $table->boolean('is_active')->default(true)->index();
-            $table->foreignId('uploaded_by')->constrained('users')->restrictOnDelete();
-            $table->timestamps();
-        });
+        if (! Schema::hasTable('teaching_journal_attendances')) {
+            Schema::create('teaching_journal_attendances', function (Blueprint $table): void {
+                $table->id();
+                $table->foreignId('teaching_journal_id')->constrained()->cascadeOnDelete();
+                $table->foreignId('student_id')->constrained()->restrictOnDelete();
+                $table->string('status', 20);
+                $table->string('notes', 1000)->nullable();
+                $table->timestamps();
+            });
+        }
+
+        if (! Schema::hasIndex('teaching_journal_attendances', 'tj_attendance_journal_student_unique')) {
+            Schema::table('teaching_journal_attendances', function (Blueprint $table): void {
+                $table->unique(
+                    ['teaching_journal_id', 'student_id'],
+                    'tj_attendance_journal_student_unique',
+                );
+            });
+        }
+
+        if (! Schema::hasTable('teaching_journal_templates')) {
+            Schema::create('teaching_journal_templates', function (Blueprint $table): void {
+                $table->id();
+                $table->string('name');
+                $table->string('original_name');
+                $table->string('path');
+                $table->boolean('is_active')->default(true)->index();
+                $table->foreignId('uploaded_by')->constrained('users')->restrictOnDelete();
+                $table->timestamps();
+            });
+        }
     }
     public function down(): void
     {
