@@ -75,7 +75,7 @@ class AccessModuleTest extends TestCase
         $guru = Role::where('name', 'guru')->firstOrFail();
 
         $this->assertEqualsCanonicalizing($all->all(), $superAdmin->permissions->pluck('name')->all());
-        $this->assertTrue($kepala->hasAllPermissions(['academic-reports.export', 'teaching-journals.view-all', 'classroom-journals.view-all']));
+        $this->assertTrue($kepala->hasAllPermissions(['academic-reports.export', 'teaching-journals.view-all']));
         $this->assertFalse($kepala->hasPermissionTo('academic-attendance.manage'));
         $this->assertTrue($operator->hasAllPermissions(['academic-attendance.manage', 'users.assign-role', 'roles.view']));
         $this->assertTrue($operator->hasAllPermissions([
@@ -86,8 +86,8 @@ class AccessModuleTest extends TestCase
             'rfid-writer.use',
         ]));
         $this->assertFalse($operator->hasPermissionTo('roles.manage-permissions'));
-        $this->assertTrue($guru->hasAllPermissions(['academic-attendance.manage', 'academic-grades.manage', 'classroom-journals.manage']));
-        $this->assertFalse($guru->hasAnyPermission(['teaching-journals.view-all', 'classroom-journals.view-all']));
+        $this->assertTrue($guru->hasAllPermissions(['academic-attendance.manage', 'academic-grades.manage']));
+        $this->assertFalse($guru->hasAnyPermission(['teaching-journals.view-all']));
         $this->assertFalse($guru->hasAnyPermission([
             'rfid-card.view',
             'rfid-card.issue',

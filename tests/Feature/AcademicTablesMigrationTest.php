@@ -32,14 +32,12 @@ class AcademicTablesMigrationTest extends TestCase
         $this->assertDatabaseHas('academic_subjects', ['name' => 'Fikih']);
     }
 
-    public function test_journal_migration_recovers_when_teaching_journals_table_already_exists(): void
+    public function test_classroom_journal_module_tables_and_permissions_are_removed(): void
     {
-        Schema::drop('classroom_journals');
-
-        $migration = require database_path('migrations/2026_08_13_200000_create_academic_journal_tables.php');
-        $migration->up();
-
         $this->assertTrue(Schema::hasTable('teaching_journals'));
-        $this->assertTrue(Schema::hasTable('classroom_journals'));
+        $this->assertFalse(Schema::hasTable('classroom_journals'));
+        $this->assertDatabaseMissing('permissions', ['name' => 'classroom-journals.view']);
+        $this->assertDatabaseMissing('permissions', ['name' => 'classroom-journals.manage']);
+        $this->assertDatabaseMissing('permissions', ['name' => 'classroom-journals.view-all']);
     }
 }
