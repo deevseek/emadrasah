@@ -23,9 +23,9 @@ class TeachingJournalController extends Controller
         return view('academic.teaching-journals.index', $this->options($year) + compact('journals', 'year', 'semester', 'date') + ['template' => TeachingJournalTemplate::where('is_active', true)->latest()->first()]);
     }
 
-    public function create(Request $request): View
+    public function create(Request $request, TeachingJournalService $service): View
     {
-        $this->personnelOrAbort($request);
+        abort_unless($service->activePersonnel($request->user()), 403, TeachingJournalService::NO_PERSONNEL);
         $year = AcademicYear::where('is_active', true)->value('id');
         $journal = new TeachingJournal(['academic_year_id' => $year, 'semester_id' => Semester::where('academic_year_id', $year)->where('is_active', true)->value('id'), 'journal_date' => today()]);
         return view('academic.teaching-journals.form', $this->options($year) + compact('journal') + ['savedAttendance' => collect()]);
@@ -106,7 +106,6 @@ class TeachingJournalController extends Controller
         return ['years' => AcademicYear::latest('starts_at')->get(), 'semesters' => Semester::where('academic_year_id', $year)->get(), 'rooms' => Classroom::with(['gradeLevel', 'students'])->where('academic_year_id', $year)->where('is_active', true)->get(), 'subjects' => AcademicSubject::where('is_active', true)->orderBy('sort_order')->get(), 'teachers' => Personnel::where('is_active', true)->orderBy('full_name')->get()];
     }
 
-    private function personnelOrAbort(Request $request): void { abort_unless($request->user()->personnel?->is_active, 403, TeachingJournalService::NO_PERSONNEL); }
     private function ensureView(Request $request, TeachingJournal $journal): void { abort_if(! $request->user()->can('teaching-journals.view-all') && $journal->personnel_id !== $request->user()->personnel?->id, 403); }
     private function ensureManage(Request $request, TeachingJournal $journal): void { abort_unless($request->user()->can('teaching-journals.manage'), 403); $this->ensureView($request, $journal); }
 }

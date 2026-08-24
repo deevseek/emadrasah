@@ -16,7 +16,7 @@ class TeachingJournalService
     public function save(array $data, User $user, ?TeachingJournal $journal = null): TeachingJournal
     {
         return DB::transaction(function () use ($data, $user, $journal): TeachingJournal {
-            $personnel = $user->personnel;
+            $personnel = $this->activePersonnel($user);
             if (! $personnel || ! $personnel->is_active) throw new AuthorizationException(self::NO_PERSONNEL);
             if ($journal && ! $user->can('teaching-journals.view-all') && $journal->personnel_id !== $personnel->id) throw new AuthorizationException('Anda hanya dapat mengubah jurnal milik sendiri.');
 
@@ -50,6 +50,32 @@ class TeachingJournalService
             activity('akademik')->causedBy($user)->performedOn($journal)->withProperties(['tanggal' => $journal->journal_date->toDateString(), 'rombel_id' => $journal->classroom_id])->log($message);
             return $journal;
         });
+    }
+
+    public function activePersonnel(User $user): ?Personnel
+    {
+        $personnel = $user->personnel;
+        if ($personnel) return $personnel->is_active ? $personnel : null;
+
+        $email = strtolower(trim((string) $user->email));
+        if ($email === '') return null;
+
+        return DB::transaction(function () use ($user, $email): ?Personnel {
+            $personnel = Personnel::query()
+                ->whereNull('user_id')
+                ->whereRaw('LOWER(email) = ?', [$email])
+                ->lockForUpdate()
+                ->first();
+
+            if (! $personnel || ! $personnel->is_active) return null;
+
+            $personnel->update(['user_id' => $user->id, 'updated_by' => $user->id]);
+            $user->setRelation('personnel', $personnel);
+            activity('personnel')->causedBy($user)->performedOn($personnel)
+                ->log('Menghubungkan akun dengan data personalia berdasarkan alamat email yang sama.');
+
+            return $personnel;
+        }, 3);
     }
 
     public function delete(TeachingJournal $journal, User $user): void
