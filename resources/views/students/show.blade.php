@@ -49,6 +49,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const result = dialog.querySelector('[data-rfid-result]');
     const device = dialog.querySelector('[data-rfid-device]');
     const completed = dialog.querySelector('[data-rfid-completed]');
+    // Gunakan URL relatif agar permintaan tetap memakai origin/protokol halaman.
+    // Ini penting ketika Laravel berada di balik reverse proxy HTTPS.
+    const writerUrl = @json(route('students.rfid-writer.store', $student, false));
     let timer = null;
     let reloadAfterClose = false;
 
@@ -86,11 +89,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const poll = (commandId) => {
         timer = window.setInterval(async () => {
             try {
-                const response = await fetch(`{{ url('/students/'.$student->id.'/rfid-writer') }}/${commandId}`, { headers: { Accept: 'application/json' } });
+                const response = await fetch(`${writerUrl}/${commandId}`, { headers: { Accept: 'application/json' } });
                 const data = await response.json();
+                if (! response.ok) throw new Error(data.message ?? 'Status penulisan kartu tidak dapat diperiksa.');
                 if (['completed', 'failed', 'expired'].includes(data.status)) finish(data);
-            } catch (_) {
-                finish({ status: 'failed', error_code: 'DEVICE_ERROR' });
+            } catch (error) {
+                window.clearInterval(timer);
+                timer = null;
+                progress.classList.add('hidden');
+                message.textContent = error instanceof TypeError
+                    ? 'Server aplikasi tidak dapat dihubungi. Periksa koneksi lalu coba kembali.'
+                    : error.message;
             }
         }, 1500);
     };
@@ -104,7 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
             dialog.showModal();
 
             try {
-                const response = await fetch('{{ route('students.rfid-writer.store',$student) }}', {
+                const response = await fetch(writerUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
                     body: JSON.stringify({ replace: button.dataset.replace === '1' }),
@@ -115,7 +124,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 poll(data.command_id);
             } catch (error) {
                 progress.classList.add('hidden');
-                message.textContent = error.message;
+                message.textContent = error instanceof TypeError
+                    ? 'Server aplikasi tidak dapat dihubungi. Periksa koneksi lalu coba kembali.'
+                    : error.message;
             }
         });
     });
