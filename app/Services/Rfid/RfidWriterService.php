@@ -16,7 +16,7 @@ class RfidWriterService
 
     public function onlineWriter(): ?RfidDevice
     {
-        return RfidDevice::query()->where('is_active', true)->where('mode', 'writer')->where('last_seen_at', '>=', now()->subSeconds(15))->latest('last_seen_at')->first();
+        return RfidDevice::query()->where('is_active', true)->where('device_type', 'writer')->where('last_seen_at', '>=', now()->subSeconds(75))->latest('last_seen_at')->first();
     }
 
     public function issue(Student $student, User $actor, bool $replace = false): RfidDeviceCommand

@@ -72,6 +72,7 @@ return [
         ['label'=>'Kelola Website','route'=>'website.index','active'=>'website.*','permission'=>'website.dashboard.view','icon'=>'school'],
     ]],
     ['label'=>'Pengaturan','items'=>[
+        ['label'=>'Perangkat RFID','route'=>'rfid-devices.index','active'=>'rfid-devices.*','permission'=>'rfid-device.manage','icon'=>'filter'],
         ['label'=>'Pengaturan Aplikasi','route'=>'application-settings.edit','active'=>'application-settings.*','permission_any'=>['application-settings.view','hrd-settings.view','finance.bri.configure'],'icon'=>'filter'],
     ]],
 ];
