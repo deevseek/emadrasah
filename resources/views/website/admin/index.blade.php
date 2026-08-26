@@ -1,1 +1,33 @@
-<x-layouts.app title="Kelola Website"><x-ui.page-header title="Website Sekolah" description="Kelola landing page publik MI Sultan Fatah."><x-slot:actions><x-ui.button :href="route('website.preview')" target="_blank">Preview Landing Page</x-ui.button></x-slot:actions></x-ui.page-header><div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">@foreach(['program'=>'Program','facility'=>'Fasilitas','achievement'=>'Prestasi','published'=>'Berita Terbit','draft'=>'Draft Berita','testimonial'=>'Testimoni Aktif'] as $key=>$label)<x-ui.card><p class="text-sm text-slate-500">{{ $label }}</p><p class="mt-2 text-3xl font-bold text-emerald-900">{{ $counts[$key] }}</p></x-ui.card>@endforeach</div><x-ui.card class="mt-6"><h2 class="text-lg font-bold">Pengelolaan Konten</h2><div class="mt-5 flex flex-wrap gap-3"><x-ui.button :href="route('website.settings')">Hero, Tentang, PPDB, Kontak & SEO</x-ui.button>@foreach(['program'=>'Program','facility'=>'Fasilitas','achievement'=>'Prestasi','news'=>'Berita & Kegiatan','testimonial'=>'Testimoni'] as $type=>$label)<x-ui.button variant="secondary" :href="route('website.content.index',$type)">{{ $label }}</x-ui.button>@endforeach</div></x-ui.card></x-layouts.app>
+<x-layouts.app title="Kelola Website">
+    <x-ui.page-header title="Kelola Website" description="Pilih bagian yang ingin diperbarui. Perubahan konten dapat dilihat melalui pratinjau sebelum dipublikasikan.">
+        <x-slot:actions><x-ui.button variant="outline" :href="route('website.preview')" target="_blank">Buka pratinjau</x-ui.button></x-slot:actions>
+    </x-ui.page-header>
+
+    <div class="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        @foreach([
+            ['type' => 'news', 'title' => 'Berita dan kegiatan', 'description' => 'Tulis kabar terbaru, simpan sebagai draf, lalu terbitkan.', 'count' => $counts['published'].' terbit · '.$counts['draft'].' draf'],
+            ['type' => 'program', 'title' => 'Program unggulan', 'description' => 'Perkenalkan program utama yang ditawarkan madrasah.', 'count' => $counts['program'].' konten'],
+            ['type' => 'facility', 'title' => 'Fasilitas', 'description' => 'Tampilkan sarana dan prasarana yang tersedia.', 'count' => $counts['facility'].' konten'],
+            ['type' => 'achievement', 'title' => 'Prestasi', 'description' => 'Bagikan pencapaian peserta didik dan madrasah.', 'count' => $counts['achievement'].' konten'],
+            ['type' => 'testimonial', 'title' => 'Testimoni', 'description' => 'Kelola cerita singkat dari orang tua atau alumni.', 'count' => $counts['testimonial'].' aktif'],
+        ] as $section)
+            <x-ui.card class="transition hover:border-emerald-200 hover:shadow-md">
+                <div class="flex items-start justify-between gap-3">
+                    <div><h2 class="text-lg font-bold text-emerald-950">{{ $section['title'] }}</h2><span class="badge badge-muted mt-2">{{ $section['count'] }}</span></div>
+                    <span class="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-50 text-lg font-bold text-emerald-700" aria-hidden="true">→</span>
+                </div>
+                <p class="mt-4 min-h-10 text-sm leading-6 text-slate-600">{{ $section['description'] }}</p>
+                <div class="mt-5 flex gap-2">
+                    <x-ui.button :href="route('website.content.index', $section['type'])">Kelola</x-ui.button>
+                    <x-ui.button variant="secondary" :href="route('website.content.create', $section['type'])">Tambah baru</x-ui.button>
+                </div>
+            </x-ui.card>
+        @endforeach
+
+        <x-ui.card class="border-emerald-800 bg-emerald-950 text-white">
+            <h2 class="text-lg font-bold">Tampilan dan informasi utama</h2>
+            <p class="mt-4 min-h-10 text-sm leading-6 text-emerald-100">Atur judul halaman depan, profil singkat, PPDB, kontak, dan publikasi website.</p>
+            <div class="mt-5"><x-ui.button class="bg-white text-emerald-950 hover:bg-slate-100" :href="route('website.settings')">Atur tampilan</x-ui.button></div>
+        </x-ui.card>
+    </div>
+</x-layouts.app>
