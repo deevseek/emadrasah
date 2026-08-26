@@ -1,0 +1,4 @@
+<?php
+declare(strict_types=1);
+use Illuminate\Database\Migrations\Migration;use Illuminate\Database\Schema\Blueprint;use Illuminate\Support\Facades\Schema;
+return new class extends Migration {public function up():void{Schema::create('rfid_attendance_events',function(Blueprint $table):void{$table->id();$table->foreignId('rfid_device_id')->nullable()->constrained('rfid_devices')->nullOnDelete();$table->foreignId('student_id')->nullable()->constrained()->cascadeOnDelete();$table->foreignId('classroom_id')->nullable()->constrained()->cascadeOnDelete();$table->foreignId('student_attendance_id')->nullable()->constrained('student_attendances')->nullOnDelete();$table->string('result_code',40)->index();$table->boolean('success');$table->string('message');$table->timestamp('scanned_at')->index();$table->timestamps();$table->index(['classroom_id','scanned_at','id'],'rfid_events_live_feed');});}public function down():void{Schema::dropIfExists('rfid_attendance_events');}};
