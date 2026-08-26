@@ -12,6 +12,17 @@
             @else
                 <p class="mt-1 text-sm text-slate-500">Belum mempunyai kartu.</p>
             @endif
+            <div class="mt-4 border-t border-slate-100 pt-3">
+                <h3 class="text-xs font-bold uppercase tracking-wide text-emerald-900">Absensi Hari Ini</h3>
+                @if($todayAttendance)
+                    <dl class="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
+                        <dt class="text-slate-500">Status</dt><dd class="font-semibold">{{ $todayAttendance->status->label() }}</dd>
+                        <dt class="text-slate-500">Sumber</dt><dd>{{ $todayAttendance->source->value === 'rfid' ? 'RFID' : 'Manual' }}</dd>
+                        @if($todayAttendance->source->value === 'rfid')<dt class="text-slate-500">Waktu Scan</dt><dd>{{ $todayAttendance->scanned_at?->format('H:i') ?? '—' }}</dd>@endif
+                        <dt class="text-slate-500">Rombel</dt><dd>{{ $todayAttendance->classroom?->display_name ?? '—' }}</dd>
+                    </dl>
+                @else<p class="mt-1 text-sm text-slate-500">Belum melakukan absensi.</p>@endif
+            </div>
             <p class="mt-2 text-xs font-semibold {{ $writerOnline ? 'text-emerald-700' : 'text-red-600' }}">Writer {{ $writerOnline ? 'Online' : 'Offline' }}</p>
         </div>
         <div class="flex flex-wrap gap-2">
