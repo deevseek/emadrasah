@@ -96,7 +96,7 @@ class WebsiteContentController extends Controller
         }
         if (in_array($type, ['program', 'facility', 'news'])) {
             $base = $data['title'] ?? $data['name'] ?? '';
-            $data['slug'] = $data['slug'] ?: Str::slug($base).'-'.Str::lower(Str::random(5));
+            $data['slug'] = ($data['slug'] ?? null) ?: Str::slug($base).'-'.Str::lower(Str::random(5));
         }
         if ($type === 'news') {
             $data['author_id'] = $request->user()->id;
