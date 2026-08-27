@@ -85,6 +85,22 @@ class LandingPageTest extends TestCase
         $this->assertNotNull(LandingNews::firstOrFail()->published_at);
     }
 
+    public function test_news_without_a_slug_receives_an_automatic_slug(): void
+    {
+        $operator = $this->operator(['website.content.manage']);
+
+        $this->actingAs($operator)->post(route('website.content.store', 'news'), [
+            'title' => 'Kegiatan Tanpa Slug',
+            'category' => 'Kegiatan',
+            'content' => 'Isi kegiatan madrasah.',
+            'status' => 'draft',
+        ])->assertRedirect(route('website.content.index', 'news'));
+
+        $news = LandingNews::firstOrFail();
+
+        $this->assertMatchesRegularExpression('/^kegiatan-tanpa-slug-[a-z0-9]{5}$/', $news->slug);
+    }
+
     private function operator(array $permissions): User
     {
         $user = User::factory()->create(['is_active' => true, 'must_change_password' => false]);
