@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\LoginHistory;
+use App\Services\Auth\LoginDestinationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -20,7 +21,7 @@ class AuthenticatedSessionController extends Controller
         return view('auth.login');
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, LoginDestinationService $destinations): RedirectResponse
     {
         $credentials = $request->validate(['login' => ['required', 'string'], 'password' => ['required', 'string']]);
         $login = strtolower(trim($credentials['login']));
@@ -44,7 +45,7 @@ class AuthenticatedSessionController extends Controller
         $request->user()->forceFill(['last_login_at' => now()])->save();
         $this->record($request, $request->user()->id, true);
 
-        return redirect()->intended(route('dashboard'));
+        return redirect()->intended(route($destinations->routeName($request->user())));
     }
 
     public function destroy(Request $request): RedirectResponse
