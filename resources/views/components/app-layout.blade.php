@@ -14,7 +14,7 @@
 @endphp
 <!doctype html>
 <html lang="id">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{{ $title }} - {{ $appName }}</title>@if($favicon)<link rel="icon" href="{{ $favicon }}">@endif<style>:root{--app-primary:{{ $applicationSettings->get('primary_color', '#047857') }}}</style>@vite(['resources/css/app.css','resources/js/app.js'])</head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="csrf-token" content="{{ csrf_token() }}"><title>{{ $title }} - {{ $appName }}</title>@if($favicon)<link rel="icon" href="{{ $favicon }}">@endif<style>:root{--app-primary:{{ $applicationSettings->get('primary_color', '#047857') }}}</style>@vite(['resources/css/app.css','resources/js/app.js'])</head>
 <body class="app-shell" data-sidebar-default="{{ $applicationSettings->get('sidebar_mode', 'expanded') }}">
 <div class="app-sidebar-overlay" onclick="closeMobileSidebar()" aria-hidden="true"></div>
 <aside class="app-sidebar">
