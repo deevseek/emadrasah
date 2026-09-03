@@ -6,13 +6,17 @@ namespace App\Http\Controllers\Hrd;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Hrd\StoreAttendanceDeviceRequest;
+use App\Exceptions\AttendanceSecurityException;
 use App\Models\{Personnel, PersonnelAttendanceDevice};
 use App\Services\Hrd\AttendanceDeviceService;
+use App\Services\Personnel\ResolvePersonnelAccount;
 use Illuminate\Http\{RedirectResponse, Request};
 use Illuminate\View\View;
 
 class AttendanceDeviceController extends Controller
 {
+    public function __construct(private ResolvePersonnelAccount $personnelAccounts) {}
+
     public function index(Request $request): View
     {
         $devices = PersonnelAttendanceDevice::query()
@@ -32,15 +36,24 @@ class AttendanceDeviceController extends Controller
 
         return view('hrd.attendance-devices.index', [
             'devices' => $devices,
-            'personnel' => Personnel::query()->where('is_active', true)->orderBy('full_name')->get(['id', 'full_name', 'position']),
+        ]);
+    }
+
+    public function mine(Request $request): View
+    {
+        $personnel = $this->personnel($request);
+
+        return view('hrd.attendance-devices.mine', [
+            'personnel' => $personnel,
+            'devices' => $personnel->attendanceDevices()->latest('created_at')->get(),
         ]);
     }
 
     public function store(StoreAttendanceDeviceRequest $request, AttendanceDeviceService $service): RedirectResponse
     {
-        $service->register($request->validated(), $request->user());
+        $service->register($this->personnel($request), $request->validated(), $request->user());
 
-        return back()->with('status', 'Perangkat absensi berhasil didaftarkan dan langsung dapat digunakan.');
+        return back()->with('status', 'Perangkat berhasil diajukan. Tunggu validasi Operator atau Super Admin sebelum digunakan untuk absensi.');
     }
 
     public function approve(PersonnelAttendanceDevice $device, AttendanceDeviceService $service): RedirectResponse
@@ -55,5 +68,15 @@ class AttendanceDeviceController extends Controller
         $service->revoke($device, request()->user());
 
         return back()->with('status', 'Akses perangkat absensi berhasil dicabut.');
+    }
+
+    private function personnel(Request $request): Personnel
+    {
+        $personnel = $this->personnelAccounts->handle($request->user());
+        if (! $personnel) {
+            throw new AttendanceSecurityException('PERSONNEL_NOT_LINKED', 'Akun belum terhubung dengan personalia aktif. Hubungi Operator Madrasah.', 403);
+        }
+
+        return $personnel;
     }
 }
