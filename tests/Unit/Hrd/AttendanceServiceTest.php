@@ -50,6 +50,20 @@ class AttendanceServiceTest extends TestCase
         self::assertGreaterThan(5,$result['distance']); self::assertLessThan(6,$result['distance']);
     }
 
+    public function test_location_accuracy_area_that_overlaps_radius_is_accepted(): void
+    {
+        $now = CarbonImmutable::parse('2026-08-15 07:00:00');
+        $result = $this->service(['hrd_attendance_location_enabled'=>true,'hrd_attendance_latitude'=>-6.2,'hrd_attendance_longitude'=>106.816666,'hrd_attendance_radius_meter'=>20,'hrd_attendance_max_accuracy_meter'=>50,'hrd_attendance_location_max_age_seconds'=>30])->validateLocation(['latitude'=>-6.2003,'longitude'=>106.816666,'accuracy'=>14,'location_captured_at'=>$now->toIso8601String()],$now);
+
+        self::assertGreaterThan(33,$result['distance']);
+        self::assertLessThan(34,$result['distance']);
+    }
+
+    public function test_location_validation_is_skipped_when_disabled(): void
+    {
+        self::assertSame(['distance'=>null],$this->service(['hrd_attendance_location_enabled'=>false])->validateLocation([]));
+    }
+
     /** @dataProvider rejectedLocations */
     public function test_invalid_location_is_rejected(array $location,string $code): void
     {
