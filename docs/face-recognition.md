@@ -19,6 +19,8 @@ Konfigurasikan Laravel dengan `FACE_RECOGNITION_DRIVER=python`, URL localhost, t
 
 SFace menghasilkan embedding ternormalisasi. Verifikasi memakai cosine similarity (rentang praktis -1..1; semakin besar semakin mirip) terhadap masing-masing dari tiga embedding acuan dan mengambil nilai maksimum. Setting `hrd_face_confidence_threshold` adalah ambang langsung metric tersebut dan harus dikalibrasi dengan data uji legal. Engine ini tidak menyediakan liveness; API mengembalikan `liveness_supported=false` dan `liveness_passed=null`.
 
+Detektor menerima foto kamera seluler dalam empat orientasi dan otomatis mengecilkan sisi terpanjang sebelum inferensi agar YuNet tetap stabil pada foto beresolusi tinggi. Ambang deteksi dapat diatur melalui `FACE_DETECTION_SCORE_THRESHOLD` (bawaan `0.6`), sedangkan `FACE_MAX_DETECTION_DIMENSION` (bawaan `1280`) membatasi ukuran inferensi tanpa mengubah rasio foto. Ambang deteksi berbeda dari `MIN_FACE_QUALITY`: nilai pertama menentukan kandidat wajah, sedangkan nilai kedua tetap menolak wajah yang terlalu kecil atau tidak memadai. Setelah mengubah environment, restart layanan Face Recognition.
+
 Embedding disimpan terenkripsi oleh Laravel (`encrypted:array`) dan foto disimpan pada disk private di `storage/app/private/personnel-faces`, hanya disajikan controller berizin. Snapshot absensi tidak disimpan.
 
 ## systemd

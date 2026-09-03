@@ -1,7 +1,13 @@
 import cv2
 import numpy as np
 
-from .config import DETECTOR_MODEL, MIN_QUALITY, RECOGNIZER_MODEL
+from .config import (
+    DETECTION_SCORE_THRESHOLD,
+    DETECTOR_MODEL,
+    MAX_DETECTION_DIMENSION,
+    MIN_QUALITY,
+    RECOGNIZER_MODEL,
+)
 
 
 class FaceError(Exception):
@@ -18,7 +24,10 @@ class SFaceEngine:
             DETECTOR_MODEL,
             '',
             (320, 320),
-            score_threshold=.8,
+            # YuNet's confidence can drop noticeably on mobile cameras because of
+            # compression, backlighting, and slight blur. 0.8 rejected otherwise
+            # usable attendance photos before the quality check could run.
+            score_threshold=DETECTION_SCORE_THRESHOLD,
             nms_threshold=.3,
             top_k=20,
         )
@@ -38,6 +47,7 @@ class SFaceEngine:
         )
 
         for candidate in candidates:
+            candidate = self._limit_detection_size(candidate)
             height, width = candidate.shape[:2]
             self.detector.setInputSize((width, height))
             _, faces = self.detector.detect(candidate)
@@ -45,6 +55,21 @@ class SFaceEngine:
                 return candidate, faces
 
         return image, None
+
+    @staticmethod
+    def _limit_detection_size(image):
+        """Keep YuNet input in a reliable range without changing its aspect ratio."""
+        height, width = image.shape[:2]
+        longest_side = max(height, width)
+        if longest_side <= MAX_DETECTION_DIMENSION:
+            return image
+
+        scale = MAX_DETECTION_DIMENSION / longest_side
+        return cv2.resize(
+            image,
+            (max(1, round(width * scale)), max(1, round(height * scale))),
+            interpolation=cv2.INTER_AREA,
+        )
 
     def encode(self, image):
         image, faces = self._detect(image)
