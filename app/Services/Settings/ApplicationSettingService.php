@@ -38,7 +38,7 @@ class ApplicationSettingService
         'hrd_shift_count' => 1, 'hrd_shift_1_start' => '07:00', 'hrd_shift_1_end' => '15:00',
         'hrd_shift_2_start' => '15:00', 'hrd_shift_2_end' => '23:00', 'hrd_shift_3_start' => '22:00', 'hrd_shift_3_end' => '06:00',
         'hrd_early_checkin_minutes' => 60, 'hrd_max_late_checkin_hours' => 4, 'hrd_face_recognition_enabled' => false,
-        'hrd_payroll_by_attendance_enabled' => false, 'hrd_payroll_auto_late_deduction_enabled' => false, 'hrd_payroll_auto_cash_advance_deduction_enabled' => false,
+        'hrd_payroll_by_attendance_enabled' => true, 'hrd_payroll_auto_late_deduction_enabled' => false, 'hrd_payroll_auto_cash_advance_deduction_enabled' => false,
     ];
 
     private ?array $resolved = null;
