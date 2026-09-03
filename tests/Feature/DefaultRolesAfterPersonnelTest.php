@@ -145,6 +145,23 @@ class DefaultRolesAfterPersonnelTest extends TestCase
         $response->assertSee('Pilih akun yang belum terhubung')->assertDontSee('Admin Lain')->assertDontSee('Sudah Terhubung');
     }
 
+    public function test_personnel_edit_includes_current_and_unlinked_accounts(): void
+    {
+        $admin=User::where('username','administrator')->firstOrFail();
+        $current=User::factory()->create(['name'=>'Akun Saat Ini']);
+        $available=User::factory()->create(['name'=>'Akun Tersedia']);
+        $linked=User::factory()->create(['name'=>'Akun Personalia Lain']);
+        $personnel=$this->personnel(['user_id'=>$current->id]);
+        $this->personnel(['full_name'=>'Personalia Lain','user_id'=>$linked->id]);
+
+        $response=$this->actingAs($admin)->get(route('personnel.edit',$personnel))->assertOk();
+
+        $accountIds=$response->viewData('accounts')->pluck('id');
+        $this->assertTrue($accountIds->contains($current->id));
+        $this->assertTrue($accountIds->contains($available->id));
+        $this->assertFalse($accountIds->contains($linked->id));
+    }
+
     public function test_head_authorization_matches_read_only_defaults(): void
     {
         $head=User::factory()->create(['must_change_password'=>false]);$head->syncRoles(['kepala-madrasah']);$personnel=$this->personnel();
