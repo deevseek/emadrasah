@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Settings;
 
 use App\Actions\Hrd\GetFaceRecognitionStatus;
+use App\Actions\Hrd\RestartFaceRecognitionService;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\UpdateGeneralSettingRequest;
 use App\Http\Requests\Settings\UpdateBriSettingRequest;
@@ -44,6 +45,17 @@ class ApplicationSettingController extends Controller
     public function faceRecognitionStatus(GetFaceRecognitionStatus $faceStatus): JsonResponse
     {
         return response()->json($faceStatus->handle());
+    }
+
+    public function restartFaceRecognition(Request $request, RestartFaceRecognitionService $restart): JsonResponse
+    {
+        try {
+            $restart->handle($request->user());
+        } catch (RuntimeException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 422);
+        }
+
+        return response()->json(['message' => 'Layanan Face Recognition sedang dimulai ulang.']);
     }
 
     public function update(UpdateGeneralSettingRequest $request): RedirectResponse

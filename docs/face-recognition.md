@@ -42,3 +42,22 @@ WantedBy=multi-user.target
 ```
 
 Jika Laravel dan API berada pada server yang sama, bind ke `127.0.0.1`; Nginx/tunnel tidak diperlukan. Health `unavailable` berarti model/path belum siap. Jika fitur diwajibkan, kegagalan API menolak absensi dan tidak melakukan bypass.
+
+## Restart dari Pengaturan HRD
+
+Tombol **Mulai Ulang Layanan** pada status Face Recognition hanya tersedia bagi pengguna dengan izin `hrd-settings.update`. Laravel menjalankan perintah lokal yang ditetapkan melalui `FACE_RECOGNITION_RESTART_COMMAND`; perintah tersebut tidak dapat diubah dari browser atau database.
+
+Untuk systemd, berikan hak `sudo` yang terbatas kepada pengguna PHP-FPM/web server, misalnya melalui `/etc/sudoers.d/emadrasah-face-recognition`:
+
+```sudoers
+www-data ALL=(root) NOPASSWD: /usr/bin/systemctl restart emadrasah-face-recognition.service
+```
+
+Kemudian atur environment Laravel berikut dan bangun ulang cache konfigurasi:
+
+```dotenv
+FACE_RECOGNITION_RESTART_COMMAND="sudo /usr/bin/systemctl restart emadrasah-face-recognition.service"
+FACE_RECOGNITION_RESTART_TIMEOUT=30
+```
+
+Jangan memberikan akses `systemctl` umum atau shell tanpa batas kepada `www-data`. Setiap restart yang berhasil dicatat pada activity log HRD, sedangkan kegagalan hanya menampilkan pesan umum agar keluaran proses dan detail server tidak bocor ke browser.
