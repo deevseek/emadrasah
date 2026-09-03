@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Academic;
 
 use App\Models\{ClassroomMembership, Personnel, StudentAttendance, TeachingJournal, User};
+use App\Services\Personnel\ResolvePersonnelAccount;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -12,6 +13,8 @@ use Illuminate\Validation\ValidationException;
 class TeachingJournalService
 {
     public const NO_PERSONNEL = 'Akun Anda belum terhubung dengan Data Personalia. Hubungi Operator Madrasah.';
+
+    public function __construct(private ResolvePersonnelAccount $personnelAccounts) {}
 
     public function save(array $data, User $user, ?TeachingJournal $journal = null): TeachingJournal
     {
@@ -54,28 +57,7 @@ class TeachingJournalService
 
     public function activePersonnel(User $user): ?Personnel
     {
-        $personnel = $user->personnel;
-        if ($personnel) return $personnel->is_active ? $personnel : null;
-
-        $email = strtolower(trim((string) $user->email));
-        if ($email === '') return null;
-
-        return DB::transaction(function () use ($user, $email): ?Personnel {
-            $personnel = Personnel::query()
-                ->whereNull('user_id')
-                ->whereRaw('LOWER(email) = ?', [$email])
-                ->lockForUpdate()
-                ->first();
-
-            if (! $personnel || ! $personnel->is_active) return null;
-
-            $personnel->update(['user_id' => $user->id, 'updated_by' => $user->id]);
-            $user->setRelation('personnel', $personnel);
-            activity('personnel')->causedBy($user)->performedOn($personnel)
-                ->log('Menghubungkan akun dengan data personalia berdasarkan alamat email yang sama.');
-
-            return $personnel;
-        }, 3);
+        return $this->personnelAccounts->handle($user);
     }
 
     public function delete(TeachingJournal $journal, User $user): void
