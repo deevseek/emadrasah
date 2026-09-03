@@ -32,11 +32,22 @@ class PersonnelAttendanceAccountResolutionTest extends TestCase
         $response = $this->withoutMiddleware()->actingAs($user)->get(route('hrd.attendance.mine'));
 
         $response->assertOk()
+            ->assertSee('<meta name="csrf-token" content="', false)
             ->assertSee('const challengeUrl="\/hrd\/attendance\/challenge"', false)
             ->assertSee('const faceUrl="\/hrd\/attendance\/face-verify"', false)
             ->assertSee('credentials:\'same-origin\'', false)
             ->assertSee('Tidak dapat terhubung ke server. Periksa koneksi internet Anda, lalu coba lagi.', false)
             ->assertDontSee('https:\/\/alamat-konfigurasi-yang-salah.example\/hrd\/attendance', false);
+    }
+
+    public function test_self_attendance_displays_server_message_when_request_fails(): void
+    {
+        $user = User::factory()->create(['email' => 'guru@example.test']);
+        $this->personnel(['email' => 'guru@example.test']);
+
+        $this->withoutMiddleware()->actingAs($user)->get(route('hrd.attendance.mine'))
+            ->assertOk()
+            ->assertSee("json.message||'Permintaan gagal.'", false);
     }
 
     public function test_teacher_cannot_be_connected_to_inactive_personnel_for_self_attendance(): void
