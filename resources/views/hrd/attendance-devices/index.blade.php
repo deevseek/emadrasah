@@ -1,10 +1,10 @@
 <x-layouts.app title="Perangkat Absensi" :breadcrumbs="['HRD', 'Perangkat Absensi']">
 <div class="index-stack">
-    <x-ui.page-header title="Manajemen Perangkat Absensi" description="Daftarkan, setujui, atau cabut perangkat yang digunakan personalia untuk absensi dengan pengenalan wajah." />
+    <x-ui.page-header title="Validasi Perangkat Absensi" description="Tinjau, setujui, atau cabut perangkat absensi yang diajukan oleh guru melalui akunnya." />
 
-    <x-ui.alert type="info"><strong>Alur keamanan:</strong> UUID hanya disimpan sebagai hash. Perangkat baru yang belum didaftarkan akan masuk sebagai permintaan tertunda dan tidak dapat melanjutkan verifikasi wajah sebelum disetujui HRD.</x-ui.alert>
+    <x-ui.alert type="info"><strong>Alur keamanan:</strong> UUID hanya disimpan sebagai hash. Perangkat baru yang belum didaftarkan akan masuk sebagai permintaan tertunda dan tidak dapat melanjutkan verifikasi wajah sebelum divalidasi Operator atau Super Admin.</x-ui.alert>
 
-    <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_23rem]">
+    <div>
         <x-ui.card>
             <form method="get" class="mb-5 grid gap-3 sm:grid-cols-[minmax(0,1fr)_12rem_auto]">
                 <div><label for="search">Cari personalia</label><input id="search" name="search" value="{{ request('search') }}" placeholder="Nama personalia"></div>
@@ -30,16 +30,6 @@
             @endif
         </x-ui.card>
 
-        <x-ui.card><h2 class="text-lg font-bold text-emerald-950">Daftarkan Perangkat</h2><p class="mb-4 text-sm text-slate-500">Masukkan UUID dari perangkat milik personalia. Perangkat langsung disetujui setelah disimpan.</p>
-            <form method="post" action="{{ route('hrd.attendance-devices.store') }}" class="space-y-4">@csrf
-                <div><label for="personnel_id">Personalia</label><select id="personnel_id" name="personnel_id" required><option value="">Pilih personalia</option>@foreach($personnel as $person)<option value="{{ $person->id }}" @selected(old('personnel_id')==$person->id)>{{ $person->full_name }} — {{ $person->position }}</option>@endforeach</select>@error('personnel_id')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror</div>
-                <div><label for="device_uuid">UUID Perangkat</label><input id="device_uuid" name="device_uuid" required value="{{ old('device_uuid') }}" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"><p class="mt-1 text-xs text-slate-500">Guru dapat menyalin UUID yang ditampilkan saat perangkat belum disetujui.</p>@error('device_uuid')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror</div>
-                <div><label for="device_name">Nama Perangkat</label><input id="device_name" name="device_name" required maxlength="100" value="{{ old('device_name') }}" placeholder="Ponsel Guru Ahmad"></div>
-                <div><label for="platform">Platform</label><input id="platform" name="platform" maxlength="80" value="{{ old('platform') }}" placeholder="Android, iOS, Windows"></div>
-                <div><label for="browser">Browser</label><input id="browser" name="browser" maxlength="80" value="{{ old('browser') }}" placeholder="Chrome, Safari"></div>
-                <button class="btn btn-primary w-full" type="submit">Daftarkan Perangkat</button>
-            </form>
-        </x-ui.card>
     </div>
 </div>
 </x-layouts.app>
