@@ -25,6 +25,7 @@ return [
         ['label'=>'Data Personalia','route'=>'personnel.index','active'=>'personnel.*','permission'=>'personnel.view','icon'=>'personnel'],
         ['label'=>'Absensi Pegawai','route'=>'hrd.attendance.index','active'=>'hrd.attendance.index','permission'=>'personnel-attendance.view-all','icon'=>'calendar'],
         ['label'=>'Absensi Saya','route'=>'hrd.attendance.mine','active'=>'hrd.attendance.mine','permission'=>'personnel-attendance.check','icon'=>'calendar'],
+        ['label'=>'Perangkat Absensi','route'=>'hrd.attendance-devices.index','active'=>'hrd.attendance-devices.*','permission'=>'personnel-attendance.manage-devices','icon'=>'filter'],
         ['label'=>'Izin & Cuti','route'=>'hrd.leave.index','active'=>'hrd.leave.*','permission'=>'personnel-leave.view','icon'=>'document'],
         ['label'=>'Payroll & Gaji','route'=>'hrd.payroll.index','active'=>'hrd.payroll.*','permission_any'=>['personnel-payroll.view','personnel-payroll.view-own'],'icon'=>'document'],
         ['label'=>'Kasbon Pegawai','route'=>'hrd.cash-advance.index','active'=>'hrd.cash-advance.*','permission_any'=>['personnel-cash-advance.view','personnel-cash-advance.view-own'],'icon'=>'document'],

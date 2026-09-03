@@ -34,7 +34,7 @@ class ApplicationSettingService
         'hrd_attendance_max_accuracy_meter' => 50, 'hrd_attendance_location_max_age_seconds' => 30,
         'hrd_attendance_challenge_ttl_seconds' => 60, 'hrd_face_verification_ttl_seconds' => 120,
         'hrd_face_confidence_threshold' => '0.80', 'hrd_attendance_max_devices' => 2,
-        'hrd_attendance_new_device_requires_approval' => false,
+        'hrd_attendance_new_device_requires_approval' => true,
         'hrd_shift_count' => 1, 'hrd_shift_1_start' => '07:00', 'hrd_shift_1_end' => '15:00',
         'hrd_shift_2_start' => '15:00', 'hrd_shift_2_end' => '23:00', 'hrd_shift_3_start' => '22:00', 'hrd_shift_3_end' => '06:00',
         'hrd_early_checkin_minutes' => 60, 'hrd_max_late_checkin_hours' => 4, 'hrd_face_recognition_enabled' => false,
