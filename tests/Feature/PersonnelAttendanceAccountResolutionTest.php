@@ -23,6 +23,22 @@ class PersonnelAttendanceAccountResolutionTest extends TestCase
         $this->assertSame($user->id, $personnel->refresh()->user_id);
     }
 
+    public function test_self_attendance_uses_same_origin_endpoints_and_friendly_connection_error(): void
+    {
+        config(['app.url' => 'https://alamat-konfigurasi-yang-salah.example']);
+        $user = User::factory()->create(['email' => 'guru@example.test']);
+        $this->personnel(['email' => 'guru@example.test']);
+
+        $response = $this->withoutMiddleware()->actingAs($user)->get(route('hrd.attendance.mine'));
+
+        $response->assertOk()
+            ->assertSee('const challengeUrl="\/hrd\/attendance\/challenge"', false)
+            ->assertSee('const faceUrl="\/hrd\/attendance\/face-verify"', false)
+            ->assertSee('credentials:\'same-origin\'', false)
+            ->assertSee('Tidak dapat terhubung ke server. Periksa koneksi internet Anda, lalu coba lagi.', false)
+            ->assertDontSee('https:\/\/alamat-konfigurasi-yang-salah.example\/hrd\/attendance', false);
+    }
+
     public function test_teacher_cannot_be_connected_to_inactive_personnel_for_self_attendance(): void
     {
         $user = User::factory()->create(['email' => 'guru@example.test']);
