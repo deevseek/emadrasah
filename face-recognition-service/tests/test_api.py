@@ -27,3 +27,20 @@ def test_multiple_faces(monkeypatch):
  class Multiple(Engine):
   def encode(self,image):raise FaceError('MULTIPLE_FACES_DETECTED','Lebih dari satu wajah terdeteksi.')
  main.engine=Multiple();assert client.post('/v1/faces/encode',headers=auth,files={'image':('x.jpg',image())}).json()['error']['code']=='MULTIPLE_FACES_DETECTED'
+
+
+def test_engine_retries_rotated_mobile_photo():
+ from app.face_engine import SFaceEngine
+ import numpy as np
+
+ class Detector:
+  def setInputSize(self,size):self.size=size
+  def detect(self,image):
+   if image.shape[:2]==(3,2):
+    return None,np.asarray([[0,0,1,1,0,0,0,0,0,0,0,0,0,0,.9]],dtype=np.float32)
+   return None,None
+
+ engine=SFaceEngine.__new__(SFaceEngine);engine.detector=Detector()
+ oriented,faces=engine._detect(np.zeros((2,3,3),dtype=np.uint8))
+ assert oriented.shape[:2]==(3,2)
+ assert len(faces)==1
