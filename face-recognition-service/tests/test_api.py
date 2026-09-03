@@ -44,3 +44,23 @@ def test_engine_retries_rotated_mobile_photo():
  oriented,faces=engine._detect(np.zeros((2,3,3),dtype=np.uint8))
  assert oriented.shape[:2]==(3,2)
  assert len(faces)==1
+
+
+def test_engine_downscales_high_resolution_mobile_photo(monkeypatch):
+ from app import face_engine
+ from app.face_engine import SFaceEngine
+ import numpy as np
+
+ monkeypatch.setattr(face_engine,'MAX_DETECTION_DIMENSION',1280)
+
+ class Detector:
+  def setInputSize(self,size):self.size=size
+  def detect(self,image):
+   assert max(image.shape[:2])==1280
+   return None,np.asarray([[0,0,100,100,0,0,0,0,0,0,0,0,0,0,.9]],dtype=np.float32)
+
+ engine=SFaceEngine.__new__(SFaceEngine);engine.detector=Detector()
+ oriented,faces=engine._detect(np.zeros((3000,4000,3),dtype=np.uint8))
+ assert oriented.shape[:2]==(960,1280)
+ assert engine.detector.size==(1280,960)
+ assert len(faces)==1
