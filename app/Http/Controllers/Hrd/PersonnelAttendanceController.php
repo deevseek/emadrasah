@@ -1,9 +1,10 @@
 <?php
 declare(strict_types=1);
 namespace App\Http\Controllers\Hrd;
-use App\Exceptions\AttendanceSecurityException;use App\Http\Controllers\Controller;use App\Http\Requests\Hrd\SelfAttendanceRequest;use App\Models\PersonnelAttendance;use App\Services\Hrd\{AttendanceSecurityService,AttendanceService};use App\Services\Settings\ApplicationSettingService;use Illuminate\Http\{JsonResponse,Request};use Illuminate\View\View;
+use App\Exceptions\AttendanceSecurityException;use App\Http\Controllers\Controller;use App\Http\Requests\Hrd\SelfAttendanceRequest;use App\Models\PersonnelAttendance;use App\Services\Hrd\{AttendanceSecurityService,AttendanceService};use App\Services\Personnel\ResolvePersonnelAccount;use App\Services\Settings\ApplicationSettingService;use Illuminate\Http\{JsonResponse,Request};use Illuminate\View\View;
 class PersonnelAttendanceController extends Controller
 {
+ public function __construct(private ResolvePersonnelAccount $personnelAccounts) {}
  public function index(Request $r):View{$q=PersonnelAttendance::with('personnel')->latest('attendance_date')->latest('check_in_time');foreach(['status','method','shift_number']as$f)if($r->filled($f))$q->where($f,$r->$f);return view('hrd.attendance.index',['title'=>'Absensi Pegawai','attendances'=>$q->paginate(20)->withQueryString()]);}
  public function mine(Request $r,ApplicationSettingService $settings):View{$p=$this->personnel($r);return view('hrd.attendance.mine',['title'=>'Absensi Saya','personnel'=>$p,'attendance'=>$p->attendances()->whereDate('attendance_date',today())->first(),'security'=>$settings->all()]);}
  public function challenge(Request $r,AttendanceSecurityService $security):JsonResponse{$r->validate(['action'=>['required','in:check_in,check_out'],'device_uuid'=>['nullable','uuid'],'device_name'=>['nullable','string','max:100'],'browser'=>['nullable','string','max:80'],'platform'=>['nullable','string','max:80']]);return response()->json(['data'=>$security->challenge($r->user(),$this->personnel($r),$r->string('action')->toString(),$r)]);}
@@ -11,5 +12,5 @@ class PersonnelAttendanceController extends Controller
  public function checkIn(SelfAttendanceRequest $r,AttendanceService $s):JsonResponse{return $this->submit($r,$s,'check_in');}
  public function checkOut(SelfAttendanceRequest $r,AttendanceService $s):JsonResponse{return $this->submit($r,$s,'check_out');}
  private function submit(SelfAttendanceRequest $r,AttendanceService $s,string $action):JsonResponse{$row=$s->submit($this->personnel($r),$r->user(),$action,$r->validated(),$r);return response()->json(['data'=>['message'=>$action==='check_in'?'Check-in berhasil dicatat.':'Check-out berhasil dicatat.','time'=>($action==='check_in'?$row->check_in_time:$row->check_out_time)?->format('H:i'),'distance'=>$action==='check_in'?$row->check_in_distance:$row->check_out_distance]]);}
- private function personnel(Request $r){$p=$r->user()->personnel;if(!$p)throw new AttendanceSecurityException('PERSONNEL_NOT_LINKED','Akun belum terhubung dengan personalia.',403);if(!$p->is_active)throw new AttendanceSecurityException('PERSONNEL_INACTIVE','Status personalia tidak aktif.',403);return$p;}
+ private function personnel(Request $r){$p=$this->personnelAccounts->handle($r->user());if(!$p)throw new AttendanceSecurityException('PERSONNEL_NOT_LINKED','Akun belum terhubung dengan personalia aktif. Pastikan alamat email akun sama dengan Data Personalia atau hubungi Operator Madrasah.',403);return$p;}
 }
