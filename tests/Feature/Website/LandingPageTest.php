@@ -3,6 +3,7 @@
 namespace Tests\Feature\Website;
 
 use App\Models\{LandingNews, LandingPageSetting, LandingProgram, User};
+use Database\Seeders\LandingPageSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
@@ -16,6 +17,21 @@ class LandingPageTest extends TestCase
         LandingPageSetting::create(['key' => 'landing_enabled', 'value' => '1', 'group' => 'publication']);
         LandingPageSetting::create(['key' => 'hero_title', 'value' => 'Hero Aktif', 'group' => 'hero']);
         $this->get('/')->assertOk()->assertSee('Hero Aktif')->assertSee('mobile-nav');
+    }
+
+    public function test_landing_page_seeder_adds_a_working_parent_portal_link(): void
+    {
+        $this->seed(LandingPageSeeder::class);
+
+        $this->get(route('public.home'))
+            ->assertOk()
+            ->assertSee('Portal Orang Tua')
+            ->assertSee(route('parent.login'));
+
+        $this->assertDatabaseHas('landing_page_settings', [
+            'key' => 'parent_portal_url',
+            'value' => '/parent/login',
+        ]);
     }
 
     public function test_public_layout_component_can_be_rendered(): void

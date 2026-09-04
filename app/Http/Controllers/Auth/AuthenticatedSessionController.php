@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\LoginRequest;
 use App\Models\LoginHistory;
 use App\Services\Auth\LoginDestinationService;
 use Illuminate\Http\RedirectResponse;
@@ -21,9 +22,14 @@ class AuthenticatedSessionController extends Controller
         return view('auth.login');
     }
 
-    public function store(Request $request, LoginDestinationService $destinations): RedirectResponse
+    public function createParent(): View
     {
-        $credentials = $request->validate(['login' => ['required', 'string'], 'password' => ['required', 'string']]);
+        return view('auth.parent-login');
+    }
+
+    public function store(LoginRequest $request, LoginDestinationService $destinations): RedirectResponse
+    {
+        $credentials = $request->validated();
         $login = strtolower(trim($credentials['login']));
         $key = 'login:'.$request->ip().':'.$login;
         if (RateLimiter::tooManyAttempts($key, 5)) {
@@ -39,6 +45,11 @@ class AuthenticatedSessionController extends Controller
             $this->record($request, $request->user()->id, false, 'Akun nonaktif.');
             Auth::logout();
             throw ValidationException::withMessages(['login' => 'Akun Anda sedang dinonaktifkan.']);
+        }
+        if ($request->routeIs('parent.login.store') && ! $request->user()->hasRole('orang-tua')) {
+            $this->record($request, $request->user()->id, false, 'Akun bukan orang tua/wali.');
+            Auth::logout();
+            throw ValidationException::withMessages(['login' => 'Akun ini tidak terdaftar sebagai akun orang tua atau wali murid.']);
         }
         RateLimiter::clear($key);
         $request->session()->regenerate();
