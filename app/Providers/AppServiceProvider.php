@@ -14,7 +14,9 @@ use App\Contracts\FaceRecognitionService;
 use App\Contracts\Banking\{BankPaymentGateway, BankTransferGateway};
 use App\Services\Banking\{DisabledBriGateway, FakeBriGateway};
 use App\Services\Hrd\UnavailableFaceRecognitionService;
+use App\Observers\ActivityObserver;
 use App\Services\Hrd\PythonFaceRecognitionService;
+use Spatie\Activitylog\Models\Activity;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -31,6 +33,7 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        Activity::observe(ActivityObserver::class);
         Event::listen(StudentPaymentCompleted::class, SendSppPaymentReceiptEmail::class);
         $settings = app(ApplicationSettingService::class);
         date_default_timezone_set((string) $settings->get('timezone', config('app.timezone')));
