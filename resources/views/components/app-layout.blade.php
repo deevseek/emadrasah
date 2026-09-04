@@ -7,7 +7,7 @@
     $logo = $applicationSettings->assetUrl('primary_logo') ?: $schoolProfile->logo_url;
     $favicon = $applicationSettings->assetUrl('favicon');
     $user = auth()->user();
-    $role = $user?->roles?->pluck('display_name')->filter()->first() ?? $user?->roles?->pluck('name')->first() ?? 'Pengguna';
+    $role = $user?->display_role ?? 'Pengguna';
     $hasPersonnelProfile = $user?->personnel()->exists() ?? false;
     $navGroups = config('navigation', []);
     $title = filled($title) ? $title : 'Dashboard';

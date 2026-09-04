@@ -42,8 +42,8 @@ class DefaultRolesAfterPersonnelTest extends TestCase
     public function test_default_permission_sets_follow_monitoring_and_operational_policy(): void
     {
         $head=Role::findByName('kepala-madrasah');
-        foreach(['dashboard.view','school-profile.view','academic-periods.view','personnel.view','personnel.view-sensitive','personnel.export','users.view','roles.view'] as $permission)$this->assertTrue($head->hasPermissionTo($permission));
-        foreach(['personnel.create','personnel.update','personnel.activate','personnel.manage-account','personnel.import','users.create','users.assign-role','roles.manage-permissions'] as $permission)$this->assertFalse($head->hasPermissionTo($permission));
+        foreach(['dashboard.view','school-profile.view','academic-periods.view','personnel.view','personnel.view-sensitive','personnel.export','users.view','users.update','users.assign-role','roles.view'] as $permission)$this->assertTrue($head->hasPermissionTo($permission));
+        foreach(['personnel.create','personnel.update','personnel.activate','personnel.manage-account','personnel.import','users.create','roles.manage-permissions'] as $permission)$this->assertFalse($head->hasPermissionTo($permission));
         $operator=Role::findByName('operator');
         foreach(['personnel.view','personnel.create','personnel.update','personnel.activate','personnel.manage-account','personnel.view-sensitive','personnel.import','personnel.export'] as $permission)$this->assertTrue($operator->hasPermissionTo($permission));
         foreach(['rfid-card.view','rfid-card.issue','rfid-card.replace','rfid-card.disable','rfid-writer.use'] as $permission)$this->assertTrue($operator->hasPermissionTo($permission));
