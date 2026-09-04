@@ -18,6 +18,15 @@ window.previewImage = (event, targetId) => {
   const file = event.target.files?.[0];
   const target = document.getElementById(targetId);
   if (!file || !target) return;
+  const error = event.target.parentElement?.querySelector('[data-file-error]');
+  const maximumKilobytes = Number(event.target.dataset.maxKb || 0);
+  if (maximumKilobytes && file.size > maximumKilobytes * 1024) {
+    const maximum = maximumKilobytes >= 1024 ? `${maximumKilobytes / 1024} MB` : `${maximumKilobytes} KB`;
+    if (error) error.textContent = `Ukuran ${event.target.dataset.fileLabel} maksimal ${maximum}.`;
+    event.target.value = '';
+    return;
+  }
+  if (error) error.textContent = '';
   target.src = URL.createObjectURL(file);
   target.classList.remove('hidden');
 };
@@ -37,7 +46,8 @@ document.addEventListener('DOMContentLoaded', () => {
     tabs.forEach((tab) => { const active = tab.dataset.tab === name; tab.classList.toggle('bg-white', active); tab.classList.toggle('text-emerald-800', active); tab.setAttribute('aria-selected', String(active)); });
     panels.forEach((panel) => panel.classList.toggle('hidden', panel.dataset.panel !== name));
   };
-  if (tabs.length) { activateTab(location.hash.slice(1) || 'general'); tabs.forEach((tab) => tab.addEventListener('click', () => { activateTab(tab.dataset.tab); history.replaceState(null, '', `#${tab.dataset.tab}`); })); }
+  const settingsForm = document.querySelector('[data-settings-form]');
+  if (tabs.length) { activateTab(location.hash.slice(1) || settingsForm?.dataset.initialTab || 'general'); tabs.forEach((tab) => tab.addEventListener('click', () => { activateTab(tab.dataset.tab); history.replaceState(null, '', `#${tab.dataset.tab}`); })); }
   const picker = document.querySelector('[data-color-picker]'); const hex = document.querySelector('[data-color-hex]');
   picker?.addEventListener('input', () => { hex.value = picker.value.toUpperCase(); }); hex?.addEventListener('input', () => { if (/^#[0-9a-f]{6}$/i.test(hex.value)) picker.value = hex.value; });
   const maintenance = document.getElementById('maintenance_toggle'); const maintenanceValue = document.querySelector('[data-maintenance-value]'); const dialog = document.getElementById('maintenance-confirm');

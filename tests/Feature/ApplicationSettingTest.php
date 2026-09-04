@@ -44,6 +44,30 @@ class ApplicationSettingTest extends TestCase
         $this->actingAs($user)->put(route('application-settings.update'), $this->data(['primary_logo' => UploadedFile::fake()->create('virus.php', 10)]))->assertSessionHasErrors('primary_logo');
     }
 
+    public function test_oversized_branding_files_show_clear_indonesian_errors(): void
+    {
+        $user = $this->user(['application-settings.update']);
+
+        $response = $this->actingAs($user)
+            ->from(route('application-settings.edit'))
+            ->put(route('application-settings.update'), $this->data([
+                'primary_logo' => UploadedFile::fake()->image('logo.png')->size(2049),
+                'favicon' => UploadedFile::fake()->create('favicon.ico', 513, 'image/x-icon'),
+            ]));
+
+        $response->assertRedirect(route('application-settings.edit'))
+            ->assertSessionHasErrors([
+                'primary_logo' => 'Ukuran Logo Utama maksimal 2 MB.',
+                'favicon' => 'Ukuran Favicon maksimal 512 KB.',
+            ]);
+
+        $this->get(route('application-settings.edit'))
+            ->assertOk()
+            ->assertSee('data-initial-tab="branding"', false)
+            ->assertSee('Ukuran Logo Utama maksimal 2 MB.')
+            ->assertDontSee('validation.max.file');
+    }
+
     public function test_defaults_remain_available_when_rows_are_incomplete(): void
     {
         $this->assertSame('e-Madrasah', app(ApplicationSettingService::class)->get('app_name'));
