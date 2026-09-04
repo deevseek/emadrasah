@@ -41,13 +41,44 @@ class AccessModuleTest extends TestCase
         $this->assertDatabaseHas('login_histories', ['login_identifier' => 'ahmad.fauzi', 'successful' => true]);
     }
 
-    public function test_new_user_has_exactly_one_role_and_must_change_password(): void
+    public function test_new_user_can_have_multiple_roles_and_must_change_password(): void
     {
         $admin = User::where('username', 'administrator')->firstOrFail();
-        $this->actingAs($admin)->post('/users', ['name'=>'Ahmad Fauzi','username'=>'ahmad.fauzi','email'=>'ahmad@example.test','role'=>'guru','password'=>'rahasia1','password_confirmation'=>'rahasia1','is_active'=>1])->assertRedirect();
+        $this->actingAs($admin)->post('/users', ['name'=>'Ahmad Fauzi','username'=>'ahmad.fauzi','email'=>'ahmad@example.test','roles'=>['guru','operator'],'password'=>'rahasia1','password_confirmation'=>'rahasia1','is_active'=>1])->assertRedirect();
         $user = User::where('username', 'ahmad.fauzi')->firstOrFail();
         $this->assertTrue($user->must_change_password);
-        $this->assertSame(['guru'], $user->roles->pluck('name')->all());
+        $this->assertEqualsCanonicalizing(['guru','operator'], $user->roles->pluck('name')->all());
+    }
+
+    public function test_operator_and_head_can_synchronize_multiple_user_roles(): void
+    {
+        $target = User::factory()->create(['must_change_password' => false]);
+        $target->syncRoles(['guru']);
+        $operator = User::factory()->create(['must_change_password' => false]);
+        $operator->syncRoles(['operator']);
+
+        $payload = ['name'=>$target->name,'username'=>$target->username,'email'=>$target->email,'roles'=>['guru','bendahara'],'is_active'=>1];
+        $this->actingAs($operator)->put(route('users.update', $target), $payload)->assertRedirect();
+        $this->assertTrue($target->fresh()->hasAllRoles(['guru','bendahara']));
+
+        $head = User::factory()->create(['must_change_password' => false]);
+        $head->syncRoles(['kepala-madrasah']);
+        $payload['roles'] = ['guru','orang-tua'];
+        $this->actingAs($head)->put(route('users.update', $target), $payload)->assertRedirect();
+        $this->assertEqualsCanonicalizing(['guru','orang-tua'], $target->fresh()->roles->pluck('name')->all());
+    }
+
+    public function test_other_role_cannot_assign_roles_even_with_assignment_permission(): void
+    {
+        $actor = User::factory()->create(['must_change_password' => false]);
+        $actor->syncRoles(['hrd']);
+        Role::findByName('hrd')->givePermissionTo(['users.update','users.assign-role']);
+        $target = User::factory()->create(['must_change_password' => false]);
+        $target->syncRoles(['guru']);
+
+        $this->actingAs($actor)->put(route('users.update', $target), ['name'=>$target->name,'username'=>$target->username,'email'=>$target->email,'roles'=>['guru','operator'],'is_active'=>1])
+            ->assertSessionHasErrors('roles');
+        $this->assertSame(['guru'], $target->fresh()->roles->pluck('name')->all());
     }
 
     public function test_email_address_can_be_used_as_username(): void
@@ -58,7 +89,7 @@ class AccessModuleTest extends TestCase
             'name' => 'Wildan Inda',
             'username' => 'WILDANINDA18@GMAIL.COM',
             'email' => 'wildaninda18@gmail.com',
-            'role' => 'guru',
+            'roles' => ['guru'],
             'password' => 'rahasia1',
             'password_confirmation' => 'rahasia1',
             'is_active' => 1,

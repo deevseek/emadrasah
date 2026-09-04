@@ -44,7 +44,7 @@ class User extends Authenticatable
 
         return str($initials)->upper()->toString();
     }
-    public function getDisplayRoleAttribute(): string { return $this->roles->first()?->display_name ?? $this->roles->first()?->name ?? 'Tanpa role'; }
+    public function getDisplayRoleAttribute(): string { return $this->roles->map(fn (Role $role): string => $role->display_name ?? $role->name)->join(', ') ?: 'Tanpa role'; }
     public function getHasLoggedInAttribute(): bool { return $this->last_login_at !== null; }
     public function personnel(): HasOne { return $this->hasOne(Personnel::class); }
 }
