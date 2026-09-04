@@ -52,6 +52,7 @@ return [
         ['label'=>'Daftar Nilai','route'=>'academic.grades.index','active'=>'academic.grades.*','permission'=>'academic-grades.view','icon'=>'academic'],
         ['label'=>'Jurnal Mengajar','route'=>'academic.teaching-journals.index','active'=>'academic.teaching-journals.*','permission'=>'teaching-journals.view','icon'=>'academic'],
         ['label'=>'Laporan Akademik','route'=>'academic.reports.index','active'=>'academic.reports.*','permission'=>'academic-reports.view','icon'=>'document'],
+        ['label'=>'Konsultasi Orang Tua','route'=>'consultations.index','active'=>'consultations.*','permission'=>'consultations.reply','icon'=>'users'],
     ]],
     ['label'=>'Portal Orang Tua','items'=>[
         ['label'=>'Dashboard','route'=>'parent.dashboard','active'=>'parent.dashboard','permission'=>'parent.dashboard.view','icon'=>'dashboard'],
@@ -59,6 +60,7 @@ return [
         ['label'=>'Jadwal & Kegiatan','route'=>'parent.schedule','active'=>'parent.schedule','permission'=>'parent.schedule.view','icon'=>'calendar'],
         ['label'=>'Absensi & Izin','route'=>'parent.attendance','active'=>'parent.attendance','permission'=>'parent.attendance.view','icon'=>'document'],
         ['label'=>'SPP & Pembayaran','route'=>'parent.finance','active'=>'parent.finance','permission'=>'parent.finance.view','icon'=>'document'],
+        ['label'=>'Konsultasi Wali Kelas','route'=>'parent.consultation.show','active'=>'parent.consultation.*','permission'=>'parent.consultation.use','icon'=>'users'],
         ['label'=>'Profil','route'=>'parent.profile','active'=>'parent.profile','permission'=>'parent.dashboard.view','icon'=>'users'],
     ]],
     ['label'=>'Keuangan','items'=>[
