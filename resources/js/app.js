@@ -62,4 +62,27 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
   });
+
+  const center = document.querySelector('[data-notification-center]');
+  if (center) {
+    const toggle = center.querySelector('[data-notification-toggle]');
+    const panel = center.querySelector('[data-notification-panel]');
+    const badge = center.querySelector('[data-notification-badge]');
+    const list = center.querySelector('[data-notification-list]');
+    const escapeHtml = (value) => { const element = document.createElement('span'); element.textContent = value ?? ''; return element.innerHTML; };
+    const refresh = async () => {
+      try {
+        const { data } = await window.axios.get(center.dataset.url);
+        badge.textContent = data.unread_count > 99 ? '99+' : data.unread_count;
+        badge.classList.toggle('hidden', data.unread_count === 0);
+        list.innerHTML = data.notifications.length ? data.notifications.map((item) => `<a href="${escapeHtml(item.url)}" data-notification-link data-read-url="${escapeHtml(item.read_url)}" class="block border-b border-slate-100 px-4 py-3 hover:bg-emerald-50 ${item.read ? '' : 'bg-emerald-50/50'}"><span class="block text-[10px] font-bold uppercase tracking-wide text-emerald-700">${escapeHtml(item.module)}</span><span class="mt-1 block text-sm font-medium text-slate-800">${escapeHtml(item.message)}</span><span class="mt-1 block text-xs text-slate-500">${item.actor ? `Oleh ${escapeHtml(item.actor)} · ` : ''}${escapeHtml(item.created_at)}</span></a>`).join('') : '<p class="p-4 text-sm text-slate-500">Belum ada notifikasi.</p>';
+        list.querySelectorAll('[data-notification-link]').forEach((link) => link.addEventListener('click', async (event) => { event.preventDefault(); try { await window.axios.patch(link.dataset.readUrl); } finally { window.location.assign(link.href); } }));
+      } catch { list.innerHTML = '<p class="p-4 text-sm text-rose-700">Notifikasi belum dapat dimuat.</p>'; }
+    };
+    toggle.addEventListener('click', () => { const opening = panel.classList.contains('hidden'); panel.classList.toggle('hidden'); toggle.setAttribute('aria-expanded', String(opening)); if (opening) refresh(); });
+    center.querySelector('[data-notification-read-all]').addEventListener('click', async () => { await window.axios.patch(center.dataset.readUrl); await refresh(); });
+    document.addEventListener('click', (event) => { if (!center.contains(event.target)) { panel.classList.add('hidden'); toggle.setAttribute('aria-expanded', 'false'); } });
+    refresh();
+    window.setInterval(refresh, Number(center.dataset.interval));
+  }
 });

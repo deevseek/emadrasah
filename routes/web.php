@@ -7,8 +7,9 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\PasswordUpdateController;
 use App\Http\Controllers\Foundation\DashboardController;
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Public\PaymentVerificationController;
+use Illuminate\Support\Facades\Route;
 
 
 Route::get('/verify/payment/{token}', PaymentVerificationController::class)->where('token','[A-Za-z0-9]{48}')->name('payment.verify');
@@ -34,6 +35,10 @@ Route::middleware(['auth', 'active', 'force-password-change'])->group(function (
         ->name('dashboard');
     Route::get('/password/change', [PasswordUpdateController::class, 'edit'])->name('password.change');
     Route::put('/password/change', [PasswordUpdateController::class, 'update'])->name('password.change.update');
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/latest', [NotificationController::class, 'latest'])->name('notifications.latest');
+    Route::patch('/notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');
+    Route::patch('/notifications/{notification}', [NotificationController::class, 'read'])->name('notifications.read');
 });
 
 require __DIR__.'/access.php';
