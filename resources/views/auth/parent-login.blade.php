@@ -40,7 +40,7 @@
 
                 <p class="text-sm font-bold uppercase tracking-[.22em] text-emerald-700">Selamat datang</p>
                 <h2 class="mt-3 text-3xl font-bold text-emerald-950 sm:text-4xl">Masuk Portal Orang Tua</h2>
-                <p class="mt-3 leading-7 text-slate-600">Gunakan email atau username akun wali yang diberikan oleh madrasah.</p>
+                <p class="mt-3 leading-7 text-slate-600">Gunakan email atau username akun wali yang telah terdaftar.</p>
 
                 @if (session('status'))
                     <div class="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">{{ session('status') }}</div>
@@ -68,7 +68,11 @@
                     <button class="h-12 w-full rounded-xl bg-emerald-900 px-5 font-bold text-white shadow-lg shadow-emerald-900/15 transition hover:bg-emerald-800 focus:outline-none focus:ring-4 focus:ring-emerald-200">Masuk ke Portal</button>
                 </form>
 
-                <p class="mt-8 rounded-xl bg-slate-100 p-4 text-center text-sm leading-6 text-slate-600">Belum memiliki akun atau mengalami kendala? Silakan hubungi operator madrasah.</p>
+                <div class="mt-8 rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-center text-sm leading-6 text-slate-700">
+                    Belum memiliki akun?
+                    <a href="{{ route('parent.register') }}" class="font-bold text-emerald-800 hover:text-emerald-950">Daftar sebagai orang tua</a>
+                    <span class="block text-xs text-slate-500">Siapkan NISN dan tanggal lahir anak sesuai data madrasah.</span>
+                </div>
             </div>
         </section>
     </main>
