@@ -48,4 +48,5 @@ class User extends Authenticatable
     public function getDisplayRoleAttribute(): string { return $this->roles->map(fn (Role $role): string => $role->display_name ?? $role->name)->join(', ') ?: 'Tanpa role'; }
     public function getHasLoggedInAttribute(): bool { return $this->last_login_at !== null; }
     public function personnel(): HasOne { return $this->hasOne(Personnel::class); }
+    public function guardianProfile(): HasOne { return $this->hasOne(GuardianProfile::class); }
 }

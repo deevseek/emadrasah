@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\PasswordUpdateController;
+use App\Http\Controllers\Auth\ParentRegistrationController;
 use App\Http\Controllers\Foundation\DashboardController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Public\PaymentVerificationController;
@@ -19,6 +20,10 @@ Route::middleware('guest')->group(function (): void {
     Route::post('/login', [AuthenticatedSessionController::class, 'store'])->name('login.store');
     Route::get('/parent/login', [AuthenticatedSessionController::class, 'createParent'])->name('parent.login');
     Route::post('/parent/login', [AuthenticatedSessionController::class, 'store'])->name('parent.login.store');
+    Route::get('/parent/register', [ParentRegistrationController::class, 'create'])->name('parent.register');
+    Route::post('/parent/register', [ParentRegistrationController::class, 'store'])
+        ->middleware('throttle:5,1')
+        ->name('parent.register.store');
     Route::get('/forgot-password', [PasswordResetLinkController::class, 'create'])->name('password.request');
     Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])->name('password.email');
     Route::get('/reset-password/{token}', [NewPasswordController::class, 'create'])->name('password.reset');

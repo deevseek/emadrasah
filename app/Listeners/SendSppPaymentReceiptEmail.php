@@ -7,8 +7,9 @@ use App\Mail\SppPaymentReceiptMail;
 use App\Models\Finance\PaymentReceiptDelivery;
 use App\Models\GuardianProfile;
 use App\Services\Finance\PaymentReceiptService;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\{Log,Mail};
-class SendSppPaymentReceiptEmail
+class SendSppPaymentReceiptEmail implements ShouldQueue
 {
     public function __construct(private readonly PaymentReceiptService $receipts) {}
     public function handle(StudentPaymentCompleted $event): void
