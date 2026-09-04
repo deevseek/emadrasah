@@ -14,4 +14,22 @@ class UpdateGeneralSettingRequest extends FormRequest
         'default_language'=>['required',Rule::in(['id'])],'timezone'=>['required','timezone'],'date_format'=>['required',Rule::in(['DD/MM/YYYY','DD-MM-YYYY','YYYY-MM-DD'])],'time_format'=>['required',Rule::in(['24','12'])],'first_day_of_week'=>['required',Rule::in(['monday','sunday'])],
         'attendance_rfid_enabled'=>['required','boolean'],'rfid_writer_enabled'=>['required','boolean'],'maintenance_mode'=>['required','boolean'],'maintenance_message'=>['required','string','max:500'],'pagination_size'=>['required','integer',Rule::in([10,20,25,50,100])],
     ];}
+
+    public function messages(): array
+    {
+        return [
+            'primary_logo.file' => 'Logo Utama gagal diunggah. Silakan pilih kembali berkas gambar yang valid.',
+            'primary_logo.mimes' => 'Logo Utama harus berformat PNG, JPG, JPEG, atau WEBP.',
+            'primary_logo.max' => 'Ukuran Logo Utama maksimal 2 MB.',
+            'login_logo.file' => 'Logo Login gagal diunggah. Silakan pilih kembali berkas gambar yang valid.',
+            'login_logo.mimes' => 'Logo Login harus berformat PNG, JPG, JPEG, atau WEBP.',
+            'login_logo.max' => 'Ukuran Logo Login maksimal 2 MB.',
+            'print_logo.file' => 'Logo Cetak gagal diunggah. Silakan pilih kembali berkas gambar yang valid.',
+            'print_logo.mimes' => 'Logo Cetak harus berformat PNG, JPG, JPEG, atau WEBP.',
+            'print_logo.max' => 'Ukuran Logo Cetak maksimal 2 MB.',
+            'favicon.file' => 'Favicon gagal diunggah. Silakan pilih kembali berkas gambar yang valid.',
+            'favicon.mimes' => 'Favicon harus berformat PNG atau ICO.',
+            'favicon.max' => 'Ukuran Favicon maksimal 512 KB.',
+        ];
+    }
 }
