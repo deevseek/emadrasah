@@ -1,3 +1,42 @@
 <?php
-namespace Database\Seeders;use App\Models\LandingPageSetting;use Illuminate\Database\Seeder;
-class LandingPageSeeder extends Seeder {public function run():void{$defaults=['landing_enabled'=>'1','hero_active'=>'1','hero_badge'=>'Madrasah Ibtidaiyah','hero_title'=>'Membangun Generasi Islami, Cerdas, dan Berprestasi','hero_description'=>'Pendidikan dasar Islami yang memadukan ilmu, akhlak, dan keterampilan masa depan.','hero_cta_primary_label'=>'Daftar PPDB','hero_cta_primary_url'=>'#ppdb','hero_cta_secondary_label'=>'Lihat Profil','hero_cta_secondary_url'=>'#profil','about_label'=>'Tentang Kami','about_title'=>'Tentang MI Sultan Fatah','ppdb_active'=>'1','ppdb_label'=>'PPDB TAHUN AJARAN','ppdb_title'=>'Bergabunglah Bersama Kami!','ppdb_button_label'=>'Daftar Sekarang','ppdb_button_url'=>'#kontak'];foreach($defaults as $key=>$value)LandingPageSetting::firstOrCreate(['key'=>$key],['value'=>$value,'group'=>str($key)->before('_')->toString()]);}}
+
+declare(strict_types=1);
+
+namespace Database\Seeders;
+
+use App\Models\LandingPageSetting;
+use Illuminate\Database\Seeder;
+
+class LandingPageSeeder extends Seeder
+{
+    public function run(): void
+    {
+        $defaults = [
+            'landing_enabled' => '1',
+            'parent_portal_label' => 'Portal Orang Tua',
+            'parent_portal_url' => '/parent/login',
+            'hero_active' => '1',
+            'hero_badge' => 'Madrasah Ibtidaiyah',
+            'hero_title' => 'Membangun Generasi Islami, Cerdas, dan Berprestasi',
+            'hero_description' => 'Pendidikan dasar Islami yang memadukan ilmu, akhlak, dan keterampilan masa depan.',
+            'hero_cta_primary_label' => 'Daftar PPDB',
+            'hero_cta_primary_url' => '#ppdb',
+            'hero_cta_secondary_label' => 'Lihat Profil',
+            'hero_cta_secondary_url' => '#profil',
+            'about_label' => 'Tentang Kami',
+            'about_title' => 'Tentang MI Sultan Fatah',
+            'ppdb_active' => '1',
+            'ppdb_label' => 'PPDB TAHUN AJARAN',
+            'ppdb_title' => 'Bergabunglah Bersama Kami!',
+            'ppdb_button_label' => 'Daftar Sekarang',
+            'ppdb_button_url' => '#kontak',
+        ];
+
+        foreach ($defaults as $key => $value) {
+            LandingPageSetting::firstOrCreate(
+                ['key' => $key],
+                ['value' => $value, 'group' => str($key)->before('_')->toString()],
+            );
+        }
+    }
+}
