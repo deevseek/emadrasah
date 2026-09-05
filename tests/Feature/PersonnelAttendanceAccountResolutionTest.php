@@ -23,6 +23,26 @@ class PersonnelAttendanceAccountResolutionTest extends TestCase
         $this->assertSame($user->id, $personnel->refresh()->user_id);
     }
 
+    public function test_explicit_account_link_is_used_even_when_cached_relation_is_empty_and_email_differs(): void
+    {
+        $user = User::factory()->create(['email' => 'akun-guru@example.test']);
+
+        // Mensimulasikan instance pengguna yang sudah digunakan selama proses login
+        // sebelum Operator menghubungkannya ke personalia.
+        $this->assertNull($user->personnel);
+        $personnel = $this->personnel([
+            'email' => 'data-personalia@example.test',
+            'user_id' => $user->id,
+        ]);
+
+        $response = $this->withoutMiddleware()->actingAs($user)->get(route('hrd.attendance.mine'));
+
+        $response->assertOk()
+            ->assertSee('Absensi Saya')
+            ->assertSee($personnel->full_name);
+        $this->assertTrue($user->personnel->is($personnel));
+    }
+
     public function test_self_attendance_uses_same_origin_endpoints_and_friendly_connection_error(): void
     {
         config(['app.url' => 'https://alamat-konfigurasi-yang-salah.example']);
