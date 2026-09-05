@@ -11,9 +11,15 @@ class ResolvePersonnelAccount
 {
     public function handle(User $user): ?Personnel
     {
-        $personnel = $user->personnel;
+        // Jangan mengandalkan cache relasi pada instance pengguna. Instance ini dapat
+        // sudah memuat relasi null sebelum Operator menghubungkan akun, terutama pada
+        // proses login/session yang berumur panjang. user_id pada tabel personalia
+        // merupakan sumber kebenaran untuk hubungan akun.
+        $personnel = Personnel::query()->where('user_id', $user->id)->first();
 
         if ($personnel) {
+            $user->setRelation('personnel', $personnel);
+
             return $personnel->is_active ? $personnel : null;
         }
 
