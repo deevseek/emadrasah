@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Models\Personnel;
 use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\AccessControlSeeder;
@@ -106,6 +107,16 @@ class AccessModuleTest extends TestCase
         $admin = User::where('username', 'administrator')->firstOrFail();
         $target = User::factory()->create(['must_change_password' => false]);
         $target->syncRoles(['guru']);
+        $personnel = Personnel::create([
+            'user_id' => $target->id,
+            'full_name' => 'Ahmad Fauzi',
+            'gender' => 'male',
+            'employment_status' => 'permanent',
+            'position' => 'Guru',
+            'is_active' => true,
+            'created_by' => $admin->id,
+            'updated_by' => $target->id,
+        ]);
 
         $this->actingAs($admin)
             ->delete(route('users.destroy', $target))
@@ -114,6 +125,11 @@ class AccessModuleTest extends TestCase
 
         $this->assertSoftDeleted('users', ['id' => $target->id]);
         $this->assertDatabaseHas('model_has_roles', ['model_id' => $target->id]);
+        $this->assertDatabaseHas('personnel', [
+            'id' => $personnel->id,
+            'user_id' => null,
+            'updated_by' => $admin->id,
+        ]);
         $this->assertNull(User::find($target->id));
     }
 
