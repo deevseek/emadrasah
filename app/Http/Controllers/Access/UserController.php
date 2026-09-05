@@ -3,6 +3,7 @@
 declare(strict_types=1);
 namespace App\Http\Controllers\Access;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Access\DeleteUserRequest;
 use App\Http\Requests\Access\StoreUserRequest;
 use App\Http\Requests\Access\UpdateUserRequest;
 use App\Models\LoginHistory;
@@ -22,5 +23,10 @@ class UserController extends Controller
     public function show(User $user):View{$user->load('roles');$lastLogin=LoginHistory::where('user_id',$user->id)->where('successful',true)->latest('attempted_at')->first();return view('access.users.show',compact('user','lastLogin'));}
     public function edit(Request $request,User $user):View{$this->service->guard($request->user(),$user);return view('access.users.form',['user'=>$user->load('roles'),'roles'=>$this->roles($request),'editing'=>true]);}
     public function update(UpdateUserRequest $request,User $user):RedirectResponse{$this->service->update($request->user(),$user,$request->validated());return redirect()->route('users.show',$user)->with('status','Data pengguna berhasil diperbarui.');}
+    public function destroy(DeleteUserRequest $request, User $user): RedirectResponse
+    {
+        $this->service->delete($request->user(), $user);
+        return redirect()->route('users.index')->with('status', 'Akun pengguna berhasil dihapus.');
+    }
     private function roles(Request $request){return Role::query()->when(!$request->user()->hasRole('super-admin'),fn($q)=>$q->where('name','!=','super-admin'))->inDisplayOrder()->get();}
 }

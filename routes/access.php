@@ -9,6 +9,7 @@ Route::middleware(['auth','active','force-password-change'])->group(function():v
  Route::get('/users/{user}',[UserController::class,'show'])->middleware('permission:users.view')->name('users.show');
  Route::get('/users/{user}/edit',[UserController::class,'edit'])->middleware('permission:users.update')->name('users.edit');
  Route::put('/users/{user}',[UserController::class,'update'])->middleware('permission:users.update')->name('users.update');
+ Route::delete('/users/{user}',[UserController::class,'destroy'])->middleware('permission:users.delete')->name('users.destroy');
  Route::patch('/users/{user}/activate',[UserStatusController::class,'activate'])->middleware('permission:users.activate')->name('users.activate');
  Route::patch('/users/{user}/deactivate',[UserStatusController::class,'deactivate'])->middleware('permission:users.activate')->name('users.deactivate');
  Route::get('/users/{user}/reset-password',[UserPasswordController::class,'edit'])->middleware('permission:users.reset-password')->name('users.reset-password.edit');

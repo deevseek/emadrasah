@@ -37,4 +37,21 @@ class UserService
     }
     public function status(User $actor, User $user, bool $active): void { DB::transaction(function()use($actor,$user,$active){$this->guard($actor,$user,[],$active);$user->update(['is_active'=>$active]);if(!$active && config('session.driver')==='database')DB::table(config('session.table','sessions'))->where('user_id',$user->id)->delete();activity('akses')->causedBy($actor)->performedOn($user)->log(($active?'Mengaktifkan':'Menonaktifkan')." akun {$user->name}.");}); }
     public function resetPassword(User $actor, User $user, string $password): void { abort_if($actor->is($user),403,'Gunakan halaman Ganti Password untuk akun sendiri.');$this->guard($actor,$user);DB::transaction(function()use($actor,$user,$password){$user->update(['password'=>Hash::make($password),'must_change_password'=>true,'remember_token'=>null]);if(config('session.driver')==='database')DB::table(config('session.table','sessions'))->where('user_id',$user->id)->delete();activity('akses')->causedBy($actor)->performedOn($user)->log("Mengatur ulang password {$user->name}.");}); }
+
+    public function delete(User $actor, User $user): void
+    {
+        abort_if($actor->is($user), 403, 'Anda tidak dapat menghapus akun sendiri.');
+        $this->guard($actor, $user);
+        abort_if($user->hasRole('super-admin') && User::role('super-admin')->count() <= 1, 403, 'Minimal harus terdapat satu akun Super Admin.');
+
+        DB::transaction(function () use ($actor, $user): void {
+            activity('akses')->causedBy($actor)->performedOn($user)
+                ->withProperties(['nama' => $user->name, 'email' => $user->email])
+                ->log("Menghapus akun {$user->name}.");
+            if (config('session.driver') === 'database') {
+                DB::table(config('session.table', 'sessions'))->where('user_id', $user->id)->delete();
+            }
+            $user->delete();
+        });
+    }
 }

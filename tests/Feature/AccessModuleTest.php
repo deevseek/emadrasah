@@ -101,6 +101,46 @@ class AccessModuleTest extends TestCase
         ]);
     }
 
+    public function test_super_admin_can_delete_another_account_without_removing_its_history(): void
+    {
+        $admin = User::where('username', 'administrator')->firstOrFail();
+        $target = User::factory()->create(['must_change_password' => false]);
+        $target->syncRoles(['guru']);
+
+        $this->actingAs($admin)
+            ->delete(route('users.destroy', $target))
+            ->assertRedirect(route('users.index'))
+            ->assertSessionHas('status', 'Akun pengguna berhasil dihapus.');
+
+        $this->assertSoftDeleted('users', ['id' => $target->id]);
+        $this->assertDatabaseHas('model_has_roles', ['model_id' => $target->id]);
+        $this->assertNull(User::find($target->id));
+    }
+
+    public function test_user_cannot_delete_own_account(): void
+    {
+        $admin = User::where('username', 'administrator')->firstOrFail();
+
+        $this->actingAs($admin)
+            ->delete(route('users.destroy', $admin))
+            ->assertForbidden();
+
+        $this->assertNotSoftDeleted($admin);
+    }
+
+    public function test_user_without_delete_permission_cannot_delete_an_account(): void
+    {
+        $operator = User::factory()->create(['must_change_password' => false]);
+        $operator->syncRoles(['operator']);
+        $target = User::factory()->create(['must_change_password' => false]);
+
+        $this->actingAs($operator)
+            ->delete(route('users.destroy', $target))
+            ->assertForbidden();
+
+        $this->assertNotSoftDeleted($target);
+    }
+
     public function test_system_and_used_roles_cannot_be_deleted(): void
     {
         $admin = User::where('username', 'administrator')->firstOrFail();
