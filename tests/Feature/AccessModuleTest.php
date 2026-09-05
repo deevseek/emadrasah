@@ -159,6 +159,13 @@ class AccessModuleTest extends TestCase
 
         $target->delete();
 
+        $listedPersonnel = Personnel::query()
+            ->withExists('user as has_account')
+            ->findOrFail($personnel->id);
+
+        $this->assertFalse($listedPersonnel->hasAccount());
+        $this->assertSame('Belum memiliki akun', $listedPersonnel->account_status_label);
+
         $this->actingAs($admin)
             ->get(route('personnel.index', ['search' => 'Hambali', 'account' => 'none']))
             ->assertOk()

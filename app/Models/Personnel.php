@@ -21,11 +21,18 @@ class Personnel extends Model
     public function getDisplayBirthInformationAttribute():string{return collect([$this->birth_place,$this->birth_date?->translatedFormat('d F Y')])->filter()->join(', ')?:'—';}
     public function getAccountStatusLabelAttribute():string
     {
-        $hasActiveAccount = $this->relationLoaded('user')
+        return $this->hasAccount() ? 'Terhubung' : 'Belum memiliki akun';
+    }
+
+    public function hasAccount(): bool
+    {
+        if (array_key_exists('has_account', $this->attributes)) {
+            return (bool) $this->attributes['has_account'];
+        }
+
+        return $this->relationLoaded('user')
             ? $this->user !== null
             : $this->user()->exists();
-
-        return $hasActiveAccount ? 'Terhubung' : 'Belum memiliki akun';
     }
     public function getInitialsAttribute():string{return str($this->full_name)->replaceMatches('/[^\pL\s]/u','')->squish()->explode(' ')->take(2)->map(fn($w)=>str($w)->substr(0,1))->join('')->upper()->toString();}
 }
