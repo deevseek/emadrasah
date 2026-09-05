@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Services\Access;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Personnel\ResolvePersonnelAccount;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -11,6 +12,11 @@ use Illuminate\Support\Str;
 
 class UserService
 {
+    public function __construct(private ?ResolvePersonnelAccount $personnelAccounts = null)
+    {
+        $this->personnelAccounts ??= app(ResolvePersonnelAccount::class);
+    }
+
     public function guard(User $actor, User $target, array $roles = [], ?bool $active = null): void
     {
         abort_if($target->hasRole('super-admin') && ! $actor->hasRole('super-admin'), 403, 'Akun Super Admin tidak dapat diubah oleh Operator.');
@@ -30,11 +36,11 @@ class UserService
     public function assignRole(User $actor,User $user,Role $role):void{$this->guard($actor,$user,[$role->name]);$old=$user->roles->pluck('name')->all();$user->syncRoles([$role]);activity('akses')->causedBy($actor)->performedOn($user)->withProperties(['role_lama'=>$old,'role_baru'=>[$role->name]])->log("Mengubah role akun {$user->name} menjadi {$role->display_name}.");}
     public function create(User $actor, array $data): User
     {
-        return DB::transaction(function () use($actor,$data) { $roles=Role::whereIn('name',$data['roles'])->get(); $this->guard($actor,new User, $roles->pluck('name')->all()); $user=User::create([...Arr::except($data,['roles','password_confirmation']),'password'=>Hash::make($data['password']),'must_change_password'=>true]); $user->syncRoles($roles); activity('akses')->causedBy($actor)->performedOn($user)->withProperties(['roles'=>$roles->pluck('name')->all()])->log("Menambahkan pengguna {$user->name}."); return $user; });
+        return DB::transaction(function () use($actor,$data) { $roles=Role::whereIn('name',$data['roles'])->get(); $this->guard($actor,new User, $roles->pluck('name')->all()); $user=User::create([...Arr::except($data,['roles','password_confirmation']),'password'=>Hash::make($data['password']),'must_change_password'=>true]); $user->syncRoles($roles); $this->personnelAccounts->handle($user, $actor); activity('akses')->causedBy($actor)->performedOn($user)->withProperties(['roles'=>$roles->pluck('name')->all()])->log("Menambahkan pengguna {$user->name}."); return $user; });
     }
     public function update(User $actor, User $user, array $data): User
     {
-        return DB::transaction(function()use($actor,$user,$data){$old=$user->roles->pluck('name')->all();$this->guard($actor,$user,$data['roles'],(bool)$data['is_active']);$user->update(Arr::except($data,'roles'));$user->syncRoles(Role::whereIn('name',$data['roles'])->get());activity('akses')->causedBy($actor)->performedOn($user)->withProperties(['role_lama'=>$old,'role_baru'=>$data['roles'],'status_aktif'=>(bool)$data['is_active']])->log("Memperbarui data pengguna {$user->name}.");return $user->refresh();});
+        return DB::transaction(function()use($actor,$user,$data){$old=$user->roles->pluck('name')->all();$this->guard($actor,$user,$data['roles'],(bool)$data['is_active']);$user->update(Arr::except($data,'roles'));$user->syncRoles(Role::whereIn('name',$data['roles'])->get());$this->personnelAccounts->handle($user, $actor);activity('akses')->causedBy($actor)->performedOn($user)->withProperties(['role_lama'=>$old,'role_baru'=>$data['roles'],'status_aktif'=>(bool)$data['is_active']])->log("Memperbarui data pengguna {$user->name}.");return $user->refresh();});
     }
     public function status(User $actor, User $user, bool $active): void { DB::transaction(function()use($actor,$user,$active){$this->guard($actor,$user,[],$active);$user->update(['is_active'=>$active]);if(!$active && config('session.driver')==='database')DB::table(config('session.table','sessions'))->where('user_id',$user->id)->delete();activity('akses')->causedBy($actor)->performedOn($user)->log(($active?'Mengaktifkan':'Menonaktifkan')." akun {$user->name}.");}); }
     public function resetPassword(User $actor, User $user, string $password): void { abort_if($actor->is($user),403,'Gunakan halaman Ganti Password untuk akun sendiri.');$this->guard($actor,$user);DB::transaction(function()use($actor,$user,$password){$user->update(['password'=>Hash::make($password),'must_change_password'=>true,'remember_token'=>null]);if(config('session.driver')==='database')DB::table(config('session.table','sessions'))->where('user_id',$user->id)->delete();activity('akses')->causedBy($actor)->performedOn($user)->log("Mengatur ulang password {$user->name}.");}); }

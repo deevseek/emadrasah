@@ -103,6 +103,34 @@ class AccessModuleTest extends TestCase
         ]);
     }
 
+    public function test_new_user_is_connected_to_active_personnel_with_the_same_email(): void
+    {
+        $admin = User::where('username', 'administrator')->firstOrFail();
+        $personnel = Personnel::create([
+            'full_name' => 'Khoiriyah, AH.',
+            'email' => 'KHOIRLAILI15@gmail.com',
+            'gender' => 'female',
+            'employment_status' => 'Tetap',
+            'position' => 'Guru BTAQ',
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)->post('/users', [
+            'name' => 'Khoiriyah, AH.',
+            'username' => 'khoirlaili15@gmail.com',
+            'email' => 'khoirlaili15@gmail.com',
+            'roles' => ['guru'],
+            'password' => 'rahasia1',
+            'password_confirmation' => 'rahasia1',
+            'is_active' => 1,
+        ])->assertRedirect()->assertSessionDoesntHaveErrors();
+
+        $user = User::where('email', 'khoirlaili15@gmail.com')->firstOrFail();
+
+        $this->assertSame($user->id, $personnel->refresh()->user_id);
+        $this->assertSame($admin->id, $personnel->updated_by);
+    }
+
     public function test_super_admin_can_delete_another_account_without_removing_its_history(): void
     {
         $admin = User::where('username', 'administrator')->firstOrFail();
