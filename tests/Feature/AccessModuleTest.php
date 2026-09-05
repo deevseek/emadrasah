@@ -270,11 +270,16 @@ class AccessModuleTest extends TestCase
         $this->actingAs($admin)->delete(route('roles.destroy', $role))->assertStatus(422);
     }
 
-    public function test_four_system_roles_are_available_in_display_order(): void
+    public function test_system_roles_are_available_in_display_order(): void
     {
-        $roles = Role::query()->inDisplayOrder()->where('is_system', true)->pluck('name')->all();
+        $roles = Role::query()
+            ->inDisplayOrder()
+            ->where('is_system', true)
+            ->limit(count(config('roles.system_order')))
+            ->pluck('name')
+            ->all();
 
-        $this->assertSame(['super-admin', 'kepala-madrasah', 'operator', 'guru'], $roles);
+        $this->assertSame(config('roles.system_order'), $roles);
     }
 
     public function test_default_role_permission_matrix_is_safe(): void

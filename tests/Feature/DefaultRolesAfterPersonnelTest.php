@@ -52,6 +52,28 @@ class DefaultRolesAfterPersonnelTest extends TestCase
         foreach(['dashboard.view','school-profile.view','academic-periods.view'] as $permission)$this->assertTrue($teacher->hasPermissionTo($permission));
     }
 
+    public function test_cleaning_staff_role_only_receives_required_self_service_permissions(): void
+    {
+        $role = Role::findByName('tukang-sapu');
+
+        $this->assertSame('Petugas Kebersihan', $role->display_name);
+        $this->assertTrue($role->is_system);
+        foreach (['dashboard.view', 'school-profile.view', 'personnel-attendance.view', 'personnel-attendance.check', 'personnel-attendance.register-device', 'personnel-leave.view', 'personnel-leave.request', 'personnel-payroll.view-own', 'personnel-payroll.print', 'personnel-cash-advance.view-own', 'personnel-cash-advance.request'] as $permission) {
+            $this->assertTrue($role->hasPermissionTo($permission));
+        }
+        foreach (['personnel.view', 'personnel-attendance.view-all', 'personnel-leave.approve', 'personnel-payroll.view', 'users.view', 'roles.view'] as $permission) {
+            $this->assertFalse($role->hasPermissionTo($permission));
+        }
+    }
+
+    public function test_cleaning_staff_position_suggests_cleaning_staff_role(): void
+    {
+        $service = app(PersonnelRoleSuggestionService::class);
+
+        $this->assertSame('tukang-sapu', $service->suggest($this->personnel(['position' => 'Tukang Sapu']))?->name);
+        $this->assertSame('tukang-sapu', $service->suggest($this->personnel(['full_name' => 'Petugas Lain', 'position' => 'Petugas Kebersihan']))?->name);
+    }
+
     public function test_super_admin_is_synchronized_while_other_roles_keep_manual_permissions(): void
     {
         $extra=Permission::findOrCreate('test.permission','web');
