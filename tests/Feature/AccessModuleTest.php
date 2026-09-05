@@ -9,6 +9,7 @@ use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\AccessControlSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
@@ -131,6 +132,47 @@ class AccessModuleTest extends TestCase
             'updated_by' => $admin->id,
         ]);
         $this->assertNull(User::find($target->id));
+    }
+
+    public function test_deleted_account_releases_username_and_email_for_a_new_account(): void
+    {
+        $admin = User::where('username', 'administrator')->firstOrFail();
+        $target = User::factory()->create([
+            'username' => 'khoirlaili15@gmail.com',
+            'email' => 'khoirlaili15@gmail.com',
+            'must_change_password' => false,
+        ]);
+        $target->syncRoles(['guru']);
+        DB::table('password_reset_tokens')->insert([
+            'email' => $target->email,
+            'token' => 'token-akun-lama',
+            'created_at' => now(),
+        ]);
+
+        $this->actingAs($admin)->delete(route('users.destroy', $target))->assertRedirect();
+
+        $deletedUser = User::withTrashed()->findOrFail($target->id);
+        $this->assertStringStartsWith('deleted-user-'.$target->id.'-', $deletedUser->username);
+        $this->assertStringEndsWith('@deleted.invalid', $deletedUser->email);
+        $this->assertFalse($deletedUser->is_active);
+        $this->assertDatabaseMissing('password_reset_tokens', ['email' => 'khoirlaili15@gmail.com']);
+
+        $this->actingAs($admin)->post('/users', [
+            'name' => 'Khoiriyah, AH.',
+            'username' => 'khoirlaili15@gmail.com',
+            'email' => 'khoirlaili15@gmail.com',
+            'roles' => ['guru'],
+            'password' => 'rahasia1',
+            'password_confirmation' => 'rahasia1',
+            'is_active' => 1,
+        ])->assertRedirect()->assertSessionDoesntHaveErrors();
+
+        $this->assertDatabaseHas('users', [
+            'name' => 'Khoiriyah, AH.',
+            'username' => 'khoirlaili15@gmail.com',
+            'email' => 'khoirlaili15@gmail.com',
+            'deleted_at' => null,
+        ]);
     }
 
     public function test_user_cannot_delete_own_account(): void
