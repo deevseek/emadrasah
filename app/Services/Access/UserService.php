@@ -45,6 +45,11 @@ class UserService
         abort_if($user->hasRole('super-admin') && User::role('super-admin')->count() <= 1, 403, 'Minimal harus terdapat satu akun Super Admin.');
 
         DB::transaction(function () use ($actor, $user): void {
+            $user->personnel()->update([
+                'user_id' => null,
+                'updated_by' => $actor->id,
+            ]);
+
             activity('akses')->causedBy($actor)->performedOn($user)
                 ->withProperties(['nama' => $user->name, 'email' => $user->email])
                 ->log("Menghapus akun {$user->name}.");
