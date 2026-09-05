@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class UserService
 {
@@ -56,6 +57,18 @@ class UserService
             if (config('session.driver') === 'database') {
                 DB::table(config('session.table', 'sessions'))->where('user_id', $user->id)->delete();
             }
+            DB::table('password_reset_tokens')->where('email', $user->email)->delete();
+
+            // Lepaskan identitas login agar username dan email dapat dipakai kembali,
+            // sedangkan baris pengguna tetap dipertahankan untuk relasi dan audit.
+            $deletedIdentity = 'deleted-user-'.$user->id.'-'.Str::lower(Str::random(16));
+            $user->forceFill([
+                'username' => $deletedIdentity,
+                'email' => $deletedIdentity.'@deleted.invalid',
+                'remember_token' => null,
+                'is_active' => false,
+            ])->save();
+
             $user->delete();
         });
     }
