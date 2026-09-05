@@ -144,6 +144,40 @@ class AccessModuleTest extends TestCase
         $this->assertNotSoftDeleted($admin);
     }
 
+    public function test_personnel_list_treats_a_legacy_soft_deleted_account_as_disconnected(): void
+    {
+        $admin = User::where('username', 'administrator')->firstOrFail();
+        $target = User::factory()->create(['must_change_password' => false]);
+        $personnel = Personnel::create([
+            'user_id' => $target->id,
+            'full_name' => 'Hambali',
+            'gender' => 'male',
+            'employment_status' => 'permanent',
+            'position' => 'Guru',
+            'is_active' => true,
+        ]);
+
+        $target->delete();
+
+        $listedPersonnel = Personnel::query()
+            ->withExists('user as has_account')
+            ->findOrFail($personnel->id);
+
+        $this->assertFalse($listedPersonnel->hasAccount());
+        $this->assertSame('Belum memiliki akun', $listedPersonnel->account_status_label);
+
+        $this->actingAs($admin)
+            ->get(route('personnel.index', ['search' => 'Hambali', 'account' => 'none']))
+            ->assertOk()
+            ->assertSee(route('personnel.show', $personnel), false)
+            ->assertSee('Belum memiliki akun');
+
+        $this->actingAs($admin)
+            ->get(route('personnel.index', ['search' => 'Hambali', 'account' => 'connected']))
+            ->assertOk()
+            ->assertDontSee(route('personnel.show', $personnel), false);
+    }
+
     public function test_user_without_delete_permission_cannot_delete_an_account(): void
     {
         $operator = User::factory()->create(['must_change_password' => false]);
