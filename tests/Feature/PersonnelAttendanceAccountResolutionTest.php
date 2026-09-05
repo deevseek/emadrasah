@@ -43,6 +43,34 @@ class PersonnelAttendanceAccountResolutionTest extends TestCase
         $this->assertTrue($user->personnel->is($personnel));
     }
 
+    public function test_account_is_connected_when_only_unique_full_name_matches(): void
+    {
+        $personnel = $this->personnel([
+            'full_name' => 'Suryadi',
+            'email' => null,
+        ]);
+        $user = User::factory()->create([
+            'name' => 'SURYADI',
+            'email' => 'suryadi@gmail.com',
+        ]);
+
+        $resolved = app(\App\Services\Personnel\ResolvePersonnelAccount::class)->handle($user);
+
+        $this->assertTrue($resolved?->is($personnel));
+        $this->assertSame($user->id, $personnel->refresh()->user_id);
+    }
+
+    public function test_account_is_not_connected_when_full_name_is_ambiguous(): void
+    {
+        $first = $this->personnel(['full_name' => 'Nama Sama']);
+        $second = $this->personnel(['full_name' => 'NAMA SAMA']);
+        $user = User::factory()->create(['name' => 'Nama Sama']);
+
+        $this->assertNull(app(\App\Services\Personnel\ResolvePersonnelAccount::class)->handle($user));
+        $this->assertNull($first->refresh()->user_id);
+        $this->assertNull($second->refresh()->user_id);
+    }
+
     public function test_self_attendance_uses_same_origin_endpoints_and_friendly_connection_error(): void
     {
         config(['app.url' => 'https://alamat-konfigurasi-yang-salah.example']);

@@ -24,17 +24,41 @@ class ResolvePersonnelAccount
         }
 
         $email = strtolower(trim((string) $user->email));
-        if ($email === '') {
+        $name = mb_strtolower(trim((string) $user->name));
+        if ($email === '' && $name === '') {
             return null;
         }
 
-        return DB::transaction(function () use ($user, $actor, $email): ?Personnel {
-            $personnel = Personnel::query()
-                ->whereNull('user_id')
-                ->where('is_active', true)
-                ->whereRaw('LOWER(email) = ?', [$email])
-                ->lockForUpdate()
-                ->first();
+        return DB::transaction(function () use ($user, $actor, $email, $name): ?Personnel {
+            $candidates = $email === ''
+                ? collect()
+                : Personnel::query()
+                    ->whereNull('user_id')
+                    ->where('is_active', true)
+                    ->whereRaw('LOWER(email) = ?', [$email])
+                    ->lockForUpdate()
+                    ->get();
+
+            $personnel = $candidates->count() === 1 ? $candidates->first() : null;
+            $matchedBy = 'alamat email';
+
+            // Data personalia lama sering tidak mempunyai email atau memakai email
+            // yang berbeda. Nama hanya boleh menjadi fallback jika tepat satu akun
+            // dan satu personalia aktif mempunyai nama yang sama sehingga
+            // hubungan tidak dibuat secara ambigu.
+            if (! $personnel && $name !== '' && User::query()->whereRaw('LOWER(name) = ?', [$name])->count() === 1) {
+                $nameCandidates = Personnel::query()
+                    ->whereNull('user_id')
+                    ->where('is_active', true)
+                    ->whereRaw('LOWER(full_name) = ?', [$name])
+                    ->lockForUpdate()
+                    ->get();
+
+                if ($nameCandidates->count() === 1) {
+                    $personnel = $nameCandidates->first();
+                    $matchedBy = 'nama lengkap yang sama';
+                }
+            }
 
             if (! $personnel) {
                 return null;
@@ -46,7 +70,7 @@ class ResolvePersonnelAccount
             ]);
             $user->setRelation('personnel', $personnel);
             activity('personnel')->causedBy($actor ?? $user)->performedOn($personnel)
-                ->log('Menghubungkan akun dengan data personalia berdasarkan alamat email yang sama.');
+                ->log("Menghubungkan akun dengan data personalia berdasarkan {$matchedBy}.");
 
             return $personnel;
         }, 3);
