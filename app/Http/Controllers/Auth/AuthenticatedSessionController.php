@@ -6,8 +6,10 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Requests\Auth\ParentLoginRequest;
 use App\Models\LoginHistory;
 use App\Services\Auth\LoginDestinationService;
+use App\Services\Auth\ParentLoginService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -59,6 +61,33 @@ class AuthenticatedSessionController extends Controller
         return redirect()->intended(route($destinations->routeName($request->user())));
     }
 
+    public function storeParent(ParentLoginRequest $request, ParentLoginService $parentLogin): RedirectResponse
+    {
+        $credentials = $request->validated();
+        $nisn = (string) $credentials['nisn'];
+        $key = 'parent-login:'.$request->ip().':'.$nisn;
+
+        if (RateLimiter::tooManyAttempts($key, 5)) {
+            throw ValidationException::withMessages(['nisn' => 'Terlalu banyak percobaan login. Silakan coba beberapa menit lagi.']);
+        }
+
+        $user = $parentLogin->findUser($nisn, $credentials['password']);
+
+        if (! $user) {
+            RateLimiter::hit($key, 60);
+            $this->record($request, null, false, 'NISN anak atau password tidak sesuai.', $nisn);
+            throw ValidationException::withMessages(['nisn' => 'NISN anak atau password tidak sesuai.']);
+        }
+
+        RateLimiter::clear($key);
+        Auth::login($user, $request->boolean('remember'));
+        $request->session()->regenerate();
+        $user->forceFill(['last_login_at' => now()])->save();
+        $this->record($request, $user->id, true, identifier: $nisn);
+
+        return redirect()->intended(route('parent.dashboard'));
+    }
+
     public function destroy(Request $request): RedirectResponse
     {
         Auth::logout();
@@ -68,9 +97,9 @@ class AuthenticatedSessionController extends Controller
         return redirect()->route('login');
     }
 
-    private function record(Request $request, ?int $userId, bool $successful, ?string $reason = null): void
+    private function record(Request $request, ?int $userId, bool $successful, ?string $reason = null, ?string $identifier = null): void
     {
-        $identifier = strtolower((string) $request->input('login'));
+        $identifier ??= strtolower((string) $request->input('login'));
         LoginHistory::create(['user_id' => $userId, 'email' => $identifier, 'login_identifier' => $identifier, 'ip_address' => $request->ip(), 'user_agent' => (string) $request->userAgent(), 'successful' => $successful, 'failure_reason' => $reason, 'attempted_at' => now()]);
     }
 }

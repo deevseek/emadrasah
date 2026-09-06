@@ -40,7 +40,7 @@
 
                 <p class="text-sm font-bold uppercase tracking-[.22em] text-emerald-700">Selamat datang</p>
                 <h2 class="mt-3 text-3xl font-bold text-emerald-950 sm:text-4xl">Masuk Portal Orang Tua</h2>
-                <p class="mt-3 leading-7 text-slate-600">Gunakan email atau username akun wali yang telah terdaftar.</p>
+                <p class="mt-3 leading-7 text-slate-600">Gunakan NISN anak yang terhubung saat pendaftaran akun orang tua.</p>
 
                 @if (session('status'))
                     <div class="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">{{ session('status') }}</div>
@@ -49,9 +49,9 @@
                 <form method="post" action="{{ route('parent.login.store') }}" class="mt-8 space-y-5">
                     @csrf
                     <div>
-                        <label for="login">Email atau Username</label>
-                        <input id="login" name="login" type="text" value="{{ old('login') }}" required autofocus autocomplete="username" class="mt-2 h-12" placeholder="Masukkan email atau username">
-                        @error('login')<p class="mt-2 text-sm text-red-700">{{ $message }}</p>@enderror
+                        <label for="nisn">NISN Anak</label>
+                        <input id="nisn" name="nisn" type="text" inputmode="numeric" value="{{ old('nisn') }}" required autofocus autocomplete="username" class="mt-2 h-12" placeholder="Masukkan NISN anak">
+                        @error('nisn')<p class="mt-2 text-sm text-red-700">{{ $message }}</p>@enderror
                     </div>
                     <div>
                         <div class="flex items-center justify-between">
