@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Models\GuardianProfile;
 use App\Models\Role;
+use App\Models\Student;
+use App\Models\StudentGuardian;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -24,6 +27,7 @@ class AuthenticationTest extends TestCase
         $this->get(route('parent.login'))
             ->assertOk()
             ->assertSee('Masuk Portal Orang Tua')
+            ->assertSee('NISN Anak')
             ->assertSee(route('parent.login.store'));
     }
 
@@ -34,8 +38,11 @@ class AuthenticationTest extends TestCase
             'must_change_password' => false,
         ]);
         $user->assignRole(Role::findOrCreate('orang-tua'));
+        $student = Student::create(['full_name' => 'Ananda', 'nisn' => '0012345678', 'status' => 'active']);
+        $guardian = GuardianProfile::create(['user_id' => $user->id, 'name' => $user->name, 'is_active' => true]);
+        StudentGuardian::create(['student_id' => $student->id, 'guardian_id' => $guardian->id]);
 
-        $this->post(route('parent.login.store'), ['login' => $user->email, 'password' => 'rahasia'])
+        $this->post(route('parent.login.store'), ['nisn' => $student->nisn, 'password' => 'rahasia'])
             ->assertRedirect(route('parent.dashboard'));
 
         $this->assertAuthenticatedAs($user);
@@ -44,11 +51,28 @@ class AuthenticationTest extends TestCase
     public function test_non_parent_account_is_rejected_from_parent_portal(): void
     {
         $user = User::factory()->create(['password' => Hash::make('rahasia')]);
+        $student = Student::create(['full_name' => 'Ananda', 'nisn' => '0012345678', 'status' => 'active']);
+        $guardian = GuardianProfile::create(['user_id' => $user->id, 'name' => $user->name, 'is_active' => true]);
+        StudentGuardian::create(['student_id' => $student->id, 'guardian_id' => $guardian->id]);
 
         $this->from(route('parent.login'))->post(route('parent.login.store'), [
-            'login' => $user->email,
+            'nisn' => $student->nisn,
             'password' => 'rahasia',
-        ])->assertRedirect(route('parent.login'))->assertSessionHasErrors('login');
+        ])->assertRedirect(route('parent.login'))->assertSessionHasErrors('nisn');
+
+        $this->assertGuest();
+    }
+
+    public function test_parent_login_rejects_an_unlinked_child_nisn(): void
+    {
+        $user = User::factory()->create(['password' => Hash::make('rahasia')]);
+        $user->assignRole(Role::findOrCreate('orang-tua'));
+        Student::create(['full_name' => 'Ananda Lain', 'nisn' => '0098765432', 'status' => 'active']);
+
+        $this->from(route('parent.login'))->post(route('parent.login.store'), [
+            'nisn' => '0098765432',
+            'password' => 'rahasia',
+        ])->assertRedirect(route('parent.login'))->assertSessionHasErrors('nisn');
 
         $this->assertGuest();
     }
