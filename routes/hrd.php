@@ -4,6 +4,7 @@ use App\Http\Controllers\Hrd\{AttendanceDeviceController,HrdDashboardController,
 Route::middleware(['auth','active','force-password-change'])->prefix('hrd')->name('hrd.')->group(function(){
  Route::get('/',HrdDashboardController::class)->middleware('permission:hrd.dashboard.view')->name('dashboard');
  Route::get('/attendance',[PersonnelAttendanceController::class,'index'])->middleware('permission:personnel-attendance.view-all')->name('attendance.index');
+ Route::get('/attendance/{attendance}/photo/{action}',[PersonnelAttendanceController::class,'photo'])->whereIn('action',['check_in','check_out'])->middleware('permission:personnel-attendance.view-all')->name('attendance.photo');
  Route::get('/attendance/mine',[PersonnelAttendanceController::class,'mine'])->middleware('permission:personnel-attendance.check')->name('attendance.mine');
  Route::prefix('attendance-devices')->name('attendance-devices.')->group(function():void{
   Route::middleware('permission:personnel-attendance.register-device')->group(function():void{Route::get('/mine',[AttendanceDeviceController::class,'mine'])->name('mine');Route::post('/mine',[AttendanceDeviceController::class,'store'])->name('store');});

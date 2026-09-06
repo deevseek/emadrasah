@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 namespace App\Services\Hrd;
-use App\Contracts\FaceRecognitionService;use App\Exceptions\AttendanceSecurityException;use App\Models\{AttendanceChallenge,AttendanceFaceVerification,Personnel,PersonnelAttendanceDevice,User};use App\Services\Settings\ApplicationSettingService;use Illuminate\Http\{Request,UploadedFile};use Illuminate\Support\Facades\DB;use Illuminate\Support\Str;
+use App\Contracts\FaceRecognitionService;use App\Exceptions\AttendanceSecurityException;use App\Models\{AttendanceChallenge,AttendanceFaceVerification,Personnel,PersonnelAttendanceDevice,User};use App\Services\Settings\ApplicationSettingService;use Illuminate\Http\{Request,UploadedFile};use Illuminate\Support\Facades\{DB,Storage};use Illuminate\Support\Str;
 class AttendanceSecurityService
 {
  public function __construct(private ApplicationSettingService $settings,private FaceRecognitionService $faces){}
@@ -21,7 +21,9 @@ class AttendanceSecurityService
   if(($result['matched_personnel_id']??null)!==$personnel->id)throw new AttendanceSecurityException('FACE_IDENTITY_MISMATCH','Wajah tidak sesuai dengan akun yang sedang digunakan.',403);
   if(($result['confidence']??0)<(float)$this->settings->get('hrd_face_confidence_threshold',.80))throw new AttendanceSecurityException('FACE_NOT_VERIFIED','Kecocokan wajah belum memenuhi batas verifikasi.');
   if($this->faces->livenessSupported()&&($result['liveness_passed']??false)!==true)throw new AttendanceSecurityException('FACE_LIVENESS_FAILED','Pemeriksaan keaslian wajah gagal.');
-  return AttendanceFaceVerification::create(['id'=>(string)Str::uuid(),'challenge_id'=>$challenge->id,'personnel_id'=>$personnel->id,'provider'=>$this->faces->provider(),'confidence'=>$result['confidence'],'liveness_passed'=>$result['liveness_passed'],'verified_at'=>now(),'expires_at'=>now()->addSeconds((int)$this->settings->get('hrd_face_verification_ttl_seconds',120))]);
+  $snapshotPath=$snapshot->store('attendance-snapshots/'.now()->format('Y/m'),'local');
+  if(!$snapshotPath)throw new AttendanceSecurityException('FACE_SNAPSHOT_STORAGE_FAILED','Foto absensi tidak dapat disimpan. Silakan ulangi.',503);
+  try{return AttendanceFaceVerification::create(['id'=>(string)Str::uuid(),'challenge_id'=>$challenge->id,'personnel_id'=>$personnel->id,'provider'=>$this->faces->provider(),'confidence'=>$result['confidence'],'liveness_passed'=>$result['liveness_passed'],'snapshot_path'=>$snapshotPath,'verified_at'=>now(),'expires_at'=>now()->addSeconds((int)$this->settings->get('hrd_face_verification_ttl_seconds',120))]);}catch(\Throwable $e){Storage::disk('local')->delete($snapshotPath);throw $e;}
  }
  public function consume(string $id,string $nonce,User $user,Personnel $personnel,string $action,Request $request):array
  {
