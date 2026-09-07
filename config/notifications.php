@@ -17,6 +17,7 @@ return [
         'hrd' => ['label' => 'HRD', 'permissions' => ['hrd.dashboard.view', 'personnel-attendance.view-all'], 'route' => 'hrd.dashboard'],
         'payroll' => ['label' => 'Payroll', 'permissions' => ['personnel-payroll.view'], 'route' => 'hrd.payroll.index'],
         'finance' => ['label' => 'Keuangan', 'permissions' => ['finance.dashboard.view', 'finance.payment.view'], 'route' => 'finance.dashboard'],
+        'pelayanan-email' => ['label' => 'Pelayanan Email', 'permissions' => ['email-service.view'], 'route' => 'email-service.index'],
         'bri' => ['label' => 'Integrasi BRI', 'permissions' => ['finance.bri.reconcile'], 'route' => 'finance.bri.reconciliation'],
         'bri-callback' => ['label' => 'Integrasi BRI', 'permissions' => ['finance.bri.reconcile'], 'route' => 'finance.bri.reconciliation'],
         'bri-connection' => ['label' => 'Integrasi BRI', 'permissions' => ['finance.bri.configure'], 'route' => 'application-settings.edit'],

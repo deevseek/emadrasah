@@ -72,6 +72,9 @@ return [
         ['label'=>'Rekonsiliasi BRI','route'=>'finance.bri.reconciliation','active'=>'finance.bri.*','permission'=>'finance.bri.reconcile','icon'=>'filter'],
         ['label'=>'Laporan Keuangan Siswa','route'=>'finance.reports.index','active'=>'finance.reports.*','permission'=>'finance.report.view','icon'=>'document'],
     ]],
+    ['label'=>'Pelayanan','items'=>[
+        ['label'=>'Email','route'=>'email-service.index','active'=>'email-service.*','permission'=>'email-service.view','icon'=>'document'],
+    ]],
     ['label'=>'Website','items'=>[
         ['label'=>'Kelola Website','route'=>'website.index','active'=>'website.*','permission'=>'website.dashboard.view','icon'=>'school'],
     ]],
