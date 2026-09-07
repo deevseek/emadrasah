@@ -10,6 +10,7 @@ use App\Services\Academic\TeachingJournalService;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\{Route, Schema};
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class TeachingJournalIntegrationTest extends TestCase
@@ -47,6 +48,20 @@ class TeachingJournalIntegrationTest extends TestCase
         $this->assertSame('teaching_journal_id', (new TeachingJournal)->attendances()->getForeignKeyName());
         $this->assertTrue(Route::has('academic.teaching-journals.template.store'));
         $this->assertTrue(Route::has('academic.teaching-journals.report'));
+    }
+
+    public function test_existing_teacher_role_receives_journal_input_permissions_from_migration(): void
+    {
+        $role = Role::findByName('guru');
+        $role->revokePermissionTo(['teaching-journals.view', 'teaching-journals.manage']);
+
+        $migration = require database_path('migrations/2026_09_07_000000_grant_teaching_journal_permissions_to_teachers.php');
+        $migration->up();
+
+        $role->refresh();
+
+        $this->assertTrue($role->hasPermissionTo('teaching-journals.view'));
+        $this->assertTrue($role->hasPermissionTo('teaching-journals.manage'));
     }
 
     public function test_empty_report_redirects_to_journal_index_with_a_helpful_message(): void
