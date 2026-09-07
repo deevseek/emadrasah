@@ -154,6 +154,20 @@ class EmailServiceTest extends TestCase
         $this->assertStringContainsString('&lt;script&gt;', $html);
     }
 
+    public function test_manual_email_is_sent_immediately_even_when_default_queue_uses_database(): void
+    {
+        Mail::fake();
+        config(['queue.default' => 'database']);
+        $user = $this->user(['email-service.send']);
+
+        $this->actingAs($user)
+            ->post(route('email-service.store'), $this->payload())
+            ->assertRedirect();
+
+        $this->assertSame(OutgoingEmailStatus::Sent, OutgoingEmail::latest('id')->firstOrFail()->status);
+        Mail::assertSent(ManualServiceEmail::class);
+    }
+
     private function user(array $permissions = []): User
     {
         $user = User::factory()->create(['is_active' => true, 'must_change_password' => false]);

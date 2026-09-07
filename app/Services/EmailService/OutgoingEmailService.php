@@ -57,7 +57,7 @@ class OutgoingEmailService
 
         activity('pelayanan-email')->causedBy($actor)->performedOn($email)->log('Email pelayanan dibuat.');
         if ($email->status === OutgoingEmailStatus::Queued) {
-            SendOutgoingEmail::dispatch($email->id);
+            SendOutgoingEmail::dispatchSync($email->id);
         }
 
         return $email->refresh();
@@ -67,7 +67,7 @@ class OutgoingEmailService
     {
         $email = $this->queue($email, OutgoingEmailStatus::Failed, 'Hanya email berstatus gagal yang dapat dikirim ulang.');
         activity('pelayanan-email')->causedBy($actor)->performedOn($email)->log('Email pelayanan dikirim ulang.');
-        SendOutgoingEmail::dispatch($email->id);
+        SendOutgoingEmail::dispatchSync($email->id);
 
         return $email->refresh();
     }
@@ -76,7 +76,7 @@ class OutgoingEmailService
     {
         $email = $this->queue($email, OutgoingEmailStatus::Draft, 'Hanya email draft yang dapat dikirim.');
         activity('pelayanan-email')->causedBy($actor)->performedOn($email)->log('Draft email pelayanan dikirim.');
-        SendOutgoingEmail::dispatch($email->id);
+        SendOutgoingEmail::dispatchSync($email->id);
 
         return $email->refresh();
     }
