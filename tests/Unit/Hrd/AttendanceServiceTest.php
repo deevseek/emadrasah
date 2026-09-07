@@ -43,6 +43,21 @@ class AttendanceServiceTest extends TestCase
         self::assertSame('2026-08-16 06:00', $end->format('Y-m-d H:i'));
     }
 
+    public function test_check_in_limit_supports_less_and_more_than_one_hour_in_minutes(): void
+    {
+        [, $underOneHour] = $this->service([
+            'hrd_shift_1_start' => '07:00',
+            'hrd_max_late_checkin_minutes' => 45,
+        ])->checkInWindow(1, CarbonImmutable::parse('2026-08-15'));
+        [, $overOneHour] = $this->service([
+            'hrd_shift_1_start' => '07:00',
+            'hrd_max_late_checkin_minutes' => 90,
+        ])->checkInWindow(1, CarbonImmutable::parse('2026-08-15'));
+
+        self::assertSame('07:45', $underOneHour->format('H:i'));
+        self::assertSame('08:30', $overOneHour->format('H:i'));
+    }
+
     public function test_location_inside_radius_and_accuracy_are_validated(): void
     {
         $now = CarbonImmutable::parse('2026-08-15 07:00:00');
