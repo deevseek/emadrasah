@@ -8,6 +8,7 @@ use App\Enums\OutgoingEmailStatus;
 use App\Jobs\SendOutgoingEmail;
 use App\Mail\ManualServiceEmail;
 use App\Models\OutgoingEmail;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -20,6 +21,25 @@ use Tests\TestCase;
 class EmailServiceTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_email_officer_role_has_only_the_access_needed_for_email_service(): void
+    {
+        $role = Role::findByName('petugas-email');
+
+        $this->assertSame('Petugas Email', $role->display_name);
+        $this->assertTrue($role->is_system);
+        $this->assertEqualsCanonicalizing(
+            ['dashboard.view', 'email-service.view', 'email-service.send'],
+            $role->permissions->pluck('name')->all(),
+        );
+
+        $user = User::factory()->create(['is_active' => true, 'must_change_password' => false]);
+        $user->syncRoles([$role]);
+
+        $this->actingAs($user)->get(route('email-service.index'))->assertOk();
+        $this->actingAs($user)->get(route('email-service.create'))->assertOk();
+        $this->actingAs($user)->get(route('users.index'))->assertForbidden();
+    }
 
     public function test_user_without_permission_cannot_open_module(): void
     {
