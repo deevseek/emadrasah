@@ -5,7 +5,7 @@ namespace App\Providers;
 use App\Services\Foundation\AcademicPeriodService;
 use App\Services\Foundation\SchoolProfileService;
 use App\Services\Settings\ApplicationSettingService;
-use Illuminate\Support\Facades\{Event,Gate};
+use Illuminate\Support\Facades\{Event,Gate,Route};
 use App\Events\StudentPaymentCompleted;
 use App\Events\GuardianRegistered;
 use App\Listeners\SendSppPaymentReceiptEmail;
@@ -35,6 +35,10 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        if (! $this->app->routesAreCached()) {
+            Route::middleware('api')->group(base_path('routes/bri_snap.php'));
+        }
+
         Activity::observe(ActivityObserver::class);
         Event::listen(StudentPaymentCompleted::class, SendSppPaymentReceiptEmail::class);
         Event::listen(GuardianRegistered::class, SendGuardianRegistrationEmail::class);
