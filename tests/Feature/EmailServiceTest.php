@@ -35,7 +35,8 @@ class EmailServiceTest extends TestCase
             ->get(route('email-service.create'))
             ->assertOk()
             ->assertSee('Tulis Email')
-            ->assertSee('madrasah@example.test');
+            ->assertSee('madrasah@example.test')
+            ->assertSee('<input type="hidden" name="action" value="send">', false);
     }
 
     public function test_recipient_is_validated_and_duplicate_across_fields_is_rejected(): void
@@ -54,6 +55,21 @@ class EmailServiceTest extends TestCase
         $this->actingAs($this->user(['email-service.send']))
             ->post(route('email-service.store'), $this->payload(['subject' => '', 'body' => '']))
             ->assertSessionHasErrors(['subject', 'body']);
+    }
+
+    public function test_validation_errors_use_clear_indonesian_messages(): void
+    {
+        $response = $this->actingAs($this->user(['email-service.send']))
+            ->post(route('email-service.store'), $this->payload([
+                'to_addresses' => '',
+                'action' => '',
+            ]));
+
+        $response->assertSessionHasErrors([
+            'to_addresses' => 'Alamat email tujuan wajib diisi.',
+            'action' => 'Tindakan pengiriman email wajib dipilih.',
+        ]);
+        $this->assertNotContains('validation.required', session('errors')->all());
     }
 
     public function test_invalid_attachment_is_rejected_and_not_stored(): void
@@ -136,6 +152,20 @@ class EmailServiceTest extends TestCase
         $html = (new ManualServiceEmail($email))->render();
         $this->assertStringNotContainsString('<script>', $html);
         $this->assertStringContainsString('&lt;script&gt;', $html);
+    }
+
+    public function test_manual_email_is_sent_immediately_even_when_default_queue_uses_database(): void
+    {
+        Mail::fake();
+        config(['queue.default' => 'database']);
+        $user = $this->user(['email-service.send']);
+
+        $this->actingAs($user)
+            ->post(route('email-service.store'), $this->payload())
+            ->assertRedirect();
+
+        $this->assertSame(OutgoingEmailStatus::Sent, OutgoingEmail::latest('id')->firstOrFail()->status);
+        Mail::assertSent(ManualServiceEmail::class);
     }
 
     private function user(array $permissions = []): User
