@@ -7,14 +7,13 @@ namespace App\Services\Finance;
 use App\Models\Bank\BankTransaction;
 use App\Models\Finance\StudentVirtualAccount;
 use App\Models\Finance\BriQrisTransaction;
+use App\Models\Finance\StudentPayment;
 use App\Support\Money;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 final class BriPaymentNotificationService
 {
-    public function __construct(private BriConfigurationService $configuration) {}
-
     /** @param array<string, mixed> $payload */
     public function briva(array $payload): BankTransaction
     {
@@ -50,26 +49,34 @@ final class BriPaymentNotificationService
         $partnerReference = (string) ($payload['originalPartnerReferenceNo'] ?? '');
         $providerReference = (string) ($payload['originalReferenceNo'] ?? '');
         $amount = Money::decimal((string) data_get($payload, 'amount.value'));
-        if ($partnerReference === '' || $providerReference === '') throw ValidationException::withMessages(['callback' => 'Referensi callback QRIS tidak lengkap.']);
+        $status = (string) ($payload['latestTransactionStatus'] ?? '');
+        if ($partnerReference === '' || $providerReference === '' || ! in_array($status, ['00','01','02','03','04','05','06','07'], true)) throw ValidationException::withMessages(['callback' => 'Referensi atau status callback QRIS tidak valid.']);
+        if (! hash_equals('IDR', (string) data_get($payload, 'amount.currency'))) throw ValidationException::withMessages(['callback' => 'Mata uang callback QRIS harus IDR.']);
 
-        return DB::transaction(function () use ($payload, $partnerReference, $providerReference, $amount): BankTransaction {
-            $existing = BankTransaction::query()->where('provider', 'BRI')->where('provider_reference', $providerReference)->first();
-            if ($existing) return $existing;
-            $qris = BriQrisTransaction::query()->where('partner_reference', $partnerReference)->lockForUpdate()->firstOrFail();
-            if (! hash_equals((string) $this->configuration->merchantId(), (string) ($payload['merchantId'] ?? '')) ||
-                ! hash_equals((string) $this->configuration->terminalId(), (string) ($payload['terminalId'] ?? ''))) {
-                throw ValidationException::withMessages(['callback' => 'Merchant atau terminal QRIS tidak valid.']);
-            }
-            $transaction = BankTransaction::create(['provider' => 'BRI', 'external_id' => $partnerReference, 'provider_reference' => $providerReference, 'partner_reference' => $partnerReference, 'transaction_type' => 'qris_payment', 'amount' => $amount, 'status' => 'unmatched', 'occurred_at' => $payload['transactionDate'] ?? now(), 'request_reference' => $qris->invoice->invoice_number, 'raw_payload' => $payload]);
+        return DB::transaction(function () use ($payload, $partnerReference, $providerReference, $amount, $status): BankTransaction {
+            $qris = BriQrisTransaction::query()->where('provider_reference', $providerReference)->lockForUpdate()->firstOrFail();
+            $validPartnerReference = hash_equals($qris->partner_reference, $partnerReference)
+                || (strlen($partnerReference) === 6 && hash_equals(substr($qris->partner_reference, -6), $partnerReference));
+            if (! $validPartnerReference) throw ValidationException::withMessages(['callback' => 'Partner reference QRIS tidak cocok.']);
+
+            $transaction = BankTransaction::query()->where('provider', 'BRI')->where('provider_reference', $providerReference)->lockForUpdate()->first();
+            $transaction ??= BankTransaction::create(['provider' => 'BRI', 'external_id' => $qris->partner_reference, 'provider_reference' => $providerReference, 'partner_reference' => $qris->partner_reference, 'transaction_type' => 'qris_payment', 'amount' => $amount, 'status' => 'pending', 'occurred_at' => $payload['paidTime'] ?? $payload['transactionDate'] ?? now(), 'request_reference' => $qris->invoice->invoice_number, 'raw_payload' => $payload]);
+            $transaction->update(['raw_payload' => $payload, 'amount' => $amount]);
             if (bccomp($amount, (string) $qris->amount, 2) !== 0) {
                 $transaction->update(['status' => 'needs_review']);
                 return $transaction;
             }
+            $mappedStatus = match ($status) { '00' => 'succeeded', '01', '02', '03' => 'pending', '04' => 'refunded', '05' => 'cancelled', '06' => 'failed', '07' => 'not_found' };
+            $qris->update(['status' => $mappedStatus]);
+            if ($status !== '00') { $transaction->update(['status' => $mappedStatus]); return $transaction->refresh(); }
+
+            $existingPayment = StudentPayment::query()->where('bank_reference', $providerReference)->first();
+            if ($existingPayment) { $transaction->update(['status' => 'matched', 'reconciled_at' => $transaction->reconciled_at ?? now()]); return $transaction->refresh(); }
             try {
                 $invoice = $qris->invoice;
                 app(PaymentService::class)->record($invoice, ['amount' => $amount, 'paid_at' => $transaction->occurred_at, 'payment_method' => 'bri_qris', 'bank_reference' => $providerReference, 'source' => 'bri_callback'], null);
                 $transaction->update(['status' => 'matched', 'reconciled_at' => now()]);
-                $qris->update(['status' => 'succeeded', 'provider_reference' => $providerReference]);
+                $qris->update(['status' => 'succeeded']);
             } catch (ValidationException) {
                 $transaction->update(['status' => 'needs_review']);
             }

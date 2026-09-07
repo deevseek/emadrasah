@@ -36,8 +36,8 @@ final class BriCallbackController extends Controller
 
     public function qrisPayment(Request $request, BriPaymentNotificationService $service): JsonResponse
     {
-        abort_unless(config('bri.response_codes.qris_notification_success'), 503, 'Response code QRIS onboarding belum dikonfigurasi.');
         $transaction = $service->qris($request->all());
-        return response()->json(['responseCode' => config('bri.response_codes.qris_notification_success'), 'responseMessage' => 'Successful', 'referenceNo' => $transaction->provider_reference, 'partnerReferenceNo' => $transaction->partner_reference]);
+        $additional = collect((array) $request->input('additionalInfo', []))->only(['reffId', 'issuerName', 'issuerRrn'])->all();
+        return response()->json(array_filter(['responseCode' => config('bri.response_codes.qris_notification_success', '2005200'), 'responseMessage' => 'Request has been processed successfully', 'additionalInfo' => $additional ?: null], fn ($value) => $value !== null));
     }
 }
