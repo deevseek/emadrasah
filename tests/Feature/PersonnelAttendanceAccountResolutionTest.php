@@ -88,6 +88,16 @@ class PersonnelAttendanceAccountResolutionTest extends TestCase
             ->assertDontSee('https:\/\/alamat-konfigurasi-yang-salah.example\/hrd\/attendance', false);
     }
 
+    public function test_self_attendance_optimizes_large_camera_photo_before_upload(): void
+    {
+        $view = file_get_contents(resource_path('views/hrd/attendance/mine.blade.php'));
+
+        $this->assertStringContainsString('async function optimizeSnapshot(file)', $view);
+        $this->assertStringContainsString('const limit=1536*1024', $view);
+        $this->assertStringContainsString("canvas.toBlob(resolve,'image/jpeg',quality)", $view);
+        $this->assertStringContainsString('accept="image/jpeg,image/png"', $view);
+    }
+
     public function test_self_attendance_displays_server_message_when_request_fails(): void
     {
         $user = User::factory()->create(['email' => 'guru@example.test']);
