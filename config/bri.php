@@ -7,6 +7,7 @@ return [
     'enabled' => (bool) env('BRI_ENABLED', false),
     'environment' => env('BRI_ENV', 'sandbox'),
     'base_url' => env('BRI_BASE_URL'),
+    'http_proxy' => env('BRI_HTTP_PROXY'),
     'client_id' => env('BRI_CLIENT_ID'),
     'client_secret' => env('BRI_CLIENT_SECRET'),
     'partner_id' => env('BRI_PARTNER_ID'),
@@ -22,7 +23,8 @@ return [
         // Nilai path produk berikut wajib mengikuti hasil onboarding BRI.
         'bank_statement' => env('BRI_PATH_BANK_STATEMENT'),
         'briva_inquiry' => env('BRI_PATH_BRIVA_INQUIRY'),
-        'qris_generate' => env('BRI_PATH_QRIS_GENERATE'),
+        'qris_generate' => env('BRI_PATH_QRIS_GENERATE', '/snap/v1.1/qr/qr-mpm-generate'),
+        'qris_inquiry' => env('BRI_PATH_QRIS_INQUIRY', '/snap/v1.1/qr/qr-mpm-query'),
         'transaction_status' => env('BRI_PATH_TRANSACTION_STATUS'),
         'intrabank_transfer' => env('BRI_PATH_INTRABANK_TRANSFER'),
         'interbank_transfer' => env('BRI_PATH_INTERBANK_TRANSFER'),
@@ -52,7 +54,14 @@ return [
     'direct_debit_enabled' => (bool) env('BRI_DIRECT_DEBIT_ENABLED', false),
     'response_codes' => [
         'briva_payment_success' => env('BRI_BRIVA_PAYMENT_SUCCESS_CODE', '2002500'),
-        'qris_notification_success' => env('BRI_QRIS_NOTIFICATION_SUCCESS_CODE'),
+        'qris_notification_success' => env('BRI_QRIS_NOTIFICATION_SUCCESS_CODE', '2005200'),
+    ],
+    'callback' => [
+        'bri_client_id' => env('BRI_CALLBACK_BRI_CLIENT_ID'),
+        'bri_public_key_path' => env('BRI_CALLBACK_BRI_PUBLIC_KEY_PATH'),
+        'client_secret' => env('BRI_CALLBACK_CLIENT_SECRET'),
+        'channel_id' => env('BRI_CALLBACK_CHANNEL_ID'),
+        'token_ttl_seconds' => (int) env('BRI_CALLBACK_TOKEN_TTL', 900),
     ],
     'schedule' => [
         'statement' => env('BRI_STATEMENT_SCHEDULE', '*/30 * * * *'),

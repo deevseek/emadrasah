@@ -22,6 +22,9 @@ final class BriEnvironmentMapper
         'source_account'=>'BRI_SOURCE_ACCOUNT','intrabank_service_code'=>'BRI_INTRABANK_SERVICE_CODE',
         'interbank_service_code'=>'BRI_INTERBANK_SERVICE_CODE','status_inquiry_service_code'=>'BRI_STATUS_INQUIRY_SERVICE_CODE',
         'path_bank_statement'=>'BRI_PATH_BANK_STATEMENT','path_qris_generate'=>'BRI_PATH_QRIS_GENERATE',
+        'path_qris_inquiry'=>'BRI_PATH_QRIS_INQUIRY','callback_bri_client_id'=>'BRI_CALLBACK_BRI_CLIENT_ID',
+        'callback_bri_public_key_path'=>'BRI_CALLBACK_BRI_PUBLIC_KEY_PATH','callback_client_secret'=>'BRI_CALLBACK_CLIENT_SECRET',
+        'callback_channel_id'=>'BRI_CALLBACK_CHANNEL_ID',
         'path_transaction_status'=>'BRI_PATH_TRANSACTION_STATUS','path_intrabank_transfer'=>'BRI_PATH_INTRABANK_TRANSFER',
         'path_interbank_transfer'=>'BRI_PATH_INTERBANK_TRANSFER','direct_debit_enabled'=>'BRI_DIRECT_DEBIT_ENABLED',
     ];
@@ -30,7 +33,7 @@ final class BriEnvironmentMapper
     {
         return collect(self::MAP)->mapWithKeys(function (string $env, string $column) use ($setting): array {
             $value = $setting->{$column};
-            if (in_array($column, ['private_key_path','public_key_path'], true) && $value) $value = Storage::disk('bri_private')->path($value);
+            if (in_array($column, ['private_key_path','public_key_path','callback_bri_public_key_path'], true) && $value) $value = Storage::disk('bri_private')->path($value);
             return [$env => $value];
         })->all();
     }
@@ -48,6 +51,8 @@ final class BriEnvironmentMapper
             'source_account'=>'payroll.source_account','intrabank_service_code'=>'payroll.intrabank_service_code',
             'interbank_service_code'=>'payroll.interbank_service_code','status_inquiry_service_code'=>'payroll.status_inquiry_service_code',
             'path_bank_statement'=>'paths.bank_statement','path_qris_generate'=>'paths.qris_generate','path_transaction_status'=>'paths.transaction_status',
+            'path_qris_inquiry'=>'paths.qris_inquiry','callback_bri_client_id'=>'callback.bri_client_id',
+            'callback_bri_public_key_path'=>'callback.bri_public_key_path','callback_client_secret'=>'callback.client_secret','callback_channel_id'=>'callback.channel_id',
             'path_intrabank_transfer'=>'paths.intrabank_transfer','path_interbank_transfer'=>'paths.interbank_transfer','direct_debit_enabled'=>'direct_debit_enabled',
         ];
         return collect($keys)->mapWithKeys(fn (string $key, string $column) => [$column => config('bri.'.$key)])->all();

@@ -36,6 +36,10 @@ class BriConfigurationService
     public function clientSecret(): ?string { return $this->value('client_secret', 'client_secret'); }
     public function partnerId(): ?string { return $this->value('partner_id', 'partner_id'); }
     public function channelId(): ?string { return $this->value('channel_id', 'channel_id'); }
+    public function callbackBriClientId(): ?string { return $this->value('callback_bri_client_id', 'callback.bri_client_id'); }
+    public function callbackClientSecret(): ?string { return $this->value('callback_client_secret', 'callback.client_secret'); }
+    public function callbackChannelId(): ?string { return $this->value('callback_channel_id', 'callback.channel_id'); }
+    public function callbackBriPublicKey(): ?string { return $this->keyContents('callback_bri_public_key_path', 'callback.bri_public_key_path'); }
     public function registeredAccountNumber(): ?string { return $this->value('registered_account_number', 'registered_account_number'); }
     public function brivaEnabled(): bool { return (bool) $this->value('briva_enabled', 'briva.enabled', false); }
     public function partnerServiceId(): ?string { return $this->value('partner_service_id', 'briva.partner_service_id'); }
@@ -48,7 +52,7 @@ class BriConfigurationService
     public function sourceAccount(): ?string { return $this->value('source_account', 'payroll.source_account'); }
     public function timeout(): int { return max(1, (int) $this->value('timeout', 'timeout_seconds', 20)); }
     public function timestampTolerance(): int { return max(1, (int) $this->value('timestamp_tolerance', 'timestamp_tolerance_seconds', 300)); }
-    public function path(string $name): ?string { $column = 'path_'.$name; $value = $this->setting() ? $this->setting()?->{$column} : config('bri.paths.'.$name); return is_string($value) && $value !== '' ? $value : null; }
+    public function path(string $name): ?string { $column = 'path_'.$name; $value = $this->setting()?->{$column} ?: config('bri.paths.'.$name); return is_string($value) && $value !== '' ? $value : null; }
     public function serviceCode(string $name): ?string { $columns = ['qris'=>'qris_service_code','intrabank'=>'intrabank_service_code','interbank'=>'interbank_service_code','status_inquiry'=>'status_inquiry_service_code']; $value = $this->setting() && isset($columns[$name]) ? $this->setting()?->{$columns[$name]} : (config('bri.'.$name.'.service_code') ?? config('bri.payroll.'.$name.'_service_code')); return is_string($value) && $value !== '' ? $value : null; }
     public function privateKey(): ?string { return $this->keyContents('private_key_path', 'private_key_path'); }
     public function publicKey(): ?string { return $this->keyContents('public_key_path', 'public_key_path'); }

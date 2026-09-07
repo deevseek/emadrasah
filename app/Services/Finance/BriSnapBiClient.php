@@ -9,6 +9,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Str;
 
 /** Reusable SNAP BI transport. It never logs credentials, tokens, bodies, or account numbers. */
@@ -35,7 +36,7 @@ final class BriSnapBiClient
         }
 
         try {
-            $response = Http::acceptJson()->asJson()->timeout($this->configuration->timeout())->withHeaders([
+            $response = $this->http()->asJson()->withHeaders([
                 'X-CLIENT-KEY' => $this->configuration->clientId(),
                 'X-TIMESTAMP' => $timestamp,
                 'X-SIGNATURE' => base64_encode($signature),
@@ -64,12 +65,12 @@ final class BriSnapBiClient
         $json = json_encode($body, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
 
         try {
-            $response = Http::acceptJson()->timeout($this->configuration->timeout())->withToken($token)->withHeaders([
+            $response = $this->http()->withToken($token)->withHeaders([
                 'X-TIMESTAMP' => $timestamp,
                 'X-SIGNATURE' => $this->requestSignature('POST', $path, $token, $json, $timestamp),
                 'X-PARTNER-ID' => $this->required($this->configuration->partnerId(), 'Partner ID'),
                 'CHANNEL-ID' => $this->required($this->configuration->channelId(), 'Channel ID'),
-                'X-EXTERNAL-ID' => $externalId ?: str_replace('-', '', (string) Str::uuid()),
+                'X-EXTERNAL-ID' => $externalId ?: $this->externalId(),
             ])->withBody($json, 'application/json')->post($this->url($path));
         } catch (ConnectionException $exception) {
             // A timed-out financial POST can have reached BRI. Caller must inquire, never blindly retry.
@@ -89,7 +90,14 @@ final class BriSnapBiClient
         return base64_encode(hash_hmac('sha512', $canonical, $this->required($this->configuration->clientSecret(), 'Client Secret'), true));
     }
 
-    private function timestamp(): string { return now()->format('Y-m-d\\TH:i:sP'); }
+    public function timestamp(): string { return now()->format('Y-m-d\\TH:i:s.vP'); }
+    public function externalId(): string { return now()->format('YmdHisv').str_pad((string) random_int(0, 999999999999999999), 18, '0', STR_PAD_LEFT); }
+    private function http(): PendingRequest
+    {
+        $request = Http::acceptJson()->timeout($this->configuration->timeout());
+        $proxy = config('bri.http_proxy');
+        return is_string($proxy) && trim($proxy) !== '' ? $request->withOptions(['proxy' => $proxy]) : $request;
+    }
     private function url(string $path): string { return rtrim($this->required($this->configuration->baseUrl(), 'Base URL'), '/').'/'.ltrim($path, '/'); }
     private function required(?string $value, string $name): string
     {
