@@ -5,6 +5,8 @@
         <x-ui.card>
             <form method="post" action="{{ route('email-service.store') }}" enctype="multipart/form-data" class="space-y-5">
                 @csrf
+                {{-- Tetap kirim tindakan saat formulir dikirim lewat Enter atau submitter tidak disertakan browser. --}}
+                <input type="hidden" name="action" value="send">
                 <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
                     <p class="text-xs font-bold uppercase tracking-wide text-emerald-700">Pengirim resmi</p>
                     <p class="mt-1 font-bold text-emerald-950">{{ config('mail.from.name') }}</p>
@@ -40,7 +42,7 @@
                     <x-ui.button :href="route('email-service.index')" variant="secondary"><x-ui.icon name="back" /> Kembali</x-ui.button>
                     <div class="flex flex-col gap-2 sm:flex-row">
                         <x-ui.button type="submit" name="action" value="draft" variant="outline">Simpan Draft</x-ui.button>
-                        <x-ui.button type="submit" name="action" value="send">Kirim Email</x-ui.button>
+                        <x-ui.button type="submit">Kirim Email</x-ui.button>
                     </div>
                 </div>
             </form>
