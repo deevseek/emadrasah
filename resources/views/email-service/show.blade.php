@@ -2,7 +2,7 @@
     <div class="mx-auto max-w-5xl space-y-4">
         <x-ui.page-header title="Detail Email" description="Informasi dan status pengiriman email pelayanan.">
             <x-slot:actions>
-                <x-ui.button :href="route('email-service.index')" variant="secondary"><x-ui.icon name="back" /> Kembali</x-ui.button>
+                <x-ui.button :href="route('email-service.sent')" variant="secondary"><x-ui.icon name="back" /> Kembali</x-ui.button>
                 @if($email->status === \App\Enums\OutgoingEmailStatus::Draft)
                     @can('email-service.send')
                         <form method="post" action="{{ route('email-service.send', $email) }}">@csrf<x-ui.button type="submit">Kirim Email</x-ui.button></form>

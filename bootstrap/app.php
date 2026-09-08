@@ -1,16 +1,17 @@
 <?php
 
+use App\Exceptions\AttendanceSecurityException;
+use App\Http\Middleware\AuthenticateIncomingEmail;
+use App\Http\Middleware\AuthenticateRfidDevice;
+use App\Http\Middleware\EnsureApplicationIsAvailable;
 use App\Http\Middleware\EnsureUserHasPermission;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\ForcePasswordChange;
-use App\Http\Middleware\EnsureApplicationIsAvailable;
-use App\Http\Middleware\AuthenticateRfidDevice;
 use App\Http\Middleware\LogRfidAttendanceRequest;
 use App\Http\Middleware\VerifyBriSnapBiCallback;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use App\Exceptions\AttendanceSecurityException;
 use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -43,6 +44,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'rfid.device' => AuthenticateRfidDevice::class,
             'rfid.attendance.diagnostics' => LogRfidAttendanceRequest::class,
             'bri.callback' => VerifyBriSnapBiCallback::class,
+            'email.incoming' => AuthenticateIncomingEmail::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -1,7 +1,16 @@
 <?php
+
 declare(strict_types=1);
-use App\Http\Controllers\Api\{RfidAttendanceController,RfidDeviceCommandController}; use Illuminate\Support\Facades\Route;
+
 use App\Http\Controllers\Api\BriCallbackController;
+use App\Http\Controllers\Api\RfidAttendanceController;
+use App\Http\Controllers\Api\RfidDeviceCommandController;
+use App\Http\Controllers\EmailService\IncomingEmailController;
+use Illuminate\Support\Facades\Route;
+
+Route::post('/webhooks/email/incoming', [IncomingEmailController::class, 'store'])
+    ->middleware('email.incoming')
+    ->name('api.email.incoming');
 Route::prefix('bri/snap-bi')->middleware(['bri.callback','throttle:60,1'])->group(function (): void {
     Route::post('briva/inquiry', [BriCallbackController::class, 'inquiry'])->name('api.bri.briva.inquiry');
     Route::post('briva/payment', [BriCallbackController::class, 'brivaPayment'])->name('api.bri.briva.payment');

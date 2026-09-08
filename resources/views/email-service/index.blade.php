@@ -8,6 +8,11 @@
             </x-slot:actions>
         </x-ui.page-header>
 
+        <nav class="flex gap-2 border-b border-slate-200" aria-label="Kotak email">
+            <a href="{{ route('email-service.index') }}" class="px-4 py-3 text-sm font-semibold text-slate-600 hover:text-emerald-800">Kotak Masuk</a>
+            <a href="{{ route('email-service.sent') }}" aria-current="page" class="border-b-2 border-emerald-700 px-4 py-3 text-sm font-bold text-emerald-800">Email Keluar</a>
+        </nav>
+
         <form method="get" class="filter-bar grid gap-3 md:grid-cols-[minmax(0,1fr)_14rem_auto] md:items-end">
             <x-ui.input name="search" label="Pencarian" :value="request('search')" placeholder="Tujuan, subjek, atau petugas" />
             <x-ui.select name="status" label="Status" :value="request('status')">

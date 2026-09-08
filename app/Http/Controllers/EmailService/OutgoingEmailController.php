@@ -17,7 +17,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class OutgoingEmailController extends Controller
 {
-    public function index(Request $request): View
+    public function sent(Request $request): View
     {
         $search = trim((string) $request->query('search'));
         $status = (string) $request->query('status');

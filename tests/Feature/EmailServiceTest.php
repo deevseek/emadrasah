@@ -8,6 +8,7 @@ use App\Enums\OutgoingEmailStatus;
 use App\Jobs\SendOutgoingEmail;
 use App\Mail\ManualServiceEmail;
 use App\Models\OutgoingEmail;
+use App\Models\IncomingEmail;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -57,6 +58,66 @@ class EmailServiceTest extends TestCase
             ->assertSee('Tulis Email')
             ->assertSee('madrasah@example.test')
             ->assertSee('<input type="hidden" name="action" value="send">', false);
+    }
+
+    public function test_incoming_email_webhook_requires_configured_token(): void
+    {
+        config(['email-service.inbound_token' => 'token-pengujian']);
+
+        $this->postJson(route('api.email.incoming'), [])->assertUnauthorized();
+        $this->withHeader('X-Inbound-Email-Token', 'token-salah')
+            ->postJson(route('api.email.incoming'), [])
+            ->assertUnauthorized();
+    }
+
+    public function test_incoming_email_is_stored_once_and_displayed_in_inbox(): void
+    {
+        config(['email-service.inbound_token' => 'token-pengujian']);
+        $payload = [
+            'message_id' => 'pesan-001@example.test',
+            'from_address' => 'wali@example.test',
+            'from_name' => 'Wali Siswa',
+            'to_addresses' => ['madrasah@example.test'],
+            'subject' => 'Permohonan Informasi',
+            'body' => 'Mohon informasi mengenai kegiatan sekolah.',
+            'received_at' => '2026-09-08 08:00:00',
+        ];
+
+        $this->withHeader('X-Inbound-Email-Token', 'token-pengujian')
+            ->postJson(route('api.email.incoming'), $payload)
+            ->assertAccepted();
+        $this->withHeader('X-Inbound-Email-Token', 'token-pengujian')
+            ->postJson(route('api.email.incoming'), $payload)
+            ->assertAccepted();
+
+        $this->assertDatabaseCount('incoming_emails', 1);
+        $user = $this->user(['email-service.view']);
+        $this->actingAs($user)->get(route('email-service.index'))
+            ->assertOk()
+            ->assertSee('Kotak Masuk')
+            ->assertSee('Permohonan Informasi')
+            ->assertSee('Wali Siswa');
+    }
+
+    public function test_opening_incoming_email_marks_it_as_read(): void
+    {
+        $user = $this->user(['email-service.view']);
+        $email = IncomingEmail::create([
+            'provider_message_id' => 'pesan-002@example.test',
+            'from_address' => 'wali@example.test',
+            'to_addresses' => ['madrasah@example.test'],
+            'subject' => 'Konfirmasi Kehadiran',
+            'body' => '<script>alert("xss")</script>',
+            'received_at' => now(),
+        ]);
+
+        $this->actingAs($user)->get(route('email-service.incoming.show', $email))
+            ->assertOk()
+            ->assertSee('&lt;script&gt;', false)
+            ->assertDontSee('<script>', false);
+
+        $this->assertNotNull($email->fresh()->read_at);
+        $this->assertSame($user->id, $email->fresh()->read_by);
     }
 
     public function test_recipient_is_validated_and_duplicate_across_fields_is_rejected(): void
