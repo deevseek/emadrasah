@@ -16,7 +16,7 @@
 
                 <div class="grid gap-4">
                     <label>Kepada <span class="text-rose-600">*</span>
-                        <textarea name="to_addresses" rows="2" required placeholder="nama@example.com, penerima@example.org">{{ is_array(old('to_addresses')) ? implode(', ', old('to_addresses')) : old('to_addresses', '') }}</textarea>
+                        <textarea name="to_addresses" rows="2" required placeholder="nama@example.com, penerima@example.org">{{ is_array(old('to_addresses')) ? implode(', ', old('to_addresses')) : old('to_addresses', request('to', '')) }}</textarea>
                         <span class="mt-1 block text-xs font-normal text-slate-500">Pisahkan beberapa alamat dengan koma, titik koma, atau baris baru.</span>
                     </label>
                     <div class="grid gap-4 md:grid-cols-2">
@@ -27,7 +27,7 @@
                             <textarea name="bcc_addresses" rows="2" placeholder="bcc@example.com">{{ is_array(old('bcc_addresses')) ? implode(', ', old('bcc_addresses')) : old('bcc_addresses', '') }}</textarea>
                         </label>
                     </div>
-                    <x-ui.input name="subject" label="Subjek *" :value="old('subject')" maxlength="255" required />
+                    <x-ui.input name="subject" label="Subjek *" :value="old('subject', request('subject'))" maxlength="255" required />
                     <label>Isi Email <span class="text-rose-600">*</span>
                         <textarea name="body" rows="14" maxlength="100000" required placeholder="Tuliskan isi email resmi di sini...">{{ old('body') }}</textarea>
                         <span class="mt-1 block text-xs font-normal text-slate-500">Teks akan ditampilkan dengan aman sesuai pemisah baris yang Anda tulis.</span>
