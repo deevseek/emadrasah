@@ -91,11 +91,18 @@ class PersonnelAttendanceAccountResolutionTest extends TestCase
     public function test_self_attendance_uses_live_camera_and_burst_without_legacy_file_input(): void
     {
         $view = file_get_contents(resource_path('views/hrd/attendance/mine.blade.php'));
+        $guide = file_get_contents(resource_path('views/components/face-camera-guide.blade.php'));
+        $styles = file_get_contents(resource_path('css/app.css'));
 
         $this->assertStringContainsString('navigator.mediaDevices.getUserMedia', $view);
         $this->assertStringContainsString('for(let i=0;i<5;i++)', $view);
         $this->assertStringContainsString("'image/jpeg',.88", $view);
         $this->assertStringContainsString("form.append('snapshots[]'", $view);
+        $this->assertStringContainsString('<x-face-camera-guide', $view);
+        $this->assertStringContainsString('aria-live="polite"', $guide);
+        $this->assertStringContainsString('aspect-ratio: .72 / 1', $styles);
+        $this->assertStringContainsString('width: clamp(180px, 56vw, 230px)', $styles);
+        $this->assertStringContainsString('box-shadow: 0 0 0 100vmax rgb(0 0 0 / .25)', $styles);
         $this->assertStringNotContainsString('id="face_snapshot"', $view);
     }
 
