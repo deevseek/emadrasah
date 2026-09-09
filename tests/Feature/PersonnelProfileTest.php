@@ -85,7 +85,7 @@ class PersonnelProfileTest extends TestCase
         $user->syncRoles(['guru']);
         $personnel = $this->personnel($user);
         $faces = Mockery::mock(FaceRecognitionService::class);
-        $faces->shouldReceive('encode')->times(3)->andReturn([
+        $faces->shouldReceive('encode')->times(5)->andReturn([
             'embedding' => [0.1, 0.2],
             'quality_score' => 0.95,
             'model' => 'test-model',
@@ -95,14 +95,16 @@ class PersonnelProfileTest extends TestCase
         $this->app->instance(FaceRecognitionService::class, $faces);
 
         $response = $this->actingAs($user)->post(route('personnel.profile.face.enroll'), [
-            'front' => UploadedFile::fake()->image('front.jpg'),
+            'front_1' => UploadedFile::fake()->image('front-1.jpg'),
+            'front_2' => UploadedFile::fake()->image('front-2.jpg'),
+            'natural' => UploadedFile::fake()->image('natural.jpg'),
             'left' => UploadedFile::fake()->image('left.jpg'),
             'right' => UploadedFile::fake()->image('right.jpg'),
         ]);
 
         $response->assertRedirect()->assertSessionHas('status', 'Wajah Anda berhasil didaftarkan.');
         $this->assertDatabaseHas('personnel_face_profiles', ['personnel_id' => $personnel->id, 'status' => 'active']);
-        $this->assertDatabaseCount('personnel_face_samples', 3);
+        $this->assertDatabaseCount('personnel_face_samples', 5);
     }
 
     private function personnel(User $user, array $attributes = []): Personnel

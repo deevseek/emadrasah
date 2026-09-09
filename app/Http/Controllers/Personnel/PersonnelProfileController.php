@@ -29,11 +29,8 @@ class PersonnelProfileController extends Controller
     public function enroll(EnrollOwnFaceRequest $request, PersonnelFaceEnrollmentService $service): RedirectResponse
     {
         $personnel = $request->user()->personnel()->where('is_active', true)->firstOrFail();
-        $service->enroll($personnel, [
-            'front' => $request->file('front'),
-            'left' => $request->file('left'),
-            'right' => $request->file('right'),
-        ], $request->user());
+        $service->enroll($personnel, collect(['front_1', 'front_2', 'natural', 'left', 'right'])
+            ->mapWithKeys(fn (string $pose): array => [$pose => $request->file($pose)])->all(), $request->user());
 
         return back()->with('status', 'Wajah Anda berhasil didaftarkan.');
     }

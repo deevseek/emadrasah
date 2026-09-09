@@ -84,18 +84,19 @@ class PersonnelAttendanceAccountResolutionTest extends TestCase
             ->assertSee('const challengeUrl="\/hrd\/attendance\/challenge"', false)
             ->assertSee('const faceUrl="\/hrd\/attendance\/face-verify"', false)
             ->assertSee('credentials:\'same-origin\'', false)
-            ->assertSee('Tidak dapat terhubung ke server. Periksa koneksi internet Anda, lalu coba lagi.', false)
+            ->assertSee('Tidak dapat terhubung ke server. Periksa koneksi internet Anda.', false)
             ->assertDontSee('https:\/\/alamat-konfigurasi-yang-salah.example\/hrd\/attendance', false);
     }
 
-    public function test_self_attendance_optimizes_large_camera_photo_before_upload(): void
+    public function test_self_attendance_uses_live_camera_and_burst_without_legacy_file_input(): void
     {
         $view = file_get_contents(resource_path('views/hrd/attendance/mine.blade.php'));
 
-        $this->assertStringContainsString('async function optimizeSnapshot(file)', $view);
-        $this->assertStringContainsString('const limit=1536*1024', $view);
-        $this->assertStringContainsString("canvas.toBlob(resolve,'image/jpeg',quality)", $view);
-        $this->assertStringContainsString('accept="image/jpeg,image/png"', $view);
+        $this->assertStringContainsString('navigator.mediaDevices.getUserMedia', $view);
+        $this->assertStringContainsString('for(let i=0;i<5;i++)', $view);
+        $this->assertStringContainsString("'image/jpeg',.88", $view);
+        $this->assertStringContainsString("form.append('snapshots[]'", $view);
+        $this->assertStringNotContainsString('id="face_snapshot"', $view);
     }
 
     public function test_self_attendance_displays_server_message_when_request_fails(): void

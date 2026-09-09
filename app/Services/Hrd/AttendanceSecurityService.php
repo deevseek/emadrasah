@@ -13,17 +13,20 @@ class AttendanceSecurityService
   $row=AttendanceChallenge::create(['id'=>(string)Str::uuid(),'nonce_hash'=>hash('sha256',$nonce),'user_id'=>$user->id,'personnel_id'=>$personnel->id,'session_hash'=>$this->sessionHash($request),'device_uuid_hash'=>$device?->device_uuid_hash,'intended_action'=>$action,'expires_at'=>$expires]);
   return['id'=>$row->id,'nonce'=>$nonce,'expires_at'=>$expires->toIso8601String(),'face_required'=>(bool)$this->settings->get('hrd_attendance_face_enabled',false)];
  }
- public function verifyFace(User $user,Personnel $personnel,string $challengeId,string $nonce,UploadedFile $snapshot,Request $request):AttendanceFaceVerification
+ /** @param array<int,UploadedFile> $snapshots */
+ public function verifyFace(User $user,Personnel $personnel,string $challengeId,string $nonce,array $snapshots,Request $request):AttendanceFaceVerification
  {
   $challenge=$this->validChallenge($challengeId,$nonce,$user,$personnel,null,$request,false);
-  try{$result=$this->faces->verify($personnel,$snapshot,(float)$this->settings->get('hrd_face_confidence_threshold',.80));}catch(AttendanceSecurityException $e){throw $e;}catch(\Throwable){throw new AttendanceSecurityException('FACE_NOT_VERIFIED','Layanan verifikasi wajah tidak tersedia. Silakan hubungi HRD.',503);}
+  $threshold=(float)$this->settings->get('hrd_face_confidence_threshold',.50);
+  try{$result=$this->faces->verifyBurst($personnel,$snapshots,$threshold);}catch(AttendanceSecurityException $e){throw $e;}catch(\Throwable){throw new AttendanceSecurityException('FACE_NOT_VERIFIED','Layanan verifikasi wajah tidak tersedia. Silakan hubungi HRD.',503);}
   if(($result['faces']??0)!==1)throw new AttendanceSecurityException('FACE_NOT_VERIFIED','Pastikan tepat satu wajah terlihat dengan jelas.');
   if(($result['matched_personnel_id']??null)!==$personnel->id)throw new AttendanceSecurityException('FACE_IDENTITY_MISMATCH','Wajah tidak sesuai dengan akun yang sedang digunakan.',403);
-  if(($result['confidence']??0)<(float)$this->settings->get('hrd_face_confidence_threshold',.80))throw new AttendanceSecurityException('FACE_NOT_VERIFIED','Kecocokan wajah belum memenuhi batas verifikasi.');
+  if(($result['confidence']??0)<$threshold)throw new AttendanceSecurityException('FACE_NOT_VERIFIED','Kecocokan wajah belum memenuhi batas verifikasi.');
   if($this->faces->livenessSupported()&&($result['liveness_passed']??false)!==true)throw new AttendanceSecurityException('FACE_LIVENESS_FAILED','Pemeriksaan keaslian wajah gagal.');
+  $bestIndex=(int)($result['best_frame_index']??0);$snapshot=$snapshots[$bestIndex]??$snapshots[0];
   $snapshotPath=$snapshot->store('attendance-snapshots/'.now()->format('Y/m'),'local');
   if(!$snapshotPath)throw new AttendanceSecurityException('FACE_SNAPSHOT_STORAGE_FAILED','Foto absensi tidak dapat disimpan. Silakan ulangi.',503);
-  try{return AttendanceFaceVerification::create(['id'=>(string)Str::uuid(),'challenge_id'=>$challenge->id,'personnel_id'=>$personnel->id,'provider'=>$this->faces->provider(),'confidence'=>$result['confidence'],'liveness_passed'=>$result['liveness_passed'],'snapshot_path'=>$snapshotPath,'verified_at'=>now(),'expires_at'=>now()->addSeconds((int)$this->settings->get('hrd_face_verification_ttl_seconds',120))]);}catch(\Throwable $e){Storage::disk('local')->delete($snapshotPath);throw $e;}
+  try{return AttendanceFaceVerification::create(['id'=>(string)Str::uuid(),'challenge_id'=>$challenge->id,'personnel_id'=>$personnel->id,'provider'=>$this->faces->provider(),'confidence'=>$result['confidence'],'valid_frames'=>$result['valid_frames']??null,'matched_frames'=>$result['matched_frames']??null,'confidence_summary'=>$result['frame_confidences']??null,'liveness_passed'=>$result['liveness_passed'],'snapshot_path'=>$snapshotPath,'verified_at'=>now(),'expires_at'=>now()->addSeconds((int)$this->settings->get('hrd_face_verification_ttl_seconds',120))]);}catch(\Throwable $e){Storage::disk('local')->delete($snapshotPath);throw $e;}
  }
  public function consume(string $id,string $nonce,User $user,Personnel $personnel,string $action,Request $request):array
  {

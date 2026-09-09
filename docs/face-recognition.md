@@ -65,3 +65,25 @@ FACE_RECOGNITION_RESTART_TIMEOUT=30
 ```
 
 Jangan memberikan akses `systemctl` umum atau shell tanpa batas kepada `www-data`. Setiap restart yang berhasil dicatat pada activity log HRD, sedangkan kegagalan hanya menampilkan pesan umum agar keluaran proses dan detail server tidak bocor ke browser.
+
+## Pemindaian langsung dan verifikasi burst
+
+Absensi mandiri memakai kamera depan browser (`getUserMedia`) sebagai pratinjau langsung. Setelah perangkat diperiksa dan challenge baru dibuat, browser mengambil lima JPEG secara otomatis dengan jeda 200 ms. Sisi terpanjang dibatasi 1280 piksel dan kualitas JPEG 0,88. CSS membalik **pratinjau saja**; `canvas.drawImage(video, ...)` mengambil piksel sumber tanpa pembalikan sehingga enrollment dan absensi konsisten. Video tidak dikirim dan bukan streaming ke server.
+
+Endpoint internal `POST /v1/faces/verify-burst` menerima maksimal lima frame multipart. YuNet menganalisis tepat satu wajah, confidence detector, rasio area, luminansi, dan variasi Laplacian. Gate default tetap terpisah: detection `0.45`, minimum area `0.025`, quality detector `0.35`, luminansi `35–225`, dan blur `18`. Nilai ini sengaja hanya menolak kondisi yang jelas buruk dan dapat dikonfigurasi melalui environment. Tiga frame valid dengan skor kualitas gabungan terbaik dipilih. Setiap frame dibandingkan dengan **semua** embedding referensi SFace.
+
+Keputusan menggunakan mayoritas: sedikitnya dua dari tiga frame terpilih harus melewati threshold identitas. Bila hanya dua frame valid, keduanya wajib cocok; kurang dari dua frame menghasilkan `INSUFFICIENT_VALID_FRAMES`. Confidence akhir adalah median confidence frame terpilih, bukan nilai maksimum yang rentan outlier. Hanya frame terbaik yang cocok (gabungan quality dan confidence) disimpan pada disk privat sebagai bukti. Ringkasan confidence, jumlah frame valid, dan jumlah frame cocok disimpan untuk audit petugas; embedding tidak pernah dikirim ke browser atau log.
+
+## Enrollment dan kompatibilitas
+
+Enrollment baru memandu lima capture: dua netral depan, satu ekspresi natural, sedikit kiri, dan sedikit kanan. Semua embedding diuji konsistensi cosine secara konservatif sebelum transaksi penyimpanan. Tabel sampel yang ada sudah one-to-many sehingga tidak dibutuhkan migrasi untuk menambah sampel. Profil lama dengan tiga sampel tetap menjadi referensi yang sah dan tidak wajib mendaftar ulang; daftar ulang disarankan untuk memperoleh variasi terbaru.
+
+## Threshold dan kalibrasi
+
+Default `hrd_face_confidence_threshold` berubah dari `0.80` menjadi `0.50` hanya saat setting belum tersimpan. Migration tidak mengubah nilai administrator yang sudah ada. Threshold identity SFace ini berbeda dari threshold detection YuNet dan quality gate.
+
+Angka 0,50 adalah titik awal, bukan optimum universal. Untuk kalibrasi, kumpulkan genuine attempts dalam kondisi sekolah dan impostor/non-match attempts yang diperoleh secara legal; bandingkan distribusi cosine similarity; lalu pilih threshold berdasarkan toleransi false reject dan false accept organisasi. Jangan memilih threshold hanya karena satu pengguna berhasil.
+
+## Liveness, privasi, dan operasional
+
+Kamera langsung tidak sama dengan anti-spoof/liveness. Respons tetap `liveness_supported=false` dan `liveness_passed=null`. Challenge, session/device binding, anti-replay, TTL 60 detik, lokasi, CSRF, permission, serta throttle tetap diproses Laravel. Foto dan embedding tidak dikirim ke pihak ketiga; foto bukti berada di disk privat dan embedding memakai cast terenkripsi. Layanan Python harus tetap di jaringan internal (default `127.0.0.1`). Setelah mengubah environment quality gate/model, mulai ulang layanan Face Recognition agar konfigurasi dimuat kembali.
