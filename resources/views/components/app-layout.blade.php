@@ -28,10 +28,25 @@
   </div>
   <nav class="flex-1 space-y-3 overflow-y-auto p-3" aria-label="Navigasi utama">
     @foreach($navGroups as $group)
-      @php $visible = collect($group['items'])->filter(fn ($item) => isset($item['permission_any']) ? collect($item['permission_any'])->contains(fn ($permission) => Gate::allows($permission)) : Gate::allows($item['permission'])); @endphp
+      @php
+        $canSeeGroup = ! isset($group['roles']) || ($user?->hasAnyRole($group['roles']) ?? false);
+        $visible = $canSeeGroup
+          ? collect($group['items'])->filter(fn ($item) => ($item['external'] ?? false)
+              || (isset($item['permission_any'])
+                ? collect($item['permission_any'])->contains(fn ($permission) => Gate::allows($permission))
+                : (isset($item['permission']) && Gate::allows($item['permission']))))
+          : collect();
+      @endphp
       @if($visible->isNotEmpty())
         <div><p class="sidebar-section px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-emerald-200/80">{{ $group['label'] }}</p><div class="space-y-0.5">
-          @foreach($visible as $item)@php($isActive = request()->routeIs($item['active']))<a href="{{ route($item['route']) }}" onclick="closeMobileSidebar()" @class(['nav-link','nav-link-active'=>$isActive])><x-ui.icon :name="$item['icon']" /><span class="sidebar-label flex-1 truncate">{{ $item['label'] }}</span></a>@endforeach
+          @foreach($visible as $item)
+            @php
+              $isExternal = $item['external'] ?? false;
+              $isActive = ! $isExternal && request()->routeIs($item['active']);
+              $href = $isExternal ? $item['url'] : route($item['route']);
+            @endphp
+            <a href="{{ $href }}" @if($isExternal) target="_blank" rel="noopener noreferrer" @endif onclick="closeMobileSidebar()" @class(['nav-link','nav-link-active'=>$isActive])><x-ui.icon :name="$item['icon']" /><span class="sidebar-label flex-1 truncate">{{ $item['label'] }}</span></a>
+          @endforeach
         </div></div>
       @endif
     @endforeach
