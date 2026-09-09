@@ -6,6 +6,9 @@ from .config import (
     DETECTOR_MODEL,
     MAX_DETECTION_DIMENSION,
     MIN_FACE_AREA_RATIO,
+    MIN_BRIGHTNESS,
+    MAX_BRIGHTNESS,
+    MIN_BLUR_SCORE,
     MIN_QUALITY,
     RECOGNIZER_MODEL,
 )
@@ -72,7 +75,7 @@ class SFaceEngine:
             interpolation=cv2.INTER_AREA,
         )
 
-    def encode(self, image):
+    def analyze(self, image):
         image, faces = self._detect(image)
         count = 0 if faces is None else len(faces)
         if count == 0:
@@ -103,11 +106,55 @@ class SFaceEngine:
                 'Wajah belum terlihat cukup jelas. Hadap ke kamera, tambah pencahayaan, dan hindari foto buram.',
             )
 
+        x, y, w, h = [max(0, int(value)) for value in face[:4]]
+        crop = image[y:min(height, y + h), x:min(width, x + w)]
+        if crop.size == 0:
+            raise FaceError('FACE_QUALITY_TOO_LOW', 'Wajah belum terlihat cukup jelas. Silakan coba lagi.')
+        gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
+        brightness = float(np.mean(gray))
+        blur = float(cv2.Laplacian(gray, cv2.CV_64F).var())
+        if brightness < MIN_BRIGHTNESS:
+            raise FaceError('FACE_TOO_DARK', 'Pencahayaan terlalu gelap. Hadapkan wajah ke sumber cahaya.')
+        if brightness > MAX_BRIGHTNESS:
+            raise FaceError('FACE_TOO_BRIGHT', 'Pencahayaan terlalu terang. Hindari cahaya langsung ke kamera.')
+        if blur < MIN_BLUR_SCORE:
+            raise FaceError('FACE_TOO_BLURRY', 'Foto masih buram. Tahan perangkat sebentar.')
+
+        metadata = {
+            'faces': 1,
+            'detector_confidence': quality,
+            'face_area_ratio': face_area_ratio,
+            'brightness_score': brightness,
+            'blur_score': blur,
+            'quality_score': self._quality_score(quality, face_area_ratio, brightness, blur),
+        }
+        return image, face, metadata
+
+    @staticmethod
+    def _quality_score(confidence, area_ratio, brightness, blur):
+        brightness_score = max(0.0, 1.0 - abs(brightness - 130.0) / 130.0)
+        area_score = min(1.0, area_ratio / 0.12)
+        blur_score = min(1.0, blur / 150.0)
+        return float(.45 * confidence + .20 * area_score + .20 * blur_score + .15 * brightness_score)
+
+    def encode(self, image):
+        image, face, metadata = self.analyze(image)
         aligned = self.recognizer.alignCrop(image, face)
         embedding = self.recognizer.feature(aligned).flatten()
-        embedding /= np.linalg.norm(embedding)
+        norm = float(np.linalg.norm(embedding))
+        if norm <= 0 or not np.isfinite(norm) or not np.all(np.isfinite(embedding)):
+            raise FaceError('INVALID_EMBEDDING', 'Data wajah tidak dapat diproses. Silakan ambil ulang foto.')
+        embedding = embedding / norm
 
-        return embedding.tolist(), quality
+        return embedding.tolist(), metadata
 
     def similarity(self, a, b):
-        return float(np.dot(np.asarray(a, dtype=np.float32), np.asarray(b, dtype=np.float32)))
+        left, right = np.asarray(a, dtype=np.float32), np.asarray(b, dtype=np.float32)
+        if left.ndim != 1 or right.ndim != 1 or left.size == 0 or left.shape != right.shape:
+            raise FaceError('INVALID_REFERENCE_EMBEDDING', 'Data referensi wajah tidak valid.')
+        if not np.all(np.isfinite(left)) or not np.all(np.isfinite(right)):
+            raise FaceError('INVALID_REFERENCE_EMBEDDING', 'Data referensi wajah tidak valid.')
+        left_norm, right_norm = np.linalg.norm(left), np.linalg.norm(right)
+        if left_norm <= 0 or right_norm <= 0:
+            raise FaceError('INVALID_REFERENCE_EMBEDDING', 'Data referensi wajah tidak valid.')
+        return float(np.dot(left / left_norm, right / right_norm))

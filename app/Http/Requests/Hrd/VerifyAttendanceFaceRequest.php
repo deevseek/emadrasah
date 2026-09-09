@@ -19,17 +19,19 @@ class VerifyAttendanceFaceRequest extends FormRequest
             'challenge_id' => ['required', 'uuid'],
             'nonce' => ['required', 'string', 'size:64'],
             'device_uuid' => ['nullable', 'uuid'],
-            'snapshot' => ['required', 'image', 'mimes:jpeg,png', 'max:5120'],
+            'snapshots' => ['required', 'array', 'size:5'],
+            'snapshots.*' => ['required', 'image', 'mimes:jpeg', 'max:2048'],
         ];
     }
 
     public function messages(): array
     {
         return [
-            'snapshot.required' => 'Foto wajah wajib diambil terlebih dahulu.',
-            'snapshot.image' => 'Foto wajah harus berupa berkas gambar yang valid.',
-            'snapshot.mimes' => 'Foto wajah harus menggunakan format JPEG atau PNG.',
-            'snapshot.max' => 'Ukuran foto wajah terlalu besar. Ambil ulang foto dan coba kembali.',
+            'snapshots.required' => 'Pemindaian wajah wajib dilakukan terlebih dahulu.',
+            'snapshots.size' => 'Pemindaian wajah harus berisi lima frame.',
+            'snapshots.*.image' => 'Frame wajah harus berupa gambar yang valid.',
+            'snapshots.*.mimes' => 'Frame wajah harus menggunakan format JPEG.',
+            'snapshots.*.max' => 'Ukuran frame wajah terlalu besar. Silakan coba kembali.',
         ];
     }
 }

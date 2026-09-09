@@ -8,7 +8,7 @@ class Engine:
  name='sface';version='test';ready=True
  def encode(self,image):
   if image.shape[0]==1:raise FaceError('NO_FACE_DETECTED','Tidak ada wajah terdeteksi.')
-  return ([1.,0.] if image[0,0,0]>100 else [0.,1.]),.9
+  return ([1.,0.] if image[0,0,0]>100 else [0.,1.]),{'faces':1,'detector_confidence':.9,'face_area_ratio':.2,'brightness_score':128.,'blur_score':100.,'quality_score':.9}
  def similarity(self,a,b):return sum(x*y for x,y in zip(a,b))
 def image(value=255,size=2):
  import cv2,numpy as np
@@ -89,11 +89,13 @@ def test_engine_does_not_penalize_valid_face_area_twice(monkeypatch):
 
  monkeypatch.setattr(face_engine,'MIN_FACE_AREA_RATIO',.025)
  monkeypatch.setattr(face_engine,'MIN_QUALITY',.35)
+ monkeypatch.setattr(face_engine,'MIN_BRIGHTNESS',0)
+ monkeypatch.setattr(face_engine,'MIN_BLUR_SCORE',0)
  # 4% of the image with 0.5 confidence failed the previous area × confidence
  # formula even though both signals independently meet their minimum.
  face=[0,0,20,20,0,0,0,0,0,0,0,0,0,0,.5]
  embedding,quality=engine_with_face(face).encode(np.zeros((100,100,3),dtype=np.uint8))
- assert quality==.5
+ assert quality['detector_confidence']==.5
  assert np.allclose(embedding,[.6,.8])
 
 
@@ -107,3 +109,33 @@ def test_engine_reports_face_that_is_too_far_from_camera(monkeypatch):
  with pytest.raises(FaceError,match='terlalu jauh') as error:
   engine_with_face(face).encode(np.zeros((100,100,3),dtype=np.uint8))
  assert error.value.code=='FACE_TOO_SMALL'
+
+def burst(values, refs=([1., 0.],), threshold=.5):
+ files=[('images',(f'{i}.jpg',image(value),'image/jpeg')) for i,value in enumerate(values)]
+ return client.post('/v1/faces/verify-burst',headers=auth,files=files,data={'reference_embeddings':__import__('json').dumps(refs),'threshold':str(threshold)})
+
+def test_burst_all_three_match():
+ result=burst([255,255,255]).json()
+ assert result['matched'] is True and result['matched_frames']==3 and result['confidence']==1.
+
+def test_burst_two_of_three_match():
+ result=burst([255,0,255]).json()
+ assert result['matched'] is True and result['matched_frames']==2
+
+def test_burst_one_of_three_does_not_match():
+ result=burst([0,255,0]).json()
+ assert result['matched'] is False and result['matched_frames']==1
+
+def test_burst_bad_frame_is_ignored():
+ result=burst([255,255,255,255],threshold=.5)
+ assert result.json()['selected_frames']==3
+
+def test_burst_only_one_valid_frame_is_rejected():
+ response=burst([255],threshold=.5)
+ assert response.status_code==422 and response.json()['error']['code']=='INSUFFICIENT_VALID_FRAMES'
+
+def test_burst_empty_and_malformed_references():
+ assert burst([255,255,255],refs=[]).json()['error']['code']=='EMPTY_REFERENCE_EMBEDDINGS'
+ files=[('images',('1.jpg',image(),'image/jpeg'))]*3
+ response=client.post('/v1/faces/verify-burst',headers=auth,files=files,data={'reference_embeddings':'{bad','threshold':'.5'})
+ assert response.status_code==422 and response.json()['error']['code']=='INVALID_REFERENCE_EMBEDDING'

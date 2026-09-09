@@ -69,8 +69,8 @@ class AttendancePhotoTest extends TestCase
         $user = User::factory()->create();
         $personnel = Personnel::create(['full_name' => 'Siti Aminah', 'gender' => 'female', 'employment_status' => 'permanent', 'position' => 'Guru', 'is_active' => true, 'user_id' => $user->id]);
         $faces = Mockery::mock(FaceRecognitionService::class);
-        $faces->shouldReceive('verify')->once()->andReturn(['faces' => 1, 'matched_personnel_id' => $personnel->id, 'confidence' => .95, 'liveness_passed' => true]);
-        $faces->shouldReceive('livenessSupported')->once()->andReturn(true);
+        $faces->shouldReceive('verifyBurst')->once()->andReturn(['faces' => 1, 'matched_personnel_id' => $personnel->id, 'confidence' => .95, 'valid_frames' => 3, 'matched_frames' => 3, 'frame_confidences' => [.94,.95,.96], 'best_frame_index' => 1, 'liveness_passed' => null]);
+        $faces->shouldReceive('livenessSupported')->once()->andReturn(false);
         $faces->shouldReceive('provider')->once()->andReturn('test');
         $this->app->instance(FaceRecognitionService::class, $faces);
         $request = Request::create('/hrd/attendance/face-verify', 'POST', ['device_uuid' => (string) Str::uuid()]);
@@ -78,7 +78,7 @@ class AttendancePhotoTest extends TestCase
         $security = $this->app->make(AttendanceSecurityService::class);
         $challenge = $security->challenge($user, $personnel, 'check_in', $request);
 
-        $verification = $security->verifyFace($user, $personnel, $challenge['id'], $challenge['nonce'], UploadedFile::fake()->image('absensi.jpg'), $request);
+        $verification = $security->verifyFace($user, $personnel, $challenge['id'], $challenge['nonce'], [UploadedFile::fake()->image('a.jpg'), UploadedFile::fake()->image('best.jpg'), UploadedFile::fake()->image('c.jpg')], $request);
 
         $this->assertNotNull($verification->snapshot_path);
         Storage::disk('local')->assertExists($verification->snapshot_path);

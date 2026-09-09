@@ -15,10 +15,7 @@ class EnrollOwnFaceRequest extends FormRequest
 
     public function rules(): array
     {
-        return [
-            'front' => ['required', 'image', 'mimes:jpeg,png', 'max:5120'],
-            'left' => ['required', 'image', 'mimes:jpeg,png', 'max:5120'],
-            'right' => ['required', 'image', 'mimes:jpeg,png', 'max:5120'],
-        ];
+        $rule = ['required', 'image', 'mimes:jpeg', 'max:2048'];
+        return ['front_1' => $rule, 'front_2' => $rule, 'natural' => $rule, 'left' => $rule, 'right' => $rule];
     }
 }
