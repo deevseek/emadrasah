@@ -5,6 +5,7 @@ from .config import (
     DETECTION_SCORE_THRESHOLD,
     DETECTOR_MODEL,
     MAX_DETECTION_DIMENSION,
+    MIN_FACE_AREA_RATIO,
     MIN_QUALITY,
     RECOGNIZER_MODEL,
 )
@@ -84,9 +85,23 @@ class SFaceEngine:
 
         height, width = image.shape[:2]
         face = faces[0]
-        quality = float(min(1, (face[2] * face[3]) / (width * height) * 5) * face[-1])
+        face_area_ratio = float((face[2] * face[3]) / (width * height))
+        if face_area_ratio < MIN_FACE_AREA_RATIO:
+            raise FaceError(
+                'FACE_TOO_SMALL',
+                'Wajah terlalu jauh dari kamera. Dekatkan kamera hingga wajah memenuhi bingkai foto.',
+            )
+
+        # YuNet's detector confidence is a more stable quality gate than the old
+        # confidence × face-area formula. The old formula penalised a valid face
+        # twice when a head covering lowered the detector confidence and made the
+        # detected box slightly smaller. Face size now has its own explicit gate.
+        quality = float(face[-1])
         if quality < MIN_QUALITY:
-            raise FaceError('FACE_QUALITY_TOO_LOW', 'Kualitas wajah terlalu rendah.')
+            raise FaceError(
+                'FACE_QUALITY_TOO_LOW',
+                'Wajah belum terlihat cukup jelas. Hadap ke kamera, tambah pencahayaan, dan hindari foto buram.',
+            )
 
         aligned = self.recognizer.alignCrop(image, face)
         embedding = self.recognizer.feature(aligned).flatten()

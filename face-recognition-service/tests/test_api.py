@@ -64,3 +64,46 @@ def test_engine_downscales_high_resolution_mobile_photo(monkeypatch):
  assert oriented.shape[:2]==(960,1280)
  assert engine.detector.size==(1280,960)
  assert len(faces)==1
+
+
+def engine_with_face(face):
+ from app.face_engine import SFaceEngine
+ import numpy as np
+
+ class Detector:
+  def setInputSize(self,size):pass
+  def detect(self,image):return None,np.asarray([face],dtype=np.float32)
+
+ class Recognizer:
+  def alignCrop(self,image,detected):return image
+  def feature(self,image):return np.asarray([[3.,4.]],dtype=np.float32)
+
+ engine=SFaceEngine.__new__(SFaceEngine)
+ engine.detector=Detector();engine.recognizer=Recognizer()
+ return engine
+
+
+def test_engine_does_not_penalize_valid_face_area_twice(monkeypatch):
+ from app import face_engine
+ import numpy as np
+
+ monkeypatch.setattr(face_engine,'MIN_FACE_AREA_RATIO',.025)
+ monkeypatch.setattr(face_engine,'MIN_QUALITY',.35)
+ # 4% of the image with 0.5 confidence failed the previous area × confidence
+ # formula even though both signals independently meet their minimum.
+ face=[0,0,20,20,0,0,0,0,0,0,0,0,0,0,.5]
+ embedding,quality=engine_with_face(face).encode(np.zeros((100,100,3),dtype=np.uint8))
+ assert quality==.5
+ assert np.allclose(embedding,[.6,.8])
+
+
+def test_engine_reports_face_that_is_too_far_from_camera(monkeypatch):
+ from app import face_engine
+ import numpy as np
+ import pytest
+
+ monkeypatch.setattr(face_engine,'MIN_FACE_AREA_RATIO',.025)
+ face=[0,0,10,10,0,0,0,0,0,0,0,0,0,0,.9]
+ with pytest.raises(FaceError,match='terlalu jauh') as error:
+  engine_with_face(face).encode(np.zeros((100,100,3),dtype=np.uint8))
+ assert error.value.code=='FACE_TOO_SMALL'
