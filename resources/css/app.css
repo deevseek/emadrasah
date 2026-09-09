@@ -63,6 +63,183 @@
     font-weight: 600;
 }
 
+/* Shell khusus absensi mandiri: header tetap dihitung oleh flex layout sehingga
+   tinggi toolbar dinamis Safari tidak perlu ditebak dengan angka tetap. */
+@media (max-width: 639px) {
+    .app-main:has(.attendance-mobile-shell) {
+        display: flex;
+        min-height: 100vh;
+        min-height: 100dvh;
+        flex-direction: column;
+    }
+
+    .page-container:has(.attendance-mobile-shell) {
+        display: flex;
+        min-height: 0;
+        flex: 1;
+        padding-block: .5rem 0;
+    }
+
+    .attendance-mobile-shell {
+        width: 100%;
+        min-width: 0;
+        align-self: stretch;
+        border-bottom: 0;
+        border-radius: 1rem 1rem 0 0;
+    }
+
+    .attendance-mobile-shell > .card-body {
+        display: flex;
+        min-height: 100%;
+        flex-direction: column;
+        gap: .5rem;
+        padding: .625rem .75rem 0;
+    }
+
+    .attendance-result {
+        padding-block: .375rem;
+    }
+
+    .attendance-camera-section {
+        min-height: 0;
+    }
+
+    .attendance-camera.face-camera-capture {
+        height: clamp(220px, 34dvh, 310px);
+        max-height: 100%;
+        aspect-ratio: auto;
+    }
+
+    .attendance-camera .face-camera-capture__video {
+        object-fit: cover;
+        object-position: center 42%;
+    }
+
+    .attendance-camera .face-camera-capture__oval {
+        width: clamp(150px, 46vw, 205px);
+        max-height: 88%;
+    }
+
+    .attendance-camera-section .face-camera-capture__status {
+        margin: .375rem 0 0;
+        min-height: 1rem;
+        font-size: .75rem;
+        line-height: 1rem;
+    }
+
+    .attendance-camera-hint {
+        margin-top: .125rem;
+        white-space: nowrap;
+    }
+
+    .attendance-progress__title {
+        margin-bottom: .25rem;
+        font-size: .75rem;
+    }
+
+    .attendance-progress__grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: .25rem .75rem;
+        font-size: .75rem;
+        line-height: 1rem;
+    }
+
+    .attendance-progress__grid > p {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .attendance-action {
+        position: sticky;
+        bottom: 0;
+        z-index: 20;
+        margin-inline: -.75rem;
+        margin-top: auto;
+        border-top: 1px solid #e2e8f0;
+        background: #fff;
+        padding: .5rem .75rem max(.75rem, env(safe-area-inset-bottom));
+    }
+
+    .attendance-action__button {
+        height: 3.125rem;
+    }
+
+    .attendance-error {
+        display: -webkit-box;
+        margin-bottom: .375rem;
+        max-height: 3.75rem;
+        overflow: hidden;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 3;
+        border-radius: .5rem;
+        background: #fff7ed;
+        padding: .375rem .5rem;
+        color: #9a3412;
+        font-size: .75rem;
+        line-height: 1rem;
+    }
+
+    .attendance-error.hidden {
+        display: none;
+    }
+
+    .attendance-privacy {
+        display: none;
+    }
+}
+
+@media (max-width: 639px) and (max-height: 720px) {
+    .attendance-mobile-shell > .card-body {
+        gap: .375rem;
+        padding-top: .5rem;
+    }
+
+    .attendance-camera.face-camera-capture {
+        height: clamp(210px, 32dvh, 235px);
+    }
+
+    .attendance-camera-hint,
+    .attendance-identity p:last-child {
+        display: none;
+    }
+}
+
+@media (min-width: 640px) {
+    .attendance-mobile-shell > .card-body {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .attendance-camera.face-camera-capture {
+        max-height: 25rem;
+    }
+
+    .attendance-progress__grid {
+        display: grid;
+        gap: .5rem;
+    }
+
+    .attendance-action {
+        border-top: 1px solid #e2e8f0;
+        padding-top: 1rem;
+    }
+
+    .attendance-error {
+        margin-bottom: .75rem;
+        border-radius: .5rem;
+        background: #fffbeb;
+        padding: .75rem;
+        color: #78350f;
+        font-size: .875rem;
+    }
+
+    .attendance-privacy {
+        margin-top: .75rem;
+    }
+}
+
 @media (min-width: 640px) {
     .face-camera-capture {
         aspect-ratio: 16 / 9;

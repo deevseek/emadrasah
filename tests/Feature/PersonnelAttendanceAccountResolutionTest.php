@@ -106,6 +106,22 @@ class PersonnelAttendanceAccountResolutionTest extends TestCase
         $this->assertStringNotContainsString('id="face_snapshot"', $view);
     }
 
+    public function test_self_attendance_has_compact_mobile_camera_and_safe_action_layout(): void
+    {
+        $view = file_get_contents(resource_path('views/hrd/attendance/mine.blade.php'));
+        $styles = file_get_contents(resource_path('css/app.css'));
+
+        $this->assertStringContainsString('attendance-mobile-shell', $view);
+        $this->assertStringContainsString('attendance-progress__grid', $view);
+        $this->assertStringContainsString('attendance-action__button', $view);
+        $this->assertStringContainsString("if(name==='submit')el.classList.remove('hidden')", $view);
+        $this->assertStringContainsString('min-height: 100dvh', $styles);
+        $this->assertStringContainsString('height: clamp(220px, 34dvh, 310px)', $styles);
+        $this->assertStringContainsString('grid-template-columns: repeat(2, minmax(0, 1fr))', $styles);
+        $this->assertStringContainsString('position: sticky', $styles);
+        $this->assertStringContainsString('env(safe-area-inset-bottom)', $styles);
+    }
+
     public function test_self_attendance_displays_server_message_when_request_fails(): void
     {
         $user = User::factory()->create(['email' => 'guru@example.test']);
