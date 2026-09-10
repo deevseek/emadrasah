@@ -27,5 +27,13 @@ class RfidAttendanceLiveTest extends TestCase
         $this->assertStringNotContainsString('X-Device-Token', $view);
         $this->assertStringContainsString('2500', $view);
         $this->assertStringContainsString('$date === today()->toDateString()', $view);
+        $this->assertStringContainsString("event.code==='ALREADY_ATTENDED'", $view);
+        $this->assertStringContainsString("'⚠ SUDAH ABSEN'", $view);
+        $this->assertStringContainsString("'✕ ABSENSI GAGAL'", $view);
+        $this->assertStringContainsString('consecutiveFailures<3', $view);
+        $this->assertStringContainsString('Live RFID menyambungkan ulang...', $view);
+        $this->assertStringContainsString("status.textContent='● Live tersambung'", $view);
+        $this->assertStringContainsString("data.reader.online?'● Reader Online':'● Reader Offline'", $view);
+        $this->assertStringNotContainsString('Live RFID terputus', $view);
     }
 }

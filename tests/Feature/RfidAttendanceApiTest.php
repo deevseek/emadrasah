@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\Models\{ApplicationSetting, RfidAttendanceEvent, RfidDevice};
+use App\Models\{AcademicYear, ApplicationSetting, Classroom, ClassroomMembership, GradeLevel, RfidAttendanceEvent, RfidDevice, Semester, Student, StudentRfidCard};
 use App\Services\Academic\RfidAttendanceService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
@@ -104,6 +104,27 @@ class RfidAttendanceApiTest extends TestCase
         $this->assertDatabaseHas('rfid_attendance_events', ['result_code' => 'CARD_NOT_PROVISIONED', 'success' => false]);
     }
 
+    public function test_new_and_repeated_scan_each_create_a_distinct_live_event(): void
+    {
+        [$device, $card] = $this->makeAttendanceContext();
+        $service = app(RfidAttendanceService::class);
+
+        $created = $service->record($card->card_token, $card->uid, $device);
+        $already = $service->record($card->card_token, $card->uid, $device);
+
+        $this->assertSame('ATTENDANCE_CREATED', $created['code']);
+        $this->assertSame('ALREADY_ATTENDED', $already['code']);
+        $this->assertSame(200, $already['http']);
+        $this->assertNotSame($created['event_id'], $already['event_id']);
+        $this->assertDatabaseCount('student_attendances', 1);
+        $this->assertDatabaseHas('rfid_attendance_events', ['id' => $created['event_id'], 'result_code' => 'ATTENDANCE_CREATED']);
+        $event = RfidAttendanceEvent::findOrFail($already['event_id']);
+        $this->assertSame($card->student_id, $event->student_id);
+        $this->assertSame('ALREADY_ATTENDED', $event->result_code);
+        $this->assertStringNotContainsString($card->card_token, json_encode($event->toArray(), JSON_THROW_ON_ERROR));
+        $this->assertSame('Siswa Uji', $already['student']['name']);
+    }
+
     public function test_post_does_not_redirect_even_when_proxy_headers_are_present(): void
     {
         $this->withHeaders([
@@ -132,5 +153,20 @@ class RfidAttendanceApiTest extends TestCase
         } finally {
             Artisan::call('route:clear');
         }
+    }
+
+    private function makeAttendanceContext(): array
+    {
+        ApplicationSetting::create(['key' => 'attendance_rfid_enabled', 'value' => '1', 'type' => 'boolean', 'group' => 'attendance']);
+        $year = AcademicYear::create(['name' => '2026/2027', 'starts_at' => today()->startOfYear(), 'ends_at' => today()->endOfYear(), 'is_active' => true]);
+        $semester = Semester::create(['academic_year_id' => $year->id, 'name' => 'Ganjil', 'type' => 'odd', 'starts_at' => today()->startOfYear(), 'ends_at' => today()->endOfYear(), 'is_active' => true]);
+        $grade = GradeLevel::create(['number' => 1, 'name' => 'Kelas 1', 'roman_label' => 'I', 'sort_order' => 1, 'is_active' => true]);
+        $classroom = Classroom::create(['academic_year_id' => $year->id, 'grade_level_id' => $grade->id, 'code' => 'A', 'is_active' => true]);
+        $student = Student::create(['full_name' => 'Siswa Uji', 'nisn' => '1234567890', 'status' => 'active', 'gender' => 'male']);
+        ClassroomMembership::create(['student_id' => $student->id, 'classroom_id' => $classroom->id, 'academic_year_id' => $year->id, 'status' => 'active', 'joined_at' => today()]);
+        $card = StudentRfidCard::create(['student_id' => $student->id, 'uid' => self::PAYLOAD['uid'], 'card_token' => self::PAYLOAD['card_token'], 'is_active' => true]);
+        $device = RfidDevice::create(['device_id' => 'reader-live', 'name' => 'Reader Live', 'device_type' => 'reader', 'token_hash' => hash('sha256', 'token-live'), 'is_active' => true, 'last_seen_at' => now()]);
+
+        return [$device, $card, $semester];
     }
 }
