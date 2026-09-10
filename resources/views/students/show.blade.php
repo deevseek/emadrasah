@@ -26,12 +26,11 @@
             <p class="mt-2 text-xs font-semibold {{ $writerOnline ? 'text-emerald-700' : 'text-red-600' }}">Writer {{ $writerOnline ? 'Online' : 'Offline' }}</p>
         </div>
         <div class="flex flex-wrap gap-2">
-            @can('rfid-card.issue')
-                <button class="btn btn-primary" type="button" data-rfid-write data-replace="{{ $student->activeRfidCard ? '1' : '0' }}" @disabled(!$writerEnabled || !$writerOnline)>{{ $student->activeRfidCard ? 'Tulis Ulang' : 'Tulis Kartu RFID' }}</button>
-            @endcan
             @if($student->activeRfidCard)
-                @can('rfid-card.replace')<button class="btn btn-secondary" type="button" data-rfid-write data-replace="1" @disabled(!$writerEnabled || !$writerOnline)>Ganti Kartu</button>@endcan
+                @can('rfid-card.replace')<button class="btn btn-primary" type="button" data-rfid-write data-replace="1" @disabled(!$writerEnabled || !$writerOnline)>Tulis Ulang Kartu</button>@endcan
                 @can('rfid-card.disable')<form method="post" action="{{ route('students.rfid-card.destroy',$student) }}" onsubmit="return confirm('Kartu RFID akan dihapus dan tidak dapat digunakan lagi. Lanjutkan?')">@csrf @method('DELETE')<button class="btn btn-danger" type="submit">Hapus Kartu</button></form>@endcan
+            @else
+                @can('rfid-card.issue')<button class="btn btn-primary" type="button" data-rfid-write data-replace="0" @disabled(!$writerEnabled || !$writerOnline)>Tulis Kartu</button>@endcan
             @endif
         </div>
     </div>
@@ -65,6 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const writerUrl = @json(route('students.rfid-writer.store', $student, false));
     let timer = null;
     let reloadAfterClose = false;
+    let isRewrite = false;
 
     const close = () => {
         window.clearInterval(timer);
@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
         reloadAfterClose = data.status === 'completed';
 
         if (data.status === 'completed') {
-            message.textContent = 'Kartu RFID berhasil ditulis';
+            message.textContent = isRewrite ? 'Kartu berhasil ditulis ulang' : 'Kartu berhasil ditulis';
             device.textContent = data.device;
             completed.textContent = data.completed_at ? new Date(data.completed_at).toLocaleString('id-ID') : '—';
             result.classList.remove('hidden');
@@ -88,6 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const failures = {
+            CARD_WRITE_FAILED: 'Penulisan kartu gagal.',
             CARD_REMOVED: 'Kartu dilepas sebelum proses selesai.',
             VERIFY_FAILED: 'Verifikasi data kartu gagal.',
             DEVICE_ERROR: 'RFID Writer tidak terhubung.',
@@ -103,6 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const response = await fetch(`${writerUrl}/${commandId}`, { headers: { Accept: 'application/json' } });
                 const data = await response.json();
                 if (! response.ok) throw new Error(data.message ?? 'Status penulisan kartu tidak dapat diperiksa.');
+                if (data.status === 'processing') message.textContent = isRewrite ? 'Menulis ulang kartu...' : 'Menulis kartu...';
                 if (['completed', 'failed', 'expired'].includes(data.status)) finish(data);
             } catch (error) {
                 window.clearInterval(timer);
@@ -117,6 +119,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.querySelectorAll('[data-rfid-write]').forEach((button) => {
         button.addEventListener('click', async () => {
+            isRewrite = button.dataset.replace === '1';
+            if (isRewrite && ! window.confirm('Tulis ulang kartu RFID siswa ini?\n\nTempel kartu ke RFID Writer satu kali. Data card_token lama pada kartu akan langsung ditimpa dengan card_token baru. Tidak perlu menghapus kartu terlebih dahulu.')) return;
             reloadAfterClose = false;
             result.classList.add('hidden');
             progress.classList.remove('hidden');
@@ -131,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 const data = await response.json();
                 if (! response.ok) throw new Error(data.message ?? Object.values(data.errors ?? {})[0]?.[0] ?? 'RFID Writer tidak terhubung.');
-                message.textContent = 'Tempelkan kartu RFID pada reader';
+                message.textContent = isRewrite ? 'Menunggu RFID Writer — tempel kartu 1 kali ke writer' : 'Tempel kartu 1 kali ke writer';
                 poll(data.command_id);
             } catch (error) {
                 progress.classList.add('hidden');
