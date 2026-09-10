@@ -13,7 +13,7 @@ class LiveAttendanceService
     public function feed(User $user, int $classroomId, string $date, int $cursor): array
     {
         $this->access->ensureClassroom($user, $classroomId);
-        $events = RfidAttendanceEvent::with(['student:id,full_name,nis,nisn', 'attendance:id,status,source,scanned_at'])
+        $events = RfidAttendanceEvent::with(['student:id,full_name,nisn', 'attendance:id,status,source,scanned_at'])
             ->where(fn ($query) => $query->where('classroom_id', $classroomId)->orWhereNull('classroom_id'))
             ->whereDate('scanned_at', $date)
             ->where('id', '>', $cursor)
@@ -39,7 +39,7 @@ class LiveAttendanceService
                 'success' => $event->success,
                 'student_id' => $event->student_id,
                 'student_name' => $event->student?->full_name,
-                'nis' => $event->student?->nis ?? $event->student?->nisn,
+                'nis' => $event->student?->nisn,
                 'status' => $event->attendance?->status?->value,
                 'status_label' => $event->attendance?->status?->label(),
                 'attendance_time' => $event->attendance?->scanned_at?->format('H:i:s'),
