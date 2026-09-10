@@ -16,15 +16,26 @@ class RfidAttendanceService
 
     public function record(string $rawToken, string $rawUid, RfidDevice $device): array
     {
-        if (! $this->settings->get('attendance_rfid_enabled', false)) return ['http' => 403, 'success' => false, 'code' => 'RFID_DISABLED', 'message' => 'Absensi RFID sedang dinonaktifkan'];
+        if (! $this->settings->get('attendance_rfid_enabled', false)) {
+            return $this->failure($device, RfidAttendanceResultCode::RfidDisabled, 'Absensi RFID sedang dinonaktifkan.', 403);
+        }
         $token = strtoupper($rawToken);
-        if (! preg_match('/^[A-F0-9]{32}$/', $token)) return ['http' => 422, 'success' => false, 'code' => 'CARD_NOT_PROVISIONED', 'message' => 'Kartu belum diprogram untuk e-Madrasah.'];
+        if (! preg_match('/^[A-F0-9]{32}$/', $token)) {
+            return $this->failure($device, RfidAttendanceResultCode::CardNotProvisioned, 'Kartu belum diprogram untuk e-Madrasah.', 422);
+        }
         $card = StudentRfidCard::with('student')->where('card_token', $token)->where('is_active', true)->first();
-        if (! $card) return ['http' => 404, 'success' => false, 'code' => 'CARD_NOT_REGISTERED', 'message' => 'Kartu RFID belum terdaftar'];
+        if (! $card) {
+            return $this->failure($device, RfidAttendanceResultCode::CardNotRegistered, 'Kartu RFID tidak terdaftar.', 404);
+        }
+        if ($rawUid !== '' && StudentRfidCard::normalizeUid($rawUid) !== StudentRfidCard::normalizeUid($card->uid)) {
+            return $this->failure($device, RfidAttendanceResultCode::CardUidMismatch, 'Identitas kartu RFID tidak sesuai.', 422, $card);
+        }
         $membership = ClassroomMembership::where('student_id', $card->student_id)->where('status', 'active')->latest('joined_at')->first();
         $year = AcademicYear::where('is_active', true)->first();
         $semester = $year ? Semester::where('academic_year_id', $year->id)->where('is_active', true)->first() : null;
-        if (! $membership || ! $year || ! $semester) return ['http' => 422, 'success' => false, 'code' => 'ACADEMIC_CONTEXT_MISSING', 'message' => 'Periode akademik atau rombel aktif tidak tersedia'];
+        if (! $membership || ! $year || ! $semester) {
+            return $this->failure($device, RfidAttendanceResultCode::AcademicContextMissing, 'Periode akademik atau rombel aktif tidak tersedia.', 422, $card, $membership?->classroom_id);
+        }
 
         $result = DB::transaction(function () use ($card, $device, $membership, $year, $semester): array {
             $existing = StudentAttendance::where('student_id', $card->student_id)->where('classroom_id', $membership->classroom_id)->whereDate('attendance_date', today())->lockForUpdate()->first();
@@ -42,9 +53,29 @@ class RfidAttendanceService
             Log::warning('RFID attendance live event gagal dicatat.', ['attendance_id'=>$result['_attendance_id'],'exception'=>$exception->getMessage()]);
         }
         unset($result['_attendance_id']);
-        // ATTENDANCE_CREATED bersifat internal; respons sukses ESP32 lama tidak memuat code.
-        if ($result['code'] === RfidAttendanceResultCode::AttendanceCreated->value) unset($result['code']);
         return $result;
+    }
+
+    private function failure(RfidDevice $device, RfidAttendanceResultCode $code, string $message, int $http, ?StudentRfidCard $card = null, ?int $classroomId = null): array
+    {
+        $event = RfidAttendanceEvent::create([
+            'rfid_device_id' => $device->id,
+            'student_id' => $card?->student_id,
+            'classroom_id' => $classroomId,
+            'result_code' => $code->value,
+            'success' => false,
+            'message' => $message,
+            'scanned_at' => now(),
+        ]);
+
+        return array_filter([
+            'http' => $http,
+            'success' => false,
+            'code' => $code->value,
+            'message' => $message,
+            'event_id' => $event->id,
+            'student' => $card ? $this->studentData($card) : null,
+        ], fn (mixed $value): bool => $value !== null);
     }
 
     private function studentData(StudentRfidCard $card): array { return ['name' => $card->student->full_name, 'nis' => $card->student->nis ?? $card->student->nisn]; }

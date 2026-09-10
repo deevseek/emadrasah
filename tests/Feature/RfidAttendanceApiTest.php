@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\Models\RfidDevice;
+use App\Models\{ApplicationSetting, RfidAttendanceEvent, RfidDevice};
 use App\Services\Academic\RfidAttendanceService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
@@ -64,6 +64,44 @@ class RfidAttendanceApiTest extends TestCase
         $this->getJson('/api/rfid/attendance')
             ->assertStatus(405)
             ->assertHeaderMissing('Location');
+    }
+
+    public function test_unregistered_card_creates_safe_failure_event(): void
+    {
+        ApplicationSetting::create(['key' => 'attendance_rfid_enabled', 'value' => '1', 'type' => 'boolean', 'group' => 'attendance']);
+        $token = 'token-reader-test';
+        $device = RfidDevice::create(['device_id' => 'reader-failure', 'name' => 'Reader', 'device_type' => 'reader', 'token_hash' => hash('sha256', $token), 'is_active' => true]);
+
+        $this->withHeaders(['X-Device-Id' => $device->device_id, 'X-Device-Token' => $token])
+            ->postJson('/api/rfid/attendance', self::PAYLOAD)
+            ->assertNotFound()
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('code', 'CARD_NOT_REGISTERED')
+            ->assertJsonMissingPath('card_token');
+
+        $event = RfidAttendanceEvent::sole();
+        $this->assertSame('CARD_NOT_REGISTERED', $event->result_code);
+        $this->assertFalse($event->success);
+        $this->assertNull($event->student_id);
+        $this->assertStringNotContainsString(self::PAYLOAD['card_token'], $event->message);
+    }
+
+    public function test_invalid_payload_creates_safe_failure_event_without_credentials(): void
+    {
+        $token = 'token-reader-validation';
+        $device = RfidDevice::create(['device_id' => 'reader-validation', 'name' => 'Reader', 'device_type' => 'reader', 'token_hash' => hash('sha256', $token), 'is_active' => true]);
+
+        $this->withHeaders(['X-Device-Id' => $device->device_id, 'X-Device-Token' => $token])
+            ->postJson('/api/rfid/attendance', ['card_token' => 'invalid'])
+            ->assertUnprocessable()
+            ->assertExactJson([
+                'success' => false,
+                'code' => 'CARD_NOT_PROVISIONED',
+                'message' => 'Data kartu RFID tidak valid.',
+                'event_id' => 1,
+            ]);
+
+        $this->assertDatabaseHas('rfid_attendance_events', ['result_code' => 'CARD_NOT_PROVISIONED', 'success' => false]);
     }
 
     public function test_post_does_not_redirect_even_when_proxy_headers_are_present(): void
