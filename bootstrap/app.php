@@ -1,6 +1,7 @@
 <?php
 
 use App\Exceptions\AttendanceSecurityException;
+use App\Exceptions\RfidUidConflictException;
 use App\Http\Middleware\AuthenticateIncomingEmail;
 use App\Http\Middleware\AuthenticateRfidDevice;
 use App\Http\Middleware\EnsureApplicationIsAvailable;
@@ -51,5 +52,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (AttendanceSecurityException $exception, Request $request) {
             if ($request->expectsJson()) return response()->json(['error'=>['code'=>$exception->errorCode,'message'=>$exception->getMessage()]],$exception->status);
             return back()->withErrors(['attendance'=>$exception->getMessage()]);
+        });
+        $exceptions->render(function (RfidUidConflictException $exception, Request $request) {
+            if (! $request->expectsJson()) return back()->withErrors(['uid' => $exception->getMessage()]);
+
+            return response()->json([
+                'message' => $exception->getMessage(),
+                'errors' => ['uid' => [$exception->getMessage()]],
+                'error_code' => RfidUidConflictException::ERROR_CODE,
+            ], 422);
         });
     })->create();
