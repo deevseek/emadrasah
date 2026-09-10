@@ -114,12 +114,73 @@ class RfidCardRewriteTest extends TestCase
         StudentRfidCard::create(['student_id' => $other->id, 'uid' => 'A1B2C3D4', 'card_token' => 'CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC', 'is_active' => true]);
         $command = $this->createCommand(true);
 
-        $this->complete($command, 'A1B2C3D4')->assertUnprocessable();
+        $this->complete($command, 'A1B2C3D4')->assertUnprocessable()
+            ->assertJsonPath('error_code', 'RFID_UID_ASSIGNED_TO_OTHER_STUDENT');
         $wrong = RfidDevice::create(['device_id' => 'writer-2', 'name' => 'Writer 2', 'device_type' => 'writer', 'token_hash' => hash('sha256', 'other-token'), 'is_active' => true]);
         $this->withHeaders(['X-Device-Id' => $wrong->device_id, 'X-Device-Token' => 'other-token'])->postJson("/api/rfid/device/command/{$command->id}/complete", $this->completionPayload($command, $card->uid))->assertNotFound();
 
         $this->assertSame('F3ED113A', $card->fresh()->uid);
         $this->assertSame($other->id, StudentRfidCard::query()->where('uid', 'A1B2C3D4')->value('student_id'));
+    }
+
+    public function test_regular_write_cannot_take_uid_owned_by_another_student(): void
+    {
+        $other = Student::create(['full_name' => 'Siti Aminah', 'gender' => 'female', 'status' => 'active']);
+        StudentRfidCard::create(['student_id' => $other->id, 'uid' => 'A1B2C3D4', 'card_token' => 'CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC', 'is_active' => true]);
+        $command = $this->createCommand(false);
+
+        $this->complete($command, 'A1B2C3D4')->assertUnprocessable()
+            ->assertJsonPath('error_code', 'RFID_UID_ASSIGNED_TO_OTHER_STUDENT');
+
+        $this->assertDatabaseMissing('student_rfid_cards', ['student_id' => $this->student->id]);
+        $this->assertSame(RfidCommandStatus::Processing, $command->fresh()->status);
+    }
+
+    public function test_explicit_reassign_deactivates_old_owner_and_activates_target_atomically(): void
+    {
+        $oldStudent = Student::create(['full_name' => 'Siti Aminah', 'gender' => 'female', 'status' => 'active']);
+        $oldCard = StudentRfidCard::create(['student_id' => $oldStudent->id, 'uid' => 'A1B2C3D4', 'card_token' => 'CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC', 'is_active' => true]);
+        $command = $this->createOperationCommand('reassign');
+
+        $this->complete($command, $oldCard->uid)->assertOk()->assertJson(['success' => true]);
+
+        $this->assertFalse($oldCard->fresh()->is_active);
+        $this->assertDatabaseHas('student_rfid_cards', ['student_id' => $this->student->id, 'uid' => $oldCard->uid, 'card_token' => $command->payload['card_token'], 'is_active' => true]);
+        $this->assertSame(RfidCommandStatus::Completed, $command->fresh()->status);
+    }
+
+    public function test_completed_command_status_is_immediately_visible_to_frontend(): void
+    {
+        $command = $this->createCommand(false);
+        $this->complete($command, 'F3ED113A')->assertOk();
+
+        $this->actingAs($this->operator)->getJson(route('students.rfid-writer.show', [$this->student, $command]))
+            ->assertOk()->assertJsonPath('status', 'completed');
+    }
+
+    public function test_reassign_rolls_back_old_assignment_if_target_assignment_fails(): void
+    {
+        $this->withoutExceptionHandling();
+        $oldStudent = Student::create(['full_name' => 'Siti Aminah', 'gender' => 'female', 'status' => 'active']);
+        $oldCard = StudentRfidCard::create(['student_id' => $oldStudent->id, 'uid' => 'A1B2C3D4', 'card_token' => 'CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC', 'is_active' => true]);
+        $command = $this->createOperationCommand('reassign');
+        $listener = function (StudentRfidCard $card): void {
+            if (! $card->exists && $card->student_id === $this->student->id) throw new \RuntimeException('Simulasi kegagalan penyimpanan target.');
+        };
+        StudentRfidCard::creating($listener);
+
+        try {
+            $this->complete($command, $oldCard->uid);
+            $this->fail('Complete seharusnya melempar exception.');
+        } catch (\RuntimeException $exception) {
+            $this->assertSame('Simulasi kegagalan penyimpanan target.', $exception->getMessage());
+        } finally {
+            StudentRfidCard::flushEventListeners();
+        }
+
+        $this->assertTrue($oldCard->fresh()->is_active);
+        $this->assertSame(RfidCommandStatus::Processing, $command->fresh()->status);
+        $this->assertDatabaseMissing('student_rfid_cards', ['student_id' => $this->student->id, 'uid' => $oldCard->uid]);
     }
 
     public function test_duplicate_active_command_is_blocked_and_old_firmware_receives_write_card(): void
@@ -153,6 +214,15 @@ class RfidCardRewriteTest extends TestCase
     private function createCommand(bool $replace): RfidDeviceCommand
     {
         $response = $this->actingAs($this->operator)->postJson(route('students.rfid-writer.store', $this->student), ['replace' => $replace])->assertSuccessful();
+        $command = RfidDeviceCommand::findOrFail($response->json('command_id'));
+        app(RfidWriterService::class)->next($this->writer);
+
+        return $command->fresh();
+    }
+
+    private function createOperationCommand(string $operation): RfidDeviceCommand
+    {
+        $response = $this->actingAs($this->operator)->postJson(route('students.rfid-writer.store', $this->student), ['operation' => $operation])->assertSuccessful();
         $command = RfidDeviceCommand::findOrFail($response->json('command_id'));
         app(RfidWriterService::class)->next($this->writer);
 

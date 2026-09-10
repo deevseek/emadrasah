@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Services\Rfid;
 
 use App\Enums\RfidCommandStatus;
+use App\Enums\RfidWriteOperation;
+use App\Exceptions\RfidUidConflictException;
 use App\Models\{RfidDevice, RfidDeviceCommand, Student, StudentRfidCard, User};
 use App\Services\Settings\ApplicationSettingService;
 use Illuminate\Support\Facades\DB;
@@ -19,31 +21,33 @@ class RfidWriterService
         return RfidDevice::query()->where('is_active', true)->where('device_type', 'writer')->where('last_seen_at', '>=', now()->subSeconds(75))->latest('last_seen_at')->first();
     }
 
-    public function issue(Student $student, User $actor, bool $replace = false): RfidDeviceCommand
+    public function issue(Student $student, User $actor, RfidWriteOperation|bool $operation = RfidWriteOperation::Write): RfidDeviceCommand
     {
+        // Boolean dipertahankan sementara untuk kompatibilitas pemanggil internal lama.
+        if (is_bool($operation)) $operation = $operation ? RfidWriteOperation::Rewrite : RfidWriteOperation::Write;
         if (! $this->settings->get('rfid_writer_enabled', false)) throw ValidationException::withMessages(['writer' => 'RFID Writer sedang dinonaktifkan.']);
         $device = $this->onlineWriter();
         if (! $device) throw ValidationException::withMessages(['writer' => 'RFID Writer tidak terhubung.']);
-        return DB::transaction(function () use ($student, $actor, $replace, $device): RfidDeviceCommand {
+        return DB::transaction(function () use ($student, $actor, $operation, $device): RfidDeviceCommand {
             $student = Student::query()->lockForUpdate()->findOrFail($student->id);
-            if (! $replace && $student->activeRfidCard()->exists()) throw ValidationException::withMessages(['card' => 'Siswa sudah mempunyai kartu aktif. Gunakan Tulis Ulang Kartu.']);
-            if ($replace && ! $student->activeRfidCard()->exists()) throw ValidationException::withMessages(['card' => 'Siswa belum mempunyai kartu aktif. Gunakan Tulis Kartu.']);
+            if ($operation === RfidWriteOperation::Write && $student->activeRfidCard()->exists()) throw ValidationException::withMessages(['card' => 'Siswa sudah mempunyai kartu aktif. Gunakan Tulis Ulang Kartu.']);
+            if ($operation === RfidWriteOperation::Rewrite && ! $student->activeRfidCard()->exists()) throw ValidationException::withMessages(['card' => 'Siswa belum mempunyai kartu aktif. Gunakan Tulis Kartu.']);
 
             RfidDeviceCommand::query()->where('student_id', $student->id)->whereIn('status', [RfidCommandStatus::Pending, RfidCommandStatus::Processing])->where('expires_at', '<=', now())->update(['status' => RfidCommandStatus::Expired, 'failed_at' => now(), 'result' => json_encode(['code' => 'WRITE_TIMEOUT'])]);
             $activeCommand = RfidDeviceCommand::query()->where('student_id', $student->id)->whereIn('status', [RfidCommandStatus::Pending, RfidCommandStatus::Processing])->where('expires_at', '>', now())->lockForUpdate()->exists();
             if ($activeCommand) throw ValidationException::withMessages(['command' => 'Penulisan kartu siswa ini masih berlangsung. Tunggu hingga selesai atau kedaluwarsa.']);
 
             $token = $this->uniqueCardToken();
-            $supportsRewrite = $replace && $this->supportsRewriteCommand($device->firmware_version);
+            $supportsRewrite = $operation->replacesExisting() && $this->supportsRewriteCommand($device->firmware_version);
 
             return RfidDeviceCommand::create([
                 'device_id' => $device->id,
                 'student_id' => $student->id,
                 'requested_by' => $actor->id,
                 'command' => $supportsRewrite ? 'rewrite_card' : 'write_card',
-                'payload' => ['card_token' => $token, 'operation' => $replace ? 'rewrite' : 'write'],
+                'payload' => ['card_token' => $token, 'operation' => $operation->value],
                 'status' => RfidCommandStatus::Pending,
-                'replaces_existing' => $replace,
+                'replaces_existing' => $operation->replacesExisting(),
                 'expires_at' => now()->addSeconds(60),
             ]);
         });
@@ -105,22 +109,33 @@ class RfidWriterService
 
             $student = Student::query()->lockForUpdate()->find($command->student_id);
             if (! $student) throw ValidationException::withMessages(['student' => 'Siswa target tidak lagi tersedia.']);
-            $card = StudentRfidCard::query()->where('student_id', $student->id)->where('is_active', true)->lockForUpdate()->first();
-            if ($command->replaces_existing && ! $card) throw ValidationException::withMessages(['card' => 'Kartu aktif siswa tidak lagi tersedia.']);
-            if (! $command->replaces_existing && $card) throw ValidationException::withMessages(['card' => 'Siswa telah mempunyai kartu aktif.']);
+            $operation = RfidWriteOperation::tryFrom((string) ($command->payload['operation'] ?? ''))
+                ?? ($command->replaces_existing ? RfidWriteOperation::Rewrite : RfidWriteOperation::Write);
+            $activeCard = StudentRfidCard::query()->where('student_id', $student->id)->where('is_active', true)->lockForUpdate()->first();
+            if ($operation === RfidWriteOperation::Rewrite && ! $activeCard) throw ValidationException::withMessages(['card' => 'Kartu aktif siswa tidak lagi tersedia.']);
+            if ($operation === RfidWriteOperation::Write && $activeCard) throw ValidationException::withMessages(['card' => 'Siswa telah mempunyai kartu aktif.']);
 
-            $uidCollision = StudentRfidCard::query()->where('uid', $uid)->when($card, fn ($query) => $query->where('id', '!=', $card->id))->lockForUpdate()->exists();
-            if ($uidCollision) throw ValidationException::withMessages(['uid' => 'UID kartu sudah terdaftar pada siswa lain.']);
+            $uidAssignments = StudentRfidCard::query()->where('uid', $uid)->lockForUpdate()->get();
+            $otherStudentOwnsUid = $uidAssignments->contains(fn (StudentRfidCard $assignment) => $assignment->student_id !== $student->id);
+            if ($otherStudentOwnsUid && $operation !== RfidWriteOperation::Reassign) throw new RfidUidConflictException();
+
+            $card = $uidAssignments->firstWhere('student_id', $student->id) ?? $activeCard;
             $tokenCollision = StudentRfidCard::query()->where('card_token', $expected)->when($card, fn ($query) => $query->where('id', '!=', $card->id))->lockForUpdate()->exists();
             if ($tokenCollision) throw ValidationException::withMessages(['card_token' => 'Token kartu sudah terdaftar.']);
 
+            if ($operation === RfidWriteOperation::Reassign) {
+                StudentRfidCard::query()->where('uid', $uid)->where('student_id', '!=', $student->id)->update(['is_active' => false]);
+            }
+            StudentRfidCard::query()->where('student_id', $student->id)->where('is_active', true)
+                ->when($card, fn ($query) => $query->where('id', '!=', $card->id))->update(['is_active' => false]);
+
             if ($card) {
-                $card->update(['uid' => $uid, 'card_token' => $expected, 'registered_at' => now(), 'issued_by' => $command->requested_by]);
+                $card->update(['student_id' => $student->id, 'uid' => $uid, 'card_token' => $expected, 'is_active' => true, 'registered_at' => now(), 'issued_by' => $command->requested_by]);
             } else {
                 $card = StudentRfidCard::create(['student_id' => $student->id, 'uid' => $uid, 'card_token' => $expected, 'is_active' => true, 'registered_at' => now(), 'issued_by' => $command->requested_by]);
             }
             $command->update(['status' => RfidCommandStatus::Completed, 'completed_at' => now(), 'result' => ['uid' => $uid, 'verified' => true]]);
-            activity('rfid-card')->causedBy($command->requester)->performedOn($command->student)->withProperties(['card_id' => $card->id, 'device_id' => $device->device_id, 'action' => $command->replaces_existing ? 'rewrite' : 'issue'])->log($command->replaces_existing ? 'Menulis ulang kartu RFID siswa.' : 'Menerbitkan kartu RFID siswa.');
+            activity('rfid-card')->causedBy($command->requester)->performedOn($command->student)->withProperties(['card_id' => $card->id, 'device_id' => $device->device_id, 'action' => $operation->value])->log($operation->replacesExisting() ? 'Menulis ulang kartu RFID siswa.' : 'Menerbitkan kartu RFID siswa.');
             return $command->fresh(['student', 'device']);
         });
 
