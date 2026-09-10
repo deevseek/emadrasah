@@ -19,6 +19,12 @@ class RfidAttendanceLiveTest extends TestCase
         $this->assertStringContainsString('data-attendance-student', $view);
         $this->assertStringContainsString('document.visibilityState', $view);
         $this->assertStringContainsString('dirty.has(id)', $view);
+        $this->assertStringContainsString('handledEventIds.has(eventId)', $view);
+        $this->assertStringContainsString('toastQueue.shift()', $view);
+        $this->assertStringContainsString('let cursor=@json((int)$liveCursor)', $view);
+        $this->assertStringContainsString('data.events.forEach(apply)', $view);
+        $this->assertStringNotContainsString('card_token', $view);
+        $this->assertStringNotContainsString('X-Device-Token', $view);
         $this->assertStringContainsString('2500', $view);
         $this->assertStringContainsString('$date === today()->toDateString()', $view);
     }
