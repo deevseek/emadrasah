@@ -31,7 +31,7 @@
             @endcan
             @if($student->activeRfidCard)
                 @can('rfid-card.replace')<button class="btn btn-secondary" type="button" data-rfid-write data-replace="1" @disabled(!$writerEnabled || !$writerOnline)>Ganti Kartu</button>@endcan
-                @can('rfid-card.disable')<form method="post" action="{{ route('students.rfid-card.destroy',$student) }}">@csrf @method('DELETE')<button class="btn btn-danger">Nonaktifkan</button></form>@endcan
+                @can('rfid-card.disable')<form method="post" action="{{ route('students.rfid-card.destroy',$student) }}" onsubmit="return confirm('Kartu RFID akan dihapus dan tidak dapat digunakan lagi. Lanjutkan?')">@csrf @method('DELETE')<button class="btn btn-danger" type="submit">Hapus Kartu</button></form>@endcan
             @endif
         </div>
     </div>
