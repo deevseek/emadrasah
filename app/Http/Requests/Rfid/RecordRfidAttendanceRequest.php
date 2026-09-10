@@ -9,6 +9,7 @@ use App\Models\RfidAttendanceEvent;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Support\Facades\Log;
 
 class RecordRfidAttendanceRequest extends FormRequest
 {
@@ -34,6 +35,12 @@ class RecordRfidAttendanceRequest extends FormRequest
             'success' => false,
             'message' => $message,
             'scanned_at' => now(),
+        ]);
+        Log::info('RFID live event emitted.', [
+            'event_id' => $event->id,
+            'device_id' => $this->attributes->get('rfid_device')?->device_id,
+            'code' => RfidAttendanceResultCode::CardNotProvisioned->value,
+            'student_id' => null,
         ]);
 
         throw new HttpResponseException(response()->json([

@@ -16,6 +16,11 @@ class RfidAttendanceService
 
     public function record(string $rawToken, string $rawUid, RfidDevice $device): array
     {
+        Log::info('RFID attendance received.', [
+            'uid_masked' => $this->maskUid($rawUid),
+            'device_id' => $device->device_id,
+        ]);
+
         if (! $this->settings->get('attendance_rfid_enabled', false)) {
             return $this->failure($device, RfidAttendanceResultCode::RfidDisabled, 'Absensi RFID sedang dinonaktifkan.', 403);
         }
@@ -42,31 +47,24 @@ class RfidAttendanceService
             $card->update(['last_used_at' => now()]);
             if ($existing) {
                 $manual = ($existing->source?->value ?? $existing->source) === 'manual';
-                return ['http' => 200, 'success' => true, 'code' => $manual ? RfidAttendanceResultCode::ManualStatusLocked->value : RfidAttendanceResultCode::AlreadyAttended->value, 'message' => $manual ? 'Status absensi sudah ditetapkan oleh guru.' : 'Siswa sudah melakukan absensi', 'student' => $this->studentData($card), '_attendance_id' => $existing->id];
+                $result = ['http' => 200, 'success' => true, 'code' => $manual ? RfidAttendanceResultCode::ManualStatusLocked->value : RfidAttendanceResultCode::AlreadyAttended->value, 'message' => $manual ? 'Status absensi sudah ditetapkan oleh guru.' : 'Siswa sudah melakukan absensi', 'student' => $this->studentData($card), '_attendance_id' => $existing->id];
+            } else {
+                $attendance = StudentAttendance::create(['academic_year_id' => $year->id, 'semester_id' => $semester->id, 'classroom_id' => $membership->classroom_id, 'student_id' => $card->student_id, 'attendance_date' => today(), 'status' => 'present', 'source' => 'rfid', 'scanned_at' => now(), 'rfid_device_id' => $device->id]);
+                $result = ['http' => 201, 'success' => true, 'code' => RfidAttendanceResultCode::AttendanceCreated->value, 'status' => 'present', 'student' => $this->studentData($card), 'message' => 'Absensi berhasil', '_attendance_id' => $attendance->id];
             }
-            $attendance = StudentAttendance::create(['academic_year_id' => $year->id, 'semester_id' => $semester->id, 'classroom_id' => $membership->classroom_id, 'student_id' => $card->student_id, 'attendance_date' => today(), 'status' => 'present', 'source' => 'rfid', 'scanned_at' => now(), 'rfid_device_id' => $device->id]);
-            return ['http' => 201, 'success' => true, 'code' => RfidAttendanceResultCode::AttendanceCreated->value, 'status' => 'present', 'student' => $this->studentData($card), 'message' => 'Absensi berhasil', '_attendance_id' => $attendance->id];
+
+            $event = $this->createEvent($device, $result['code'], true, $result['message'], $card, $membership->classroom_id, $result['_attendance_id']);
+            $result['event_id'] = $event->id;
+
+            return $result;
         });
-        try {
-            RfidAttendanceEvent::create(['rfid_device_id'=>$device->id,'student_id'=>$card->student_id,'classroom_id'=>$membership->classroom_id,'student_attendance_id'=>$result['_attendance_id'],'result_code'=>$result['code'],'success'=>$result['success'],'message'=>$result['message'],'scanned_at'=>now()]);
-        } catch (\Throwable $exception) {
-            Log::warning('RFID attendance live event gagal dicatat.', ['attendance_id'=>$result['_attendance_id'],'exception'=>$exception->getMessage()]);
-        }
         unset($result['_attendance_id']);
         return $result;
     }
 
     private function failure(RfidDevice $device, RfidAttendanceResultCode $code, string $message, int $http, ?StudentRfidCard $card = null, ?int $classroomId = null): array
     {
-        $event = RfidAttendanceEvent::create([
-            'rfid_device_id' => $device->id,
-            'student_id' => $card?->student_id,
-            'classroom_id' => $classroomId,
-            'result_code' => $code->value,
-            'success' => false,
-            'message' => $message,
-            'scanned_at' => now(),
-        ]);
+        $event = $this->createEvent($device, $code->value, false, $message, $card, $classroomId);
 
         return array_filter([
             'http' => $http,
@@ -79,4 +77,27 @@ class RfidAttendanceService
     }
 
     private function studentData(StudentRfidCard $card): array { return ['name' => $card->student->full_name, 'nis' => $card->student->nis ?? $card->student->nisn]; }
+
+    private function createEvent(RfidDevice $device, string $code, bool $success, string $message, ?StudentRfidCard $card = null, ?int $classroomId = null, ?int $attendanceId = null): RfidAttendanceEvent
+    {
+        $event = RfidAttendanceEvent::create([
+            'rfid_device_id' => $device->id,
+            'student_id' => $card?->student_id,
+            'classroom_id' => $classroomId,
+            'student_attendance_id' => $attendanceId,
+            'result_code' => $code,
+            'success' => $success,
+            'message' => $message,
+            'scanned_at' => now(),
+        ]);
+        Log::info('RFID live event emitted.', ['event_id' => $event->id, 'device_id' => $device->device_id, 'code' => $code, 'student_id' => $card?->student_id]);
+
+        return $event;
+    }
+
+    private function maskUid(string $uid): string
+    {
+        $normalized = StudentRfidCard::normalizeUid($uid);
+        return $normalized === '' ? '(kosong)' : str_repeat('*', max(0, strlen($normalized) - 4)).substr($normalized, -4);
+    }
 }

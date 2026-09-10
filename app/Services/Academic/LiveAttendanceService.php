@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Academic;
 
-use App\Models\{RfidAttendanceEvent, StudentAttendance, User};
+use App\Models\{RfidAttendanceEvent, RfidDevice, StudentAttendance, User};
 
 class LiveAttendanceService
 {
@@ -25,9 +25,14 @@ class LiveAttendanceService
             ->selectRaw('status, count(*) as aggregate')
             ->groupBy('status')
             ->pluck('aggregate', 'status');
+        $reader = RfidDevice::query()->where('is_active', true)->where('device_type', 'reader')->latest('last_seen_at')->first(['last_seen_at']);
 
         return [
             'success' => true,
+            'reader' => [
+                'online' => $reader?->isOnline() ?? false,
+                'last_seen_at' => $reader?->last_seen_at?->toIso8601String(),
+            ],
             'cursor' => (int) ($events->last()?->id ?? $cursor),
             'events' => $events->map(fn (RfidAttendanceEvent $event): array => [
                 'id' => $event->id,
