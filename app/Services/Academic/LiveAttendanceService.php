@@ -25,7 +25,9 @@ class LiveAttendanceService
             ->selectRaw('status, count(*) as aggregate')
             ->groupBy('status')
             ->pluck('aggregate', 'status');
-        $reader = RfidDevice::query()->where('is_active', true)->where('device_type', 'reader')->latest('last_seen_at')->first(['last_seen_at']);
+        // isOnline() also evaluates is_active. Selecting only last_seen_at made the
+        // hydrated model look inactive and therefore reported every reader offline.
+        $reader = RfidDevice::query()->where('is_active', true)->where('device_type', 'reader')->latest('last_seen_at')->first(['is_active', 'last_seen_at']);
 
         return [
             'success' => true,
