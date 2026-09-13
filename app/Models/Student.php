@@ -18,7 +18,18 @@ class Student extends Model
     public function getAgeLabelAttribute(): string { if (! $this->birth_date) return 'Umur belum diketahui'; $diff = $this->birth_date->diff(now()); return $diff->y.' tahun'.($diff->m ? ' '.$diff->m.' bulan' : ''); }
     public function getDisplayBirthInformationAttribute(): string { return collect([$this->birth_place, $this->birth_date?->translatedFormat('d F Y')])->filter()->join(', ') ?: '—'; }
     public function getParentOrGuardianNameAttribute(): string { return $this->mother_name ?: ($this->father_name ?: ($this->guardian_name ?: '—')); }
-    public function getInitialsAttribute(): string { return str($this->full_name)->replaceMatches('/[^\pL\s]/u', '')->squish()->explode(' ')->take(2)->map(fn ($word) => str($word)->substr(0, 1))->join('')->upper()->toString(); }
+    public function getInitialsAttribute(): string
+    {
+        $initials = str($this->full_name)
+            ->replaceMatches('/[^\pL\s]/u', '')
+            ->squish()
+            ->explode(' ')
+            ->take(2)
+            ->map(fn ($word) => str($word)->substr(0, 1))
+            ->join('');
+
+        return str($initials)->upper()->toString();
+    }
     public function getHasSpecialConditionAttribute(): bool { return filled($this->special_needs) || filled($this->disability); }
     public function classroomMemberships(): HasMany { return $this->hasMany(ClassroomMembership::class); }
     public function activeClassroomMembership(): HasOne { return $this->hasOne(ClassroomMembership::class)->where('status', 'active')->latestOfMany(); }
