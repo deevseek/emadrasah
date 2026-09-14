@@ -7,6 +7,7 @@ namespace Tests\Unit\Hrd;
 use App\Services\Hrd\AttendanceService;
 use App\Services\Settings\ApplicationSettingService;
 use Carbon\CarbonImmutable;
+use Illuminate\Validation\ValidationException;
 use PHPUnit\Framework\TestCase;
 use App\Exceptions\AttendanceSecurityException;
 
@@ -56,6 +57,37 @@ class AttendanceServiceTest extends TestCase
 
         self::assertSame('07:45', $underOneHour->format('H:i'));
         self::assertSame('08:30', $overOneHour->format('H:i'));
+    }
+
+    public function test_minimum_check_out_time_is_calculated_from_actual_check_in_time(): void
+    {
+        $minimum = $this->service(['hrd_min_checkout_hours' => 3])
+            ->minimumCheckOutTime(CarbonImmutable::parse('2026-08-15 07:25:00'));
+
+        self::assertSame('2026-08-15 10:25', $minimum->format('Y-m-d H:i'));
+    }
+
+    public function test_check_out_before_minimum_duration_is_rejected(): void
+    {
+        $service = $this->service(['hrd_min_checkout_hours' => 3]);
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('Check-out baru dapat dilakukan pada 10:25');
+
+        $service->ensureMinimumCheckOutTime(
+            CarbonImmutable::parse('2026-08-15 07:25:00'),
+            CarbonImmutable::parse('2026-08-15 10:24:59'),
+        );
+    }
+
+    public function test_check_out_at_minimum_duration_is_allowed(): void
+    {
+        $this->service(['hrd_min_checkout_hours' => 3])->ensureMinimumCheckOutTime(
+            CarbonImmutable::parse('2026-08-15 07:25:00'),
+            CarbonImmutable::parse('2026-08-15 10:25:00'),
+        );
+
+        self::assertTrue(true);
     }
 
     public function test_location_inside_radius_and_accuracy_are_validated(): void
