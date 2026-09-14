@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\Models\{AcademicYear, ApplicationSetting, Classroom, ClassroomMembership, GradeLevel, RfidAttendanceEvent, RfidDevice, Semester, Student, StudentRfidCard};
-use App\Services\Academic\RfidAttendanceService;
+use App\Models\{AcademicSubject, AcademicYear, ApplicationSetting, Classroom, ClassroomMembership, GradeLevel, Personnel, RfidAttendanceEvent, RfidDevice, Semester, Student, StudentAttendance, StudentRfidCard, User};
+use App\Services\Academic\{RfidAttendanceService, TeachingJournalService};
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Mockery\MockInterface;
@@ -123,6 +123,35 @@ class RfidAttendanceApiTest extends TestCase
         $this->assertSame('ALREADY_ATTENDED', $event->result_code);
         $this->assertStringNotContainsString($card->card_token, json_encode($event->toArray(), JSON_THROW_ON_ERROR));
         $this->assertSame('Siswa Uji', $already['student']['name']);
+    }
+
+    public function test_rfid_attendance_remains_present_and_is_used_by_teaching_journal(): void
+    {
+        [$device, $card, $semester] = $this->makeAttendanceContext();
+        app(RfidAttendanceService::class)->record($card->card_token, $card->uid, $device);
+        $membership = ClassroomMembership::where('student_id', $card->student_id)->firstOrFail();
+        $user = User::factory()->create();
+        Personnel::create(['user_id' => $user->id, 'full_name' => 'Guru Uji', 'gender' => 'male', 'employment_status' => 'Tetap', 'position' => 'Guru', 'is_active' => true]);
+        $subject = AcademicSubject::create(['name' => 'Pelajaran Uji', 'is_active' => true]);
+
+        $journal = app(TeachingJournalService::class)->save([
+            'academic_year_id' => $semester->academic_year_id,
+            'semester_id' => $semester->id,
+            'classroom_id' => $membership->classroom_id,
+            'academic_subject_id' => $subject->id,
+            'journal_date' => today()->toDateString(),
+            'lesson_number' => '1-2',
+            'topic' => 'Materi uji',
+            'learning_method' => 'Diskusi',
+            'attendances' => [['student_id' => $card->student_id, 'status' => 'sick', 'notes' => 'Tidak boleh mengganti RFID']],
+        ], $user);
+
+        $attendance = $journal->attendances()->sole();
+        $daily = StudentAttendance::where('student_id', $card->student_id)->where('classroom_id', $membership->classroom_id)->whereDate('attendance_date', today())->sole();
+        $this->assertSame('present', $attendance->status->value);
+        $this->assertSame('present', $daily->status->value);
+        $this->assertSame('rfid', $daily->source->value);
+        $this->assertSame($device->id, $daily->rfid_device_id);
     }
 
     public function test_post_does_not_redirect_even_when_proxy_headers_are_present(): void
