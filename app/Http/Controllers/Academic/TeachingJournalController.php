@@ -6,7 +6,7 @@ namespace App\Http\Controllers\Academic;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Academic\{TeachingJournalRequest, TeachingJournalTemplateRequest};
-use App\Models\{AcademicSubject, AcademicYear, Classroom, Personnel, Semester, TeachingJournal, TeachingJournalTemplate};
+use App\Models\{AcademicSubject, AcademicYear, Classroom, Personnel, Semester, StudentAttendance, TeachingJournal, TeachingJournalTemplate};
 use App\Services\Academic\{TeachingJournalReportService, TeachingJournalService, TeachingJournalTemplateService};
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
@@ -26,9 +26,13 @@ class TeachingJournalController extends Controller
     public function create(Request $request, TeachingJournalService $service): View
     {
         abort_unless($service->activePersonnel($request->user()), 403, TeachingJournalService::NO_PERSONNEL);
-        $year = AcademicYear::where('is_active', true)->value('id');
-        $journal = new TeachingJournal(['academic_year_id' => $year, 'semester_id' => Semester::where('academic_year_id', $year)->where('is_active', true)->value('id'), 'journal_date' => today()]);
-        return view('academic.teaching-journals.form', $this->options($year) + compact('journal') + ['savedAttendance' => collect()]);
+        $year = $request->integer('academic_year_id') ?: AcademicYear::where('is_active', true)->value('id');
+        $semester = $request->integer('semester_id') ?: Semester::where('academic_year_id', $year)->where('is_active', true)->value('id');
+        $date = $request->date('journal_date') ?? today();
+        $classroomId = $request->integer('classroom_id');
+        $journal = new TeachingJournal(['academic_year_id' => $year, 'semester_id' => $semester, 'classroom_id' => $classroomId ?: null, 'journal_date' => $date]);
+        $savedAttendance = StudentAttendance::query()->where('classroom_id', $classroomId)->whereDate('attendance_date', $date)->get()->keyBy('student_id');
+        return view('academic.teaching-journals.form', $this->options($year) + compact('journal', 'savedAttendance'));
     }
 
     public function store(TeachingJournalRequest $request, TeachingJournalService $service): RedirectResponse

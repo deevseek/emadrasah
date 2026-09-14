@@ -42,11 +42,14 @@ class TeachingJournalService
 
             $journal->attendances()->delete();
             foreach ($attendanceRows as $row) {
-                $journal->attendances()->create(['student_id' => $row['student_id'], 'status' => $row['status'], 'notes' => $row['notes'] ?? null]);
-                $existing = StudentAttendance::where(['student_id' => $row['student_id'], 'classroom_id' => $data['classroom_id'], 'attendance_date' => $data['journal_date']])->first();
+                $existing = StudentAttendance::where(['student_id' => $row['student_id'], 'classroom_id' => $data['classroom_id'], 'attendance_date' => $data['journal_date']])->lockForUpdate()->first();
+                $isRfid = ($existing?->source?->value ?? $existing?->source) === 'rfid';
+                $status = $isRfid ? 'present' : $row['status'];
+                $notes = $isRfid ? $existing?->notes : ($row['notes'] ?? null);
+                $journal->attendances()->create(['student_id' => $row['student_id'], 'status' => $status, 'notes' => $notes]);
                 StudentAttendance::updateOrCreate(
                     ['student_id' => $row['student_id'], 'classroom_id' => $data['classroom_id'], 'attendance_date' => $data['journal_date']],
-                    ['academic_year_id' => $data['academic_year_id'], 'semester_id' => $data['semester_id'], 'status' => $row['status'], 'source' => 'manual', 'scanned_at' => $existing?->scanned_at, 'notes' => $row['notes'] ?? null, 'recorded_by' => $existing?->recorded_by ?? $user->id, 'updated_by' => $existing ? $user->id : null]
+                    ['academic_year_id' => $data['academic_year_id'], 'semester_id' => $data['semester_id'], 'status' => $status, 'source' => $isRfid ? 'rfid' : 'manual', 'scanned_at' => $existing?->scanned_at, 'rfid_device_id' => $existing?->rfid_device_id, 'notes' => $notes, 'recorded_by' => $existing?->recorded_by ?? $user->id, 'updated_by' => $existing && ! $isRfid ? $user->id : null]
                 );
             }
 
