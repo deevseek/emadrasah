@@ -96,6 +96,23 @@ class FaceRecognitionStatusTest extends TestCase
         $this->actingAs($admin)->postJson(route('application-settings.face-recognition.status'))->assertOk();
     }
 
+    public function test_browser_requests_use_current_origin_behind_https_proxy(): void
+    {
+        config()->set('app.url', 'http://internal-container.test');
+        $this->mockHealth(['status' => 'ok', 'engine' => 'sface', 'model_loaded' => true]);
+
+        $response = $this->actingAs($this->user(['application-settings.view', 'hrd-settings.view', 'hrd-settings.update']))
+            ->get(route('application-settings.edit'));
+
+        $statusUrl = json_encode(route('application-settings.face-recognition.status', [], false), JSON_THROW_ON_ERROR);
+        $restartUrl = json_encode(route('application-settings.face-recognition.restart', [], false), JSON_THROW_ON_ERROR);
+
+        $response->assertOk()
+            ->assertSee("fetch({$statusUrl}", false)
+            ->assertSee("fetch({$restartUrl}", false)
+            ->assertDontSee('fetch("http://internal-container.test', false);
+    }
+
     private function mockHealth(array $health): void
     {
         $this->mock(FaceRecognitionService::class, function (MockInterface $mock) use ($health): void {
