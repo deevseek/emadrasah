@@ -31,6 +31,38 @@ window.previewImage = (event, targetId) => {
   target.classList.remove('hidden');
 };
 
+const compressStudentPhoto = async (file, maximumBytes) => {
+  const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+  let width = bitmap.width;
+  let height = bitmap.height;
+  const maximumDimension = 2400;
+  const initialScale = Math.min(1, maximumDimension / Math.max(width, height));
+  width = Math.max(1, Math.round(width * initialScale));
+  height = Math.max(1, Math.round(height * initialScale));
+
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext('2d');
+    context.fillStyle = '#ffffff';
+    context.fillRect(0, 0, width, height);
+    context.drawImage(bitmap, 0, 0, width, height);
+    const quality = Math.max(0.45, 0.9 - (attempt * 0.08));
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
+    if (!blob) throw new Error('Foto tidak dapat dikompresi oleh peramban.');
+    if (blob.size <= maximumBytes) {
+      bitmap.close();
+      return new File([blob], `${file.name.replace(/\.[^.]+$/, '')}.jpg`, { type: 'image/jpeg', lastModified: Date.now() });
+    }
+    width = Math.max(1, Math.round(width * 0.82));
+    height = Math.max(1, Math.round(height * 0.82));
+  }
+
+  bitmap.close();
+  throw new Error('Ukuran foto masih melebihi 5 MB setelah dikompresi. Silakan ambil foto dengan resolusi lebih rendah.');
+};
+
 
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') {
@@ -60,6 +92,45 @@ document.addEventListener('DOMContentLoaded', () => {
         button.disabled = true;
         button.setAttribute('aria-busy', 'true');
       });
+    });
+  });
+
+  document.querySelectorAll('[data-student-photo-input]').forEach((input) => {
+    input.addEventListener('change', async () => {
+      const original = input.files?.[0];
+      if (!original) return;
+      const form = input.closest('form');
+      const buttons = form?.querySelectorAll('button[type="submit"]') ?? [];
+      const buttonStates = Array.from(buttons, (button) => button.disabled);
+      const status = form?.querySelector('[data-student-photo-status]');
+      const maximumBytes = 5 * 1024 * 1024;
+      buttons.forEach((button) => { button.disabled = original.size > maximumBytes; });
+
+      try {
+        let photo = original;
+        if (original.size > maximumBytes) {
+          if (status) status.textContent = 'Foto lebih besar dari 5 MB. Sedang mengompresi foto…';
+          photo = await compressStudentPhoto(original, maximumBytes);
+          const transfer = new DataTransfer();
+          transfer.items.add(photo);
+          input.files = transfer.files;
+          if (status) status.textContent = `Foto berhasil dikompresi menjadi ${(photo.size / 1024 / 1024).toFixed(2)} MB.`;
+        } else if (status) {
+          status.textContent = '';
+        }
+
+        const preview = form?.querySelector('[data-student-photo-preview]');
+        if (preview) {
+          preview.src = URL.createObjectURL(photo);
+          preview.classList.remove('hidden');
+          form.querySelector('[data-student-photo-placeholder]')?.classList.add('hidden');
+        }
+      } catch (error) {
+        input.value = '';
+        if (status) status.textContent = error instanceof Error ? error.message : 'Foto gagal dikompresi.';
+      } finally {
+        buttons.forEach((button, index) => { button.disabled = buttonStates[index]; });
+      }
     });
   });
 

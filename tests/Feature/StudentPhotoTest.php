@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\{Student, User};
+use Database\Seeders\AccessControlSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -26,6 +27,7 @@ class StudentPhotoTest extends TestCase
         ]))->assertSessionHasNoErrors();
 
         $student = Student::firstOrFail();
+        $this->assertSame('student-photos/1000000001.jpg', $student->photo_path);
         Storage::disk('local')->assertExists($student->photo_path);
         $oldPath = $student->photo_path;
 
@@ -34,9 +36,48 @@ class StudentPhotoTest extends TestCase
         ]))->assertSessionHasNoErrors();
 
         $student->refresh();
+        $this->assertSame('student-photos/1000000001.png', $student->photo_path);
         Storage::disk('local')->assertMissing($oldPath);
         Storage::disk('local')->assertExists($student->photo_path);
         $this->actingAs($user)->get(route('students.photo', $student))->assertOk();
+    }
+
+    public function test_teacher_role_can_capture_and_upload_student_photo_from_show_page(): void
+    {
+        Storage::fake('local');
+        $this->seed(AccessControlSeeder::class);
+        $teacher = User::factory()->create(['is_active' => true, 'must_change_password' => false]);
+        $teacher->assignRole('guru');
+        $student = Student::create($this->studentData());
+
+        $this->actingAs($teacher)
+            ->get(route('students.show', $student))
+            ->assertOk()
+            ->assertSee('capture="environment"', false)
+            ->assertSee('data-student-photo-input', false)
+            ->assertSee('akan dikompresi otomatis')
+            ->assertSee(route('students.photo.update', $student), false);
+
+        $this->post(route('students.photo.update', $student), [
+            'photo' => UploadedFile::fake()->image('kamera-belakang.webp'),
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertSame('student-photos/1000000001.webp', $student->fresh()->photo_path);
+        Storage::disk('local')->assertExists('student-photos/1000000001.webp');
+    }
+
+    public function test_photo_cannot_be_uploaded_until_student_has_nisn(): void
+    {
+        Storage::fake('local');
+        $user = $this->user(['students.photo.manage']);
+        $student = Student::create($this->studentData(['nisn' => null]));
+
+        $this->actingAs($user)->post(route('students.photo.update', $student), [
+            'photo' => UploadedFile::fake()->image('foto.jpg'),
+        ])->assertSessionHasErrors('photo');
+
+        $this->assertNull($student->fresh()->photo_path);
+        Storage::disk('local')->assertDirectoryEmpty('student-photos');
     }
 
     public function test_photo_is_optional_and_invalid_upload_is_rejected(): void

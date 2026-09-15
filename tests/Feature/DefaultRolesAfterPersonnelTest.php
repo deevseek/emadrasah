@@ -49,7 +49,7 @@ class DefaultRolesAfterPersonnelTest extends TestCase
         foreach(['rfid-card.view','rfid-card.issue','rfid-card.replace','rfid-card.disable','rfid-writer.use'] as $permission)$this->assertTrue($operator->hasPermissionTo($permission));
         $this->assertFalse($operator->hasPermissionTo('roles.manage-permissions'));$this->assertFalse($operator->hasPermissionTo('academic-periods.delete'));
         $teacher=Role::findByName('guru');$this->assertFalse($teacher->hasPermissionTo('personnel.view'));
-        foreach(['dashboard.view','school-profile.view','academic-periods.view'] as $permission)$this->assertTrue($teacher->hasPermissionTo($permission));
+        foreach(['dashboard.view','school-profile.view','academic-periods.view','students.view','students.photo.manage'] as $permission)$this->assertTrue($teacher->hasPermissionTo($permission));
     }
 
     public function test_cleaning_staff_role_only_receives_required_self_service_permissions(): void
