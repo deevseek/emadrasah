@@ -73,6 +73,14 @@ return [
             'replace_placeholders' => true,
         ],
 
+        'face-recognition' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/face-recognition.log'),
+            'level' => 'info',
+            'days' => 14,
+            'replace_placeholders' => true,
+        ],
+
         'slack' => [
             'driver' => 'slack',
             'url' => env('LOG_SLACK_WEBHOOK_URL'),

@@ -64,7 +64,9 @@ FACE_RECOGNITION_RESTART_COMMAND="sudo /usr/bin/systemctl restart emadrasah-face
 FACE_RECOGNITION_RESTART_TIMEOUT=30
 ```
 
-Jangan memberikan akses `systemctl` umum atau shell tanpa batas kepada `www-data`. Hasil eksekusi perintah ditampilkan langsung di panel: exit code nol ditampilkan sebagai berhasil, sedangkan exit code selain nol ditampilkan sebagai gagal. Setiap restart yang berhasil dicatat pada activity log HRD, sedangkan kegagalan hanya menampilkan pesan umum agar keluaran proses dan detail server tidak bocor ke browser.
+Jangan memberikan akses `systemctl` umum atau shell tanpa batas kepada `www-data`. Hasil eksekusi perintah ditampilkan langsung di panel: exit code nol ditampilkan sebagai berhasil, sedangkan exit code selain nol ditampilkan sebagai gagal. Semua percobaan dicatat pada `storage/logs/face-recognition-YYYY-MM-DD.log` dengan kode referensi yang juga tampil di panel. Log khusus ini tetap diisi walaupun channel log aplikasi diarahkan ke `stderr` atau channel lain; keluaran proses dibatasi dan token disamarkan.
+
+Pada aaPanel atau instalasi yang menjalankan Python melalui Supervisor/Python Manager, unit systemd bawaan mungkin tidak ada. Isi `FACE_RECOGNITION_RESTART_COMMAND` dengan perintah pengelola proses yang benar, misalnya `sudo /usr/bin/supervisorctl restart NAMA_PROGRAM`, lalu berikan aturan sudoers hanya untuk perintah persis tersebut. Nama program harus mengikuti konfigurasi Supervisor di server dan tidak dapat ditebak oleh aplikasi. Setelah mengubah `.env`, jalankan `php artisan config:clear`.
 
 ## Pemindaian langsung dan verifikasi burst
 
