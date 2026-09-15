@@ -55,7 +55,10 @@ class ApplicationSettingController extends Controller
             return response()->json(['message' => $exception->getMessage()], 422);
         }
 
-        return response()->json(['message' => 'Layanan Face Recognition sedang dimulai ulang.']);
+        return response()->json([
+            'success' => true,
+            'message' => 'Layanan Face Recognition berhasil dimulai ulang.',
+        ]);
     }
 
     public function update(UpdateGeneralSettingRequest $request): RedirectResponse

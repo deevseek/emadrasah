@@ -7,7 +7,10 @@ namespace Tests\Feature;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Process\PendingProcess;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Process;
+use Mockery;
+use Psr\Log\LoggerInterface;
 use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
 
@@ -25,7 +28,8 @@ class FaceRecognitionRestartTest extends TestCase
         $this->actingAs($this->user(['hrd-settings.update']))
             ->postJson(route('application-settings.face-recognition.restart'))
             ->assertOk()
-            ->assertJsonPath('message', 'Layanan Face Recognition sedang dimulai ulang.');
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('message', 'Layanan Face Recognition berhasil dimulai ulang.');
 
         Process::assertRan(fn (PendingProcess $process, $result): bool =>
             $process->command === 'sudo systemctl restart emadrasah-face-recognition.service'
@@ -48,6 +52,14 @@ class FaceRecognitionRestartTest extends TestCase
         Process::assertNothingRan();
     }
 
+    public function test_standard_systemd_restart_command_is_configured_by_default(): void
+    {
+        $this->assertSame(
+            'sudo /usr/bin/systemctl restart emadrasah-face-recognition.service',
+            config('face-recognition.restart_command')
+        );
+    }
+
     public function test_restart_rejects_missing_command_without_running_a_process(): void
     {
         config()->set('face-recognition.driver', 'python');
@@ -67,12 +79,28 @@ class FaceRecognitionRestartTest extends TestCase
         config()->set('face-recognition.driver', 'python');
         config()->set('face-recognition.restart_command', 'restart-face');
         Process::fake(['restart-face' => Process::result(output: 'rahasia', errorOutput: 'token internal', exitCode: 1)]);
+        $logger = Mockery::mock(LoggerInterface::class);
+        $logger->shouldReceive('info')->once();
+        $logger->shouldReceive('error')->once()->with(
+            'Perintah restart layanan gagal.',
+            Mockery::on(fn (array $context): bool => $context['exit_code'] === 1
+                && $context['stdout'] === 'rahasia'
+                && $context['stderr'] === 'token internal'
+                && is_string($context['reference']))
+        );
+        Log::shouldReceive('channel')->with('face-recognition')->twice()->andReturn($logger);
 
         $response = $this->actingAs($this->user(['hrd-settings.update']))
             ->postJson(route('application-settings.face-recognition.restart'));
 
         $response->assertUnprocessable()
-            ->assertJsonPath('message', 'Layanan Face Recognition gagal dimulai ulang. Periksa log layanan pada server.')
+            ->assertJson(fn ($json) => $json
+                ->whereType('message', 'string')
+                ->where('message', fn (string $message): bool => str_starts_with(
+                    $message,
+                    'Layanan Face Recognition gagal dimulai ulang. Periksa storage/logs/face-recognition-*.log dengan referensi '
+                ))
+            )
             ->assertDontSee('rahasia')
             ->assertDontSee('token internal');
     }

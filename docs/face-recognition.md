@@ -49,7 +49,7 @@ Jika Laravel dan API berada pada server yang sama, bind ke `127.0.0.1`; Nginx/tu
 
 ## Restart dari Pengaturan HRD
 
-Tombol **Mulai Ulang Layanan** pada status Face Recognition hanya tersedia bagi pengguna dengan izin `hrd-settings.update`. Laravel menjalankan perintah lokal yang ditetapkan melalui `FACE_RECOGNITION_RESTART_COMMAND`; perintah tersebut tidak dapat diubah dari browser atau database.
+Tombol **Mulai Ulang Layanan** pada status Face Recognition hanya tersedia bagi pengguna dengan izin `hrd-settings.update`. Laravel menjalankan perintah lokal yang ditetapkan melalui `FACE_RECOGNITION_RESTART_COMMAND`; perintah tersebut tidak dapat diubah dari browser atau database. Instalasi systemd standar menggunakan `sudo /usr/bin/systemctl restart emadrasah-face-recognition.service` sebagai nilai bawaan, sehingga variabel tersebut hanya perlu diubah bila nama unit atau pengelola proses berbeda.
 
 Untuk systemd, berikan hak `sudo` yang terbatas kepada pengguna PHP-FPM/web server, misalnya melalui `/etc/sudoers.d/emadrasah-face-recognition`:
 
@@ -64,7 +64,9 @@ FACE_RECOGNITION_RESTART_COMMAND="sudo /usr/bin/systemctl restart emadrasah-face
 FACE_RECOGNITION_RESTART_TIMEOUT=30
 ```
 
-Jangan memberikan akses `systemctl` umum atau shell tanpa batas kepada `www-data`. Setiap restart yang berhasil dicatat pada activity log HRD, sedangkan kegagalan hanya menampilkan pesan umum agar keluaran proses dan detail server tidak bocor ke browser.
+Jangan memberikan akses `systemctl` umum atau shell tanpa batas kepada `www-data`. Hasil eksekusi perintah ditampilkan langsung di panel: exit code nol ditampilkan sebagai berhasil, sedangkan exit code selain nol ditampilkan sebagai gagal. Semua percobaan dicatat pada `storage/logs/face-recognition-YYYY-MM-DD.log` dengan kode referensi yang juga tampil di panel. Log khusus ini tetap diisi walaupun channel log aplikasi diarahkan ke `stderr` atau channel lain; keluaran proses dibatasi dan token disamarkan.
+
+Pada aaPanel atau instalasi yang menjalankan Python melalui Supervisor/Python Manager, unit systemd bawaan mungkin tidak ada. Isi `FACE_RECOGNITION_RESTART_COMMAND` dengan perintah pengelola proses yang benar, misalnya `sudo /usr/bin/supervisorctl restart NAMA_PROGRAM`, lalu berikan aturan sudoers hanya untuk perintah persis tersebut. Nama program harus mengikuti konfigurasi Supervisor di server dan tidak dapat ditebak oleh aplikasi. Setelah mengubah `.env`, jalankan `php artisan config:clear`.
 
 ## Pemindaian langsung dan verifikasi burst
 
