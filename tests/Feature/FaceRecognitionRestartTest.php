@@ -25,7 +25,8 @@ class FaceRecognitionRestartTest extends TestCase
         $this->actingAs($this->user(['hrd-settings.update']))
             ->postJson(route('application-settings.face-recognition.restart'))
             ->assertOk()
-            ->assertJsonPath('message', 'Layanan Face Recognition sedang dimulai ulang.');
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('message', 'Layanan Face Recognition berhasil dimulai ulang.');
 
         Process::assertRan(fn (PendingProcess $process, $result): bool =>
             $process->command === 'sudo systemctl restart emadrasah-face-recognition.service'
@@ -46,6 +47,14 @@ class FaceRecognitionRestartTest extends TestCase
             ->assertForbidden();
 
         Process::assertNothingRan();
+    }
+
+    public function test_standard_systemd_restart_command_is_configured_by_default(): void
+    {
+        $this->assertSame(
+            'sudo /usr/bin/systemctl restart emadrasah-face-recognition.service',
+            config('face-recognition.restart_command')
+        );
     }
 
     public function test_restart_rejects_missing_command_without_running_a_process(): void
