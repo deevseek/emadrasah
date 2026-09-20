@@ -1,0 +1,1 @@
+<h1>Tanda Terima Pendaftaran PMBM</h1><p>MI Muslimat NU Demak</p><hr><p><strong>Nomor Pendaftaran:</strong> {{ $applicant->registration_number }}</p><p><strong>Nama Calon Murid:</strong> {{ $applicant->full_name }}</p><p><strong>Status:</strong> {{ $applicant->status->label() }}</p><p>Dokumen ini adalah tanda terima pendaftaran dan bukan keputusan penerimaan.</p>
