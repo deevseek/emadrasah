@@ -65,3 +65,5 @@ require __DIR__.'/finance.php';
 require __DIR__.'/email-service.php';
 
 require __DIR__.'/website.php';
+
+require __DIR__.'/pmbm.php';
