@@ -9,6 +9,7 @@
         'ppdb' => ['label' => 'Informasi PPDB', 'description' => 'Ajakan pendaftaran siswa'],
         'contact' => ['label' => 'Kontak', 'description' => 'Kontak, media sosial, dan peta'],
         'publication' => ['label' => 'Publikasi', 'description' => 'Aktifkan website publik'],
+        'pmbm' => ['label' => 'Section PMBM', 'description' => 'Tampilkan ajakan PMBM di halaman depan'],
         'seo' => ['label' => 'Pengaturan pencarian', 'description' => 'Informasi untuk mesin pencari'],
     ])
     <div class="mt-6 grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
@@ -33,8 +34,8 @@
                     'seo' => ['site_title' => ['Judul website', 'text'], 'meta_description' => ['Deskripsi pencarian', 'textarea'], 'meta_keywords' => ['Kata kunci', 'text'], 'og_title' => ['Judul saat dibagikan', 'text'], 'og_description' => ['Deskripsi saat dibagikan', 'textarea']],
                     default => []
                 })
-                @if($group === 'publication')
-                    <label class="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4"><input type="hidden" name="values[landing_enabled]" value="0"><input class="mt-0.5 h-4 w-4" type="checkbox" name="values[landing_enabled]" value="1" @checked(old('values.landing_enabled', $settings['landing_enabled'] ?? '0') === '1')><span><strong class="block text-emerald-950">Website publik aktif</strong><small class="font-normal text-slate-600">Jika dinonaktifkan, pengunjung tidak dapat melihat halaman website madrasah.</small></span></label>
+                @if(in_array($group, ['publication', 'pmbm']))
+                    <label class="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4"><input type="hidden" name="values[{{ $group === 'pmbm' ? 'show_pmbm_section' : 'landing_enabled' }}]" value="0"><input class="mt-0.5 h-4 w-4" type="checkbox" name="values[{{ $group === 'pmbm' ? 'show_pmbm_section' : 'landing_enabled' }}]" value="1" @checked(old('values.'.($group === 'pmbm' ? 'show_pmbm_section' : 'landing_enabled'), $settings[$group === 'pmbm' ? 'show_pmbm_section' : 'landing_enabled'] ?? '1') === '1')><span><strong class="block text-emerald-950">{{ $group === 'pmbm' ? 'Tampilkan section PMBM' : 'Website publik aktif' }}</strong><small class="font-normal text-slate-600">{{ $group === 'pmbm' ? 'Status dan periode PMBM tetap diambil dari pengaturan PMBM.' : 'Jika dinonaktifkan, pengunjung tidak dapat melihat halaman website madrasah.' }}</small></span></label>
                 @else
                     @foreach($fields as $key => [$label, $fieldType])
                         @if($fieldType === 'textarea')<x-ui.textarea :label="$label" name="values[{{ $key }}]">{{ old('values.'.$key, $settings[$key] ?? '') }}</x-ui.textarea>@else<x-ui.input :label="$label" name="values[{{ $key }}]" :type="$fieldType" :value="old('values.'.$key, $settings[$key] ?? '')" />@endif
