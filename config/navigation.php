@@ -63,6 +63,10 @@ return [
         ['label'=>'Konsultasi Wali Kelas','route'=>'parent.consultation.show','active'=>'parent.consultation.*','permission'=>'parent.consultation.use','icon'=>'users'],
         ['label'=>'Profil','route'=>'parent.profile','active'=>'parent.profile','permission'=>'parent.dashboard.view','icon'=>'users'],
     ]],
+    ['label'=>'PMBM','items'=>[
+        ['label'=>'Pendaftar PMBM','route'=>'pmbm.applicants.index','active'=>'pmbm.*','permission'=>'pmbm.applicant.view','icon'=>'students'],
+        ['label'=>'Pendaftaran Offline','route'=>'pmbm.applicants.create','active'=>'pmbm.applicants.create','permission'=>'pmbm.applicant.create','icon'=>'document'],
+    ]],
     ['label'=>'Keuangan','items'=>[
         ['label'=>'Dashboard Keuangan','route'=>'finance.dashboard','active'=>'finance.dashboard','permission'=>'finance.dashboard.view','icon'=>'dashboard'],
         ['label'=>'Jenis Tagihan','route'=>'finance.fee-types.index','active'=>'finance.fee-types.*','permission'=>'finance.fee-type.manage','icon'=>'document'],
