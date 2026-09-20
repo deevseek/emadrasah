@@ -1,0 +1,1 @@
+<?php declare(strict_types=1); namespace App\Models\Pmbm; use Illuminate\Database\Eloquent\Model; class PmbmInterviewQuestion extends Model {protected $guarded=[]; protected function casts():array{return ['options'=>'array','required'=>'boolean','active'=>'boolean'];}}
