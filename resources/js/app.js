@@ -157,3 +157,9 @@ document.addEventListener('DOMContentLoaded', () => {
     window.setInterval(refresh, Number(center.dataset.interval));
   }
 });
+document.querySelectorAll('[data-pmbm-wizard]').forEach((form) => {
+    const steps = [...form.querySelectorAll('[data-wizard-step]')]; let current = 0;
+    const previous = form.querySelector('[data-wizard-prev]'); const next = form.querySelector('[data-wizard-next]'); const submit = form.querySelector('[data-wizard-submit]'); const progress = [...form.querySelectorAll('[data-wizard-progress] span')];
+    const render = () => { if (current === steps.length - 1) { const review=form.querySelector('[data-wizard-review]'); if(review) { const rows=[...form.querySelectorAll('input[name], select[name], textarea[name]')].filter(i=>i.type!=='file'&&i.type!=='checkbox'&&i.value).map(i=>`<div><b>${i.closest('label')?.querySelector('.label')?.textContent?.trim() || i.name}:</b> ${i.selectedOptions?.[0]?.textContent || i.value}</div>`); review.innerHTML=rows.join('') || '<p>Belum ada data.</p>'; } } steps.forEach((step, index) => step.hidden = index !== current); previous.hidden = current === 0; next.hidden = current === steps.length - 1; submit.hidden = current !== steps.length - 1; progress.forEach((item,index) => item.className = `rounded px-2 py-2 text-center ${index === current ? 'bg-amber-400 text-emerald-950' : index < current ? 'bg-emerald-700' : 'bg-white/15'}`); window.scrollTo({top: form.getBoundingClientRect().top + window.scrollY - 20, behavior:'smooth'}); };
+    next?.addEventListener('click', () => { const inputs=steps[current].querySelectorAll('input,select,textarea'); for (const input of inputs) { if (!input.checkValidity()) { input.reportValidity(); return; } } current++; render(); }); previous?.addEventListener('click', () => { current--; render(); }); render();
+});
