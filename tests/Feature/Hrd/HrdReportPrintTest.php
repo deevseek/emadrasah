@@ -13,7 +13,7 @@ class HrdReportPrintTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_print_is_authorized_and_contains_all_filtered_rows(): void
+    public function test_print_is_authorized_and_summarizes_attendance_by_personnel(): void
     {
         $this->get(route('hrd.reports.print'))->assertRedirect(route('login'));
         $plain = User::factory()->create(['must_change_password' => false]);
@@ -29,7 +29,7 @@ class HrdReportPrintTest extends TestCase
         PersonnelAttendance::create(['personnel_id' => $outside->id, 'attendance_date' => '2026-10-01', 'shift_number' => 1, 'status' => 'hadir', 'method' => 'manual']);
 
         $this->actingAs($user)->get(route('hrd.reports.print', ['start_date' => '2026-09-01', 'end_date' => '2026-09-30']))
-            ->assertOk()->assertSee('LAPORAN HRD / KEPEGAWAIAN')->assertSee('Pegawai Laporan 01')->assertSee('Pegawai Laporan 25')->assertDontSee('Pegawai Di Luar Periode')->assertSee('15 menit')->assertDontSee('x-layouts.app')->assertDontSee('pagination');
+            ->assertOk()->assertSee('LAPORAN HRD / KEPEGAWAIAN')->assertSee('REKAPITULASI KEHADIRAN PER PEGAWAI')->assertSee('Pegawai Laporan 01')->assertSee('Pegawai Laporan 25')->assertDontSee('Pegawai Di Luar Periode')->assertSee('1 kali')->assertSee('15 menit')->assertDontSee('RINCIAN KEHADIRAN PEGAWAI')->assertDontSee('x-layouts.app')->assertDontSee('pagination');
     }
 
     public function test_index_print_link_keeps_period_and_invalid_period_is_rejected(): void
