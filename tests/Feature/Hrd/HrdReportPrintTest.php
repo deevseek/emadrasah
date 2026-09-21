@@ -41,6 +41,34 @@ class HrdReportPrintTest extends TestCase
         $this->actingAs($user)->get(route('hrd.reports.print', ['start_date' => '2026-09-30', 'end_date' => '2026-09-01']))->assertSessionHasErrors('end_date');
     }
 
+    public function test_index_pagination_exposes_attendance_from_later_dates_in_the_selected_period(): void
+    {
+        $user = User::factory()->create(['must_change_password' => false]);
+        $user->givePermissionTo(Permission::findOrCreate('personnel-attendance.report'));
+
+        foreach (range(1, 21) as $number) {
+            $personnel = $this->personnel('Pegawai Periode '.str_pad((string) $number, 2, '0', STR_PAD_LEFT));
+            PersonnelAttendance::create([
+                'personnel_id' => $personnel->id,
+                'attendance_date' => $number === 21 ? '2026-09-21' : '2026-09-08',
+                'shift_number' => 1,
+                'status' => 'hadir',
+                'method' => 'manual',
+            ]);
+        }
+
+        $query = ['start_date' => '2026-09-08', 'end_date' => '2026-09-21'];
+        $this->actingAs($user)->get(route('hrd.reports.index', $query))
+            ->assertOk()
+            ->assertSee('Menampilkan 1–20 dari 21 data absensi.')
+            ->assertSee('page=2')
+            ->assertSee('start_date=2026-09-08');
+        $this->actingAs($user)->get(route('hrd.reports.index', [...$query, 'page' => 2]))
+            ->assertOk()
+            ->assertSee('Pegawai Periode 21')
+            ->assertSee('21/09/2026');
+    }
+
     private function personnel(string $name): Personnel
     {
         return Personnel::create(['full_name' => $name, 'gender' => 'male', 'employment_status' => 'Tetap', 'position' => 'Guru', 'is_active' => true]);
