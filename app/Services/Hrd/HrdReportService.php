@@ -19,11 +19,26 @@ class HrdReportService
         $orderedAttendance = (clone $attendance)->orderBy('attendance_date')->orderBy(
             Personnel::query()->select('full_name')->whereColumn('personnel.id', 'personnel_attendances.personnel_id')
         );
+        $attendanceRecap = (clone $attendance)
+            ->join('personnel', 'personnel.id', '=', 'personnel_attendances.personnel_id')
+            ->select('personnel.full_name')
+            ->selectRaw('count(*) as recorded_days')
+            ->selectRaw("sum(case when status = 'hadir' then 1 else 0 end) as present_count")
+            ->selectRaw("sum(case when status = 'terlambat' then 1 else 0 end) as late_count")
+            ->selectRaw("sum(case when status in ('izin', 'sakit', 'cuti') then 1 else 0 end) as excused_count")
+            ->selectRaw("sum(case when status = 'dinas_luar' then 1 else 0 end) as official_duty_count")
+            ->selectRaw("sum(case when status = 'alpha' then 1 else 0 end) as absent_count")
+            ->selectRaw('coalesce(sum(late_minutes), 0) as late_minutes')
+            ->selectRaw('coalesce(sum(overtime_minutes), 0) as overtime_minutes')
+            ->groupBy('personnel.id', 'personnel.full_name')
+            ->orderBy('personnel.full_name')
+            ->get();
 
         return [
             'start' => $start,
             'end' => $end,
             'attendances' => $paginate ? $orderedAttendance->paginate(20)->withQueryString() : $orderedAttendance->get(),
+            'attendanceRecap' => $attendanceRecap,
             'attendanceSummary' => (clone $attendance)->selectRaw('status, count(*) total')->groupBy('status')->pluck('total', 'status'),
             'minutes' => (clone $attendance)->selectRaw('sum(late_minutes) late, sum(overtime_minutes) overtime')->first(),
             'payrollSummary' => (clone $payroll)->selectRaw('count(*) employees, sum(base_salary) base, sum(allowance) allowance, sum(deduction + late_deduction + cash_advance_deduction) deductions, sum(cash_advance_deduction) cash_advance, sum(total) net')->first(),
