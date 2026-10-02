@@ -13,7 +13,7 @@ use Illuminate\Validation\ValidationException;
 
 class PmbmPaymentService
 {
-    public function __construct(private readonly PmbmRegistrationService $registration) {}
+    public function __construct(private readonly PmbmRegistrationService $registration, private readonly PmbmReadinessService $readiness, private readonly PmbmWorkflowService $workflow) {}
 
     /** @return array{total:float,minimum_percent:int,minimum_initial:float,verified:float,remaining:float,initial_verified:float,initial_satisfied:bool} */
     public function summary(PmbmApplicant $applicant): array
@@ -35,6 +35,17 @@ class PmbmPaymentService
     public function record(PmbmApplicant $applicant, array $data, ?User $actor = null): PmbmPayment
     {
         return DB::transaction(function () use ($applicant, $data, $actor): PmbmPayment {
+            $stage = PaymentStage::from($data['payment_stage'] instanceof PaymentStage ? $data['payment_stage']->value : $data['payment_stage']);
+            $summary = $this->summary($applicant);
+            if ($stage === PaymentStage::Initial && ! in_array($applicant->status, [ApplicantStatus::Submitted, ApplicantStatus::DocumentVerification, ApplicantStatus::Verified, ApplicantStatus::InitialPaymentPending, ApplicantStatus::InitialPaymentVerified], true)) {
+                throw ValidationException::withMessages(['payment_stage' => 'Pembayaran awal hanya tersedia pada tahap prasyarat penerimaan.']);
+            }
+            if ($stage === PaymentStage::Registration && ! in_array($applicant->status, [ApplicantStatus::Accepted, ApplicantStatus::RegistrationPaymentPending, ApplicantStatus::RegistrationPaymentPartial], true)) {
+                throw ValidationException::withMessages(['payment_stage' => 'Pembayaran daftar ulang hanya tersedia setelah hasil diterima dipublikasikan.']);
+            }
+            if ((float) $data['amount'] > $summary['remaining']) {
+                throw ValidationException::withMessages(['amount' => 'Nominal melebihi sisa administrasi yang harus dibayar.']);
+            }
             $proof = $data['proof'] ?? null;
             unset($data['proof']);
             if ($proof instanceof UploadedFile) {
@@ -56,19 +67,23 @@ class PmbmPaymentService
             $payment->update(['status' => $approved ? PaymentStatus::Verified : PaymentStatus::Rejected, 'verification_note' => $note, 'verified_by' => $actor->id, 'verified_at' => now()]);
             $applicant->refresh();
             $summary = $this->summary($applicant);
-            if ($approved && $summary['initial_satisfied'] && $applicant->status === ApplicantStatus::InitialPaymentPending) {
-                $this->registration->transition($applicant, ApplicantStatus::InitialPaymentVerified, $actor, 'Pembayaran awal minimum telah terverifikasi.');
-            }
+            if ($payment->payment_stage === PaymentStage::Initial) { $this->readiness->reconcile($applicant, $actor); $this->workflow->advanceWorkflow($applicant, $actor); }
             if ($approved && $payment->payment_stage === PaymentStage::Registration && in_array($applicant->status, [ApplicantStatus::Accepted, ApplicantStatus::RegistrationPaymentPending, ApplicantStatus::RegistrationPaymentPartial], true)) {
                 if ($applicant->status === ApplicantStatus::Accepted) $this->registration->transition($applicant, ApplicantStatus::RegistrationPaymentPending, $actor, 'Proses administrasi daftar ulang dimulai.');
                 if ($applicant->status === ApplicantStatus::RegistrationPaymentPending) $this->registration->transition($applicant, ApplicantStatus::RegistrationPaymentPartial, $actor, 'Pembayaran daftar ulang telah diverifikasi.');
                 $setting = PmbmSetting::query()->where('academic_year_id', $applicant->academic_year_id)->first();
-                if (! $setting?->require_payment_before_registration_complete || $summary['remaining'] <= 0) {
-                    $this->registration->transition($applicant, ApplicantStatus::Registered, $actor, 'Seluruh syarat pembayaran daftar ulang telah terpenuhi.');
-                }
+                if (! $setting?->require_payment_before_registration_complete || $summary['remaining'] <= 0) $this->completeRegistration($applicant, $actor);
             }
             activity('pmbm')->causedBy($actor)->performedOn($applicant)->withProperties(['payment_id' => $payment->id, 'status' => $payment->status->value])->log('Pembayaran PMBM diverifikasi.');
         });
+    }
+
+    public function completeRegistration(PmbmApplicant $applicant, User $actor): void
+    {
+        $setting = PmbmSetting::query()->where('academic_year_id', $applicant->academic_year_id)->firstOrFail();
+        if (! in_array($applicant->status, [ApplicantStatus::Accepted, ApplicantStatus::RegistrationPaymentPending, ApplicantStatus::RegistrationPaymentPartial], true)) throw ValidationException::withMessages(['status' => 'Daftar ulang hanya dapat diselesaikan oleh pendaftar yang diterima.']);
+        if ($setting->require_payment_before_registration_complete && $this->summary($applicant)['remaining'] > 0) throw ValidationException::withMessages(['payment' => 'Sisa administrasi harus dilunasi sebelum daftar ulang diselesaikan.']);
+        $this->registration->transition($applicant, ApplicantStatus::Registered, $actor, 'Daftar ulang diselesaikan setelah seluruh prasyarat diperiksa.');
     }
 
     public function assertInitialPaymentSatisfied(PmbmApplicant $applicant): void
