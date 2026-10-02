@@ -16,6 +16,10 @@ enum ApplicantStatus: string
     case FittingCompleted = 'fitting_completed';
     case InterviewScheduled = 'interview_scheduled';
     case Interviewed = 'interviewed';
+    case ChildInterviewScheduled = 'child_interview_scheduled';
+    case ChildInterviewed = 'child_interviewed';
+    case ObservationScheduled = 'observation_scheduled';
+    case Observed = 'observed';
     case DecisionPending = 'decision_pending';
     case Accepted = 'accepted';
     case Waitlisted = 'waitlisted';
@@ -30,7 +34,7 @@ enum ApplicantStatus: string
         return match ($this) {
             self::Draft => 'Draf', self::Submitted => 'Pendaftaran diterima', self::DocumentVerification => 'Verifikasi berkas', self::Verified => 'Berkas terverifikasi',
             self::InitialPaymentPending => 'Menunggu pembayaran awal', self::InitialPaymentVerified => 'Pembayaran awal terverifikasi', self::FittingScheduled => 'Fitting dijadwalkan', self::FittingCompleted => 'Fitting selesai',
-            self::InterviewScheduled => 'Wawancara dijadwalkan', self::Interviewed => 'Wawancara selesai', self::DecisionPending => 'Menunggu keputusan', self::Accepted => 'Diterima', self::Waitlisted => 'Daftar cadangan', self::Rejected => 'Belum dapat diterima',
+            self::InterviewScheduled => 'Wawancara orang tua dijadwalkan', self::Interviewed => 'Wawancara orang tua selesai', self::ChildInterviewScheduled => 'Wawancara anak dijadwalkan', self::ChildInterviewed => 'Wawancara anak selesai', self::ObservationScheduled => 'Observasi dijadwalkan', self::Observed => 'Observasi selesai', self::DecisionPending => 'Menunggu keputusan', self::Accepted => 'Diterima', self::Waitlisted => 'Daftar cadangan', self::Rejected => 'Belum dapat diterima',
             self::RegistrationPaymentPending => 'Menunggu daftar ulang', self::RegistrationPaymentPartial => 'Pembayaran daftar ulang sebagian', self::Registered => 'Daftar ulang selesai', self::Enrolled => 'Menjadi siswa',
         };
     }

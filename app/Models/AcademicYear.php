@@ -22,6 +22,7 @@ class AcademicYear extends Model
     public function createdBy(): BelongsTo { return $this->belongsTo(User::class, 'created_by'); }
     public function updatedBy(): BelongsTo { return $this->belongsTo(User::class, 'updated_by'); }
     public function activeSemester(): HasOne { return $this->hasOne(Semester::class)->where('is_active', true); }
+    public function pmbmSetting(): HasOne { return $this->hasOne(\App\Models\Pmbm\PmbmSetting::class); }
     public function getDisplayPeriodAttribute(): string { return $this->starts_at->translatedFormat('j F Y').' — '.$this->ends_at->translatedFormat('j F Y'); }
     public function getIsCurrentDateRangeAttribute(): bool { return now()->between($this->starts_at->startOfDay(), $this->ends_at->endOfDay()); }
     public function getCompletionStatusAttribute(): string { return now()->lt($this->starts_at) ? 'akan_datang' : (now()->gt($this->ends_at->endOfDay()) ? 'selesai' : 'tidak_aktif'); }

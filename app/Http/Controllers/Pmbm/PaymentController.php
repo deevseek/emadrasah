@@ -11,9 +11,11 @@ use App\Services\Pmbm\PmbmPaymentService;
 use Illuminate\Http\{RedirectResponse, Request};
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Illuminate\View\View;
 
 class PaymentController extends Controller
 {
+    public function index(): View { return view('pmbm.admin.payments', ['payments'=>PmbmPayment::with(['applicant.academicYear','receiver','verifier'])->latest()->paginate(30)]); }
     public function store(StorePaymentRequest $request, PmbmApplicant $applicant, PmbmPaymentService $service): RedirectResponse
     {
         $service->record($applicant, $request->validated(), $request->user());
