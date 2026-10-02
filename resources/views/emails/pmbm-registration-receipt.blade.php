@@ -2,4 +2,5 @@
 <p><strong>Nomor pendaftaran:</strong> {{ $applicant->registration_number }}</p>
 <p><strong>Nama:</strong> {{ $applicant->full_name }}</p>
 <p><strong>Status:</strong> {{ $applicant->status->label() }}</p>
+<p><a href="{{ URL::temporarySignedRoute('pmbm.public.receipt', now()->addDays(7), ['number'=>$applicant->registration_number]) }}">Unduh tanda terima pendaftaran resmi (berlaku 7 hari)</a></p>
 <p>Simpan nomor pendaftaran ini untuk memeriksa status dengan nomor pendaftaran dan tanggal lahir calon murid.</p>
