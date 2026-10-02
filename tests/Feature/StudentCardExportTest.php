@@ -30,7 +30,7 @@ class StudentCardExportTest extends TestCase
         $rows = app(SimpleXlsxService::class)->read($path)['Data Kartu Siswa'];
 
         $response->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        $response->assertDownload('data-kartu-siswa-'.now()->format('Y-m-d-Hi').'.xlsx');
+        $response->assertDownload('data-kartu-siswa-vii-a-'.now()->format('Y-m-d-Hi').'.xlsx');
         $this->assertSame(StudentCardExportService::HEADERS, array_values($rows[1]));
         $this->assertSame(['Ahmad Fauzan', '0012345678', '17/05/2012', 'Jalan Melati 10', '0012345678.jpg'], array_values($rows[2]));
         $this->assertCount(2, $rows);
@@ -44,8 +44,20 @@ class StudentCardExportTest extends TestCase
         $response = $this->actingAs($user)->get(route('students.export-card'))->assertOk();
         $rows = app(SimpleXlsxService::class)->read($response->baseResponse->getFile()->getPathname())['Data Kartu Siswa'];
 
+        $response->assertDownload('data-kartu-siswa-'.now()->format('Y-m-d-Hi').'.xlsx');
         $this->assertSame('Data disembunyikan', $rows[2][4]);
         $this->assertNotContains('Alamat Rahasia', $rows[2]);
+    }
+
+    public function test_student_xlsx_filename_contains_filtered_classroom_name(): void
+    {
+        $user = $this->user(['students.export']);
+        Student::create(['full_name' => 'Ahmad Fauzan', 'gender' => 'male', 'status' => 'active', 'classroom_label' => 'VII A']);
+
+        $response = $this->actingAs($user)->get(route('students.export', ['classroom_label' => 'VII A']));
+
+        $response->assertOk();
+        $response->assertDownload('data-siswa-vii-a-'.now()->format('Y-m-d-Hi').'.xlsx');
     }
 
     private function user(array $permissions): User
