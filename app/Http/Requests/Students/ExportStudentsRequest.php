@@ -7,7 +7,7 @@ namespace App\Http\Requests\Students;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class ExportStudentCardsRequest extends FormRequest
+class ExportStudentsRequest extends FormRequest
 {
     public function authorize(): bool
     {
