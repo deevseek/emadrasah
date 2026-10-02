@@ -16,8 +16,8 @@ class StudentCardExportController extends Controller
         $path = $service->export(StudentController::filtered($request), $request->user());
 
         return response()
-            ->download($path, 'data-kartu-siswa-'.now()->format('Y-m-d-Hi').'.csv', [
-                'Content-Type' => 'text/csv; charset=UTF-8',
+            ->download($path, 'data-kartu-siswa-'.now()->format('Y-m-d-Hi').'.xlsx', [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             ])
             ->deleteFileAfterSend();
     }
