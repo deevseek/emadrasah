@@ -5,6 +5,24 @@
             description="Telusuri catatan absensi berdasarkan tanggal dan rombel."
         />
 
+        <form method="GET" action="{{ route('academic.attendance.export') }}" class="card card-body grid gap-4 border-l-4 border-l-amber-500 md:grid-cols-[1fr_1fr_auto]">
+            <label>
+                <span class="label">Rombel laporan</span>
+                <select class="input mt-1" name="classroom_id" required>
+                    <option value="">Pilih rombel</option>
+                    @foreach($rooms as $room)
+                        <option value="{{ $room->id }}" @selected(request('classroom_id') == $room->id)>{{ $room->display_name }}</option>
+                    @endforeach
+                </select>
+            </label>
+            <label>
+                <span class="label">Bulan laporan</span>
+                <input class="input mt-1" type="month" name="month" value="{{ request('month', now()->format('Y-m')) }}" required>
+            </label>
+            <button class="btn btn-primary self-end" type="submit">Unduh Laporan XLSX</button>
+            <p class="text-sm text-slate-600 md:col-span-3">Laporan resmi memuat absensi harian, rekap sakit, izin, alpa, serta kolom pengesahan kepala madrasah dan wali kelas.</p>
+        </form>
+
         <form class="card card-body grid gap-4 md:grid-cols-3">
             <label>
                 <span class="label">Rombel</span>
