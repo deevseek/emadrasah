@@ -38,7 +38,16 @@
           : collect();
       @endphp
       @if($visible->isNotEmpty())
-        <div><p class="sidebar-section px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-emerald-200/80">{{ $group['label'] }}</p><div class="space-y-0.5">
+        @php
+          $groupId = 'sidebar-group-'.$loop->index;
+          $groupHasActiveItem = $visible->contains(fn ($item) => ! ($item['external'] ?? false) && request()->routeIs($item['active']));
+        @endphp
+        <div data-sidebar-group data-group-key="{{ str($group['label'])->slug() }}" data-has-active-item="{{ $groupHasActiveItem ? 'true' : 'false' }}">
+          <button type="button" class="sidebar-group-toggle" data-sidebar-group-toggle aria-expanded="true" aria-controls="{{ $groupId }}">
+            <span class="sidebar-section truncate">{{ $group['label'] }}</span>
+            <span class="sidebar-group-chevron" aria-hidden="true">⌄</span>
+          </button>
+          <div id="{{ $groupId }}" class="space-y-0.5" data-sidebar-group-items>
           @foreach($visible as $item)
             @php
               $isExternal = $item['external'] ?? false;
@@ -47,7 +56,8 @@
             @endphp
             <a href="{{ $href }}" @if($isExternal) target="_blank" rel="noopener noreferrer" @endif onclick="closeMobileSidebar()" @class(['nav-link','nav-link-active'=>$isActive])><x-ui.icon :name="$item['icon']" /><span class="sidebar-label flex-1 truncate">{{ $item['label'] }}</span></a>
           @endforeach
-        </div></div>
+          </div>
+        </div>
       @endif
     @endforeach
   </nav>

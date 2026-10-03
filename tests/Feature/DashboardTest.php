@@ -37,6 +37,9 @@ class DashboardTest extends TestCase
             ->assertSee('Fondasi e-Madrasah')
             ->assertSee('Belum ada modul yang dipasang.')
             ->assertSee('Modul terpasang')
+            ->assertSee('data-sidebar-group-toggle', false)
+            ->assertSee('aria-controls="sidebar-group-', false)
+            ->assertSee('data-sidebar-group-items', false)
             ->assertDontSee('Siswa hadir');
     }
 }
