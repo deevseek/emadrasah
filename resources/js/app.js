@@ -14,6 +14,14 @@ window.closeMobileSidebar = () => {
   html.classList.remove('mobile-sidebar-open');
 };
 
+const setSidebarGroupExpanded = (group, expanded) => {
+  const toggle = group.querySelector('[data-sidebar-group-toggle]');
+  const items = group.querySelector('[data-sidebar-group-items]');
+  if (!toggle || !items) return;
+  toggle.setAttribute('aria-expanded', String(expanded));
+  items.hidden = !expanded;
+};
+
 window.previewImage = (event, targetId) => {
   const file = event.target.files?.[0];
   const target = document.getElementById(targetId);
@@ -72,6 +80,18 @@ document.addEventListener('keydown', (event) => {
 
 document.addEventListener('DOMContentLoaded', () => {
   if (document.body.dataset.sidebarDefault === 'compact') html.classList.add('sidebar-collapsed');
+  document.querySelectorAll('[data-sidebar-group]').forEach((group) => {
+    const storageKey = `sidebar-group:${group.dataset.groupKey}`;
+    const storedState = localStorage.getItem(storageKey);
+    const hasActiveItem = group.dataset.hasActiveItem === 'true';
+    setSidebarGroupExpanded(group, hasActiveItem || storedState !== 'closed');
+
+    group.querySelector('[data-sidebar-group-toggle]')?.addEventListener('click', () => {
+      const expanded = group.querySelector('[data-sidebar-group-toggle]')?.getAttribute('aria-expanded') === 'true';
+      setSidebarGroupExpanded(group, !expanded);
+      localStorage.setItem(storageKey, expanded ? 'closed' : 'open');
+    });
+  });
   const tabs = document.querySelectorAll('[data-tab]');
   const panels = document.querySelectorAll('[data-panel]');
   const activateTab = (name) => {
