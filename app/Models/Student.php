@@ -36,6 +36,7 @@ class Student extends Model
     public function classrooms(): BelongsToMany { return $this->belongsToMany(Classroom::class, 'classroom_memberships')->withPivot(['status', 'joined_at', 'left_at']); }
     public function guardians(): BelongsToMany { return $this->belongsToMany(GuardianProfile::class, 'student_guardians', 'student_id', 'guardian_id')->withPivot(['relationship', 'is_primary', 'can_view_academic']); }
     public function rfidCards(): HasMany { return $this->hasMany(StudentRfidCard::class); }
+    public function attendances(): HasMany { return $this->hasMany(StudentAttendance::class); }
     public function activeRfidCard(): HasOne { return $this->hasOne(StudentRfidCard::class)->where('is_active', true)->latestOfMany(); }
     public function getCurrentClassroomNameAttribute(): string { return $this->activeClassroomMembership?->classroom?->display_name ?: ($this->classroom_label ?: 'Belum ditempatkan'); }
 }
