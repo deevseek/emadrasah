@@ -44,7 +44,7 @@
             ['academic_year_id','semester_id','classroom_id','academic_subject_id','journal_date'].forEach(key => params.set(key, form.elements[key].value));
             @if($journal->exists) params.set('journal_id', @json($journal->id)); @endif
             try {
-                const response = await fetch(@json(route('academic.teaching-journals.attendance')) + '?' + params, {headers:{Accept:'application/json'}});
+                const response = await fetch(@json(route('academic.teaching-journals.attendance', [], false)) + '?' + params, {credentials:'same-origin', headers:{Accept:'application/json'}});
                 if (!response.ok) throw new Error('Absensi tidak dapat dimuat. Periksa tahun ajaran, semester, rombel, dan tanggal.');
                 const data = await response.json();
                 if(current !== generation) return;
@@ -68,19 +68,19 @@
                     mode.addEventListener('change',toggle); toggle(); tr.append(name,info,correction,noteCell); body.append(tr);
                 });
                 initial=false; message.textContent=data.rows.length ? '' : 'Rombel belum memiliki siswa aktif pada tanggal ini.'; submit.disabled=!data.rows.length;
-            } catch(error){if(current===generation) message.textContent=error.message;}
+            } catch(error){if(current===generation) message.textContent=error instanceof TypeError ? 'Daftar siswa tidak dapat dimuat. Periksa koneksi lalu pilih kembali rombel atau tanggal.' : error.message;}
         }
         ['semester_id','classroom_id','academic_subject_id','journal_date','lesson_number'].forEach(key => form.elements[key].addEventListener('change', () => {initial=false; loadAttendance();}));
         form.elements.academic_year_id.addEventListener('change', async () => {
             initial=false; const current=++generation; submit.disabled=true; body.replaceChildren();
             try {
-                const response=await fetch(@json(route('academic.teaching-journals.attendance'))+'?options=1&academic_year_id='+encodeURIComponent(form.elements.academic_year_id.value), {headers:{Accept:'application/json'}});
+                const response=await fetch(@json(route('academic.teaching-journals.attendance', [], false))+'?options=1&academic_year_id='+encodeURIComponent(form.elements.academic_year_id.value), {credentials:'same-origin', headers:{Accept:'application/json'}});
                 if(!response.ok) throw new Error('Pilihan periode tidak dapat dimuat.');
                 const data=await response.json();
                 if(current !== generation) return;
                 for(const [key,items] of Object.entries(data)) {const select=form.elements[key]; select.replaceChildren(); items.forEach(item=>select.add(new Option(item.label,item.id)));}
                 loadAttendance();
-            } catch(error){message.textContent=error.message;}
+            } catch(error){if(current === generation) message.textContent=error instanceof TypeError ? 'Pilihan periode tidak dapat dimuat. Periksa koneksi lalu pilih kembali tahun ajaran.' : error.message;}
         });
         loadAttendance();
     </script>

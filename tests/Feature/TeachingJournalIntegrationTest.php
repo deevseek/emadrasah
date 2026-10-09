@@ -403,6 +403,30 @@ class TeachingJournalIntegrationTest extends TestCase
         $this->assertDatabaseHas('activity_log', ['description' => 'Mengembalikan absensi pelajaran ke sumber harian']);
     }
 
+    public function test_roster_fetch_stays_on_current_origin_when_application_url_uses_internal_http_host(): void
+    {
+        [$user, $payload] = $this->journalContext();
+        $urls = app('url');
+        $urls->forceRootUrl('http://internal-app.test');
+        $urls->forceScheme('http');
+        try {
+            $response = $this->actingAs($user)->get('/academic/teaching-journals/create?'.http_build_query($payload));
+            $response->assertOk();
+            $html = $response->getContent();
+            preg_match_all('/fetch\(("(?:\\\\.|[^"\\\\])*")/', $html, $matches);
+            $this->assertCount(2, $matches[1]);
+            foreach ($matches[1] as $literal) {
+                $this->assertSame('/academic/teaching-journals/attendance', json_decode($literal, true, 512, JSON_THROW_ON_ERROR));
+            }
+            $response->assertSee("credentials:'same-origin'", false);
+            $this->getJson('/academic/teaching-journals/attendance?'.http_build_query($payload))
+                ->assertOk()->assertJsonPath('rows.0.name', 'Siswa Jurnal');
+        } finally {
+            $urls->forceRootUrl(null);
+            $urls->forceScheme(null);
+        }
+    }
+
     private function journalContext(): array
     {
         $user = User::factory()->create(['must_change_password' => false]);
