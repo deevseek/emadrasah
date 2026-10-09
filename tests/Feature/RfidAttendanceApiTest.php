@@ -21,10 +21,12 @@ use App\Models\User;
 use App\Services\Academic\RfidAttendanceService;
 use App\Services\Academic\TeachingJournalService;
 use App\Services\Settings\ApplicationSettingService;
+use Carbon\Carbon;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Mockery\MockInterface;
 use Tests\TestCase;
 
@@ -145,6 +147,7 @@ class RfidAttendanceApiTest extends TestCase
 
     public function test_rfid_attendance_remains_present_and_is_used_by_teaching_journal(): void
     {
+        $this->travelTo(Carbon::parse('2026-10-07 06:45:00', 'Asia/Jakarta'));
         [$device, $card, $semester] = $this->makeAttendanceContext();
         app(RfidAttendanceService::class)->record($card->card_token, $card->uid, $device);
         $membership = ClassroomMembership::where('student_id', $card->student_id)->firstOrFail();
@@ -236,10 +239,10 @@ class RfidAttendanceApiTest extends TestCase
     {
         [$device] = $this->makeAttendanceContext();
         config(['rfid.diagnostics.enabled' => true]);
-        \Illuminate\Support\Facades\Log::spy();
+        Log::spy();
         $this->withHeaders(['X-Device-ID' => $device->device_id, 'X-Device-Token' => 'token-live'])
             ->postJson('/api/rfid/attendance', self::PAYLOAD + ['request_id' => 'safe-log'])->assertCreated();
-        \Illuminate\Support\Facades\Log::shouldHaveReceived('info')->withArgs(function (string $message, array $context): bool {
+        Log::shouldHaveReceived('info')->withArgs(function (string $message, array $context): bool {
             $data = json_encode([$message, $context], JSON_THROW_ON_ERROR);
             $this->assertStringNotContainsString(self::PAYLOAD['card_token'], $data);
             $this->assertStringNotContainsString('token-live', $data);
@@ -346,6 +349,32 @@ class RfidAttendanceApiTest extends TestCase
         $this->assertDatabaseCount('rfid_attendance_requests', 0);
         $this->app->instance(RfidAttendanceService::class, $service);
         $this->postJson('/api/rfid/attendance', $payload)->assertCreated();
+    }
+
+    public function test_scan_synchronizes_saved_automatic_lessons_and_preserves_teacher_exception(): void
+    {
+        $this->travelTo(Carbon::parse('2026-10-07 06:45:00', 'Asia/Jakarta'));
+        [$device, $card, $semester] = $this->makeAttendanceContext();
+        $membership = ClassroomMembership::where('student_id', $card->student_id)->firstOrFail();
+        $user = User::factory()->create();
+        Personnel::create(['user_id' => $user->id, 'full_name' => 'Guru Sinkronisasi', 'gender' => 'male', 'employment_status' => 'Tetap', 'position' => 'Guru', 'is_active' => true]);
+        $subject = AcademicSubject::create(['name' => 'Mapel Sinkronisasi', 'is_active' => true]);
+        $payload = [
+            'academic_year_id' => $semester->academic_year_id, 'semester_id' => $semester->id,
+            'classroom_id' => $membership->classroom_id, 'academic_subject_id' => $subject->id,
+            'journal_date' => today()->toDateString(), 'lesson_number' => '1-2',
+            'topic' => 'Sinkronisasi', 'learning_method' => 'Diskusi',
+            'attendances' => [['student_id' => $card->student_id, 'status' => 'present']],
+        ];
+        $automatic = app(TeachingJournalService::class)->save($payload, $user);
+        $this->assertSame('pending', $automatic->attendances()->sole()->status->value);
+        $payload['attendances'][0] = ['student_id' => $card->student_id, 'status' => 'permitted', 'mode' => 'manual', 'notes' => 'Tidak mengikuti pelajaran ini.'];
+        $manual = app(TeachingJournalService::class)->save($payload, $user);
+        $this->withHeaders(['X-Device-ID' => $device->device_id, 'X-Device-Token' => 'token-live'])->postJson('/api/rfid/attendance', self::PAYLOAD)->assertCreated()->assertJsonPath('status', 'present');
+        $this->assertSame('present', $automatic->attendances()->sole()->status->value);
+        $this->assertSame('permitted', $manual->attendances()->sole()->status->value);
+        $this->postJson('/api/rfid/attendance', self::PAYLOAD)->assertOk()->assertJsonPath('code', 'ALREADY_ATTENDED');
+        $this->assertDatabaseCount('student_attendances', 1);
     }
 
     private function makeAttendanceContext(): array

@@ -5,7 +5,14 @@ declare(strict_types=1);
 namespace App\Services\Academic;
 
 use App\Enums\RfidAttendanceResultCode;
-use App\Models\{AcademicYear, ClassroomMembership, RfidAttendanceEvent, RfidDevice, Semester, Student, StudentAttendance, StudentRfidCard};
+use App\Models\AcademicYear;
+use App\Models\ClassroomMembership;
+use App\Models\RfidAttendanceEvent;
+use App\Models\RfidDevice;
+use App\Models\Semester;
+use App\Models\Student;
+use App\Models\StudentAttendance;
+use App\Models\StudentRfidCard;
 use App\Services\Settings\ApplicationSettingService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -35,9 +42,9 @@ class RfidAttendanceService
         if ($rawUid !== '' && StudentRfidCard::normalizeUid($rawUid) !== StudentRfidCard::normalizeUid($card->uid)) {
             return $this->failure($device, RfidAttendanceResultCode::CardUidMismatch, 'Identitas kartu RFID tidak sesuai.', 422, $card);
         }
-        $membership = ClassroomMembership::where('student_id', $card->student_id)->where('status', 'active')->latest('joined_at')->first();
         $year = AcademicYear::where('is_active', true)->first();
         $semester = $year ? Semester::where('academic_year_id', $year->id)->where('is_active', true)->first() : null;
+        $membership = $year ? ClassroomMembership::where('student_id', $card->student_id)->where('academic_year_id', $year->id)->where('status', 'active')->whereDate('joined_at', '<=', today())->where(fn ($q) => $q->whereNull('left_at')->orWhereDate('left_at', '>=', today()))->whereHas('classroom', fn ($q) => $q->where('is_active', true))->latest('joined_at')->first() : null;
         if (! $membership || ! $year || ! $semester) {
             return $this->failure($device, RfidAttendanceResultCode::AcademicContextMissing, 'Periode akademik atau rombel aktif tidak tersedia.', 422, $card, $membership?->classroom_id);
         }
@@ -56,12 +63,14 @@ class RfidAttendanceService
                 $result = ['http' => 201, 'success' => true, 'code' => RfidAttendanceResultCode::AttendanceCreated->value, 'status' => 'present', 'student' => $this->studentData($card), 'message' => 'Absensi berhasil', '_attendance_id' => $attendance->id];
             }
 
+            app(JournalAttendanceResolver::class)->synchronize($existing ?? $attendance);
             $event = $this->createEvent($device, $result['code'], true, $result['message'], $card, $membership->classroom_id, $result['_attendance_id']);
             $result['event_id'] = $event->id;
 
             return $result;
         });
         unset($result['_attendance_id']);
+
         return $result;
     }
 
@@ -79,7 +88,10 @@ class RfidAttendanceService
         ], fn (mixed $value): bool => $value !== null);
     }
 
-    private function studentData(StudentRfidCard $card): array { return ['name' => $card->student->full_name, 'nis' => $card->student->nis ?? $card->student->nisn]; }
+    private function studentData(StudentRfidCard $card): array
+    {
+        return ['name' => $card->student->full_name, 'nis' => $card->student->nis ?? $card->student->nisn];
+    }
 
     private function createEvent(RfidDevice $device, string $code, bool $success, string $message, ?StudentRfidCard $card = null, ?int $classroomId = null, ?int $attendanceId = null): RfidAttendanceEvent
     {
@@ -101,6 +113,7 @@ class RfidAttendanceService
     private function maskUid(string $uid): string
     {
         $normalized = StudentRfidCard::normalizeUid($uid);
+
         return $normalized === '' ? '(kosong)' : str_repeat('*', max(0, strlen($normalized) - 4)).substr($normalized, -4);
     }
 }

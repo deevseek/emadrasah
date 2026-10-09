@@ -31,7 +31,7 @@ class RfidAttendanceConcurrencyTest extends TestCase
         $this->beforeApplicationDestroyed(fn () => Artisan::call('db:wipe', ['--force' => true]));
     }
 
-    private function context(): RfidDevice
+    protected function context(): RfidDevice
     {
         ApplicationSetting::create(['key' => 'attendance_rfid_enabled', 'value' => '1', 'type' => 'boolean', 'group' => 'attendance']);
         $year = AcademicYear::create(['name' => '2026/2027', 'starts_at' => '2026-07-01', 'ends_at' => '2027-06-30', 'is_active' => true]);
@@ -45,13 +45,13 @@ class RfidAttendanceConcurrencyTest extends TestCase
         return $this->device('race-reader-1');
     }
 
-    private function device(string $id): RfidDevice
+    protected function device(string $id): RfidDevice
     {
         return RfidDevice::create(['device_id' => $id, 'name' => $id, 'device_type' => 'reader',
             'token_hash' => hash('sha256', 'concurrency-test-'.$id), 'is_active' => true]);
     }
 
-    private function concurrent(array $deviceIds, array $payloads): array
+    protected function concurrent(array $deviceIds, array $payloads): array
     {
         $directory = sys_get_temp_dir().'/rfid-race-'.bin2hex(random_bytes(8));
         mkdir($directory, 0700);
