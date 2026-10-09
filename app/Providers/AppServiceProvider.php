@@ -12,6 +12,9 @@ use App\Listeners\SendSppPaymentReceiptEmail;
 use App\Listeners\SendGuardianRegistrationEmail;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use App\Contracts\FaceRecognitionService;
 use App\Contracts\Banking\{BankPaymentGateway, BankTransferGateway};
 use App\Services\Banking\{DisabledBriGateway, FakeBriGateway};
@@ -35,6 +38,11 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        foreach (['rfid-attendance' => 60, 'rfid-device' => 120] as $name => $limit) {
+            RateLimiter::for($name, fn (Request $request) => Limit::perMinute($limit)
+                ->by((string) $request->attributes->get('rfid_device')->id));
+        }
+
         if (! $this->app->routesAreCached()) {
             Route::middleware('api')->group(base_path('routes/bri_snap.php'));
         }

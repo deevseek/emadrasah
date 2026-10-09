@@ -25,6 +25,7 @@ class RfidCardRewriteTest extends TestCase
         parent::setUp();
         $this->seed(AccessControlSeeder::class);
         ApplicationSetting::create(['key' => 'rfid_writer_enabled', 'value' => '1', 'type' => 'boolean', 'group' => 'attendance']);
+        app(\App\Services\Settings\ApplicationSettingService::class)->clearCache();
         $this->operator = User::factory()->create(['must_change_password' => false]);
         $this->operator->assignRole('operator');
         $this->student = Student::create(['full_name' => 'Ahmad Fauzan', 'gender' => 'male', 'status' => 'active']);

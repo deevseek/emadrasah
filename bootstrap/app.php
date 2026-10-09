@@ -23,6 +23,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->prependToPriorityList(
+            \Illuminate\Routing\Middleware\ThrottleRequests::class,
+            AuthenticateRfidDevice::class,
+        );
         $trustedProxies = array_values(array_filter(array_map(
             static fn (string $proxy): string => trim($proxy),
             explode(',', (string) env('TRUSTED_PROXIES', '')),

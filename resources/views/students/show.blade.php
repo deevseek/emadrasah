@@ -23,7 +23,7 @@
                     </dl>
                 @else<p class="mt-1 text-sm text-slate-500">Belum melakukan absensi.</p>@endif
             </div>
-            <p class="mt-2 text-xs font-semibold {{ $writerOnline ? 'text-emerald-700' : 'text-red-600' }}">Writer {{ $writerOnline ? 'Online' : 'Offline' }}</p>
+            <p class="mt-2 text-xs font-semibold {{ $writerOnline ? 'text-emerald-700' : 'text-red-600' }}">Writer {{ $writerOnline ? 'aktif di server' : 'belum terlihat / terlambat' }}</p>
         </div>
         <div class="flex flex-wrap gap-2">
             @if($student->activeRfidCard)

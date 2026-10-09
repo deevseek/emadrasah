@@ -42,7 +42,7 @@ class RfidAttendanceLiveTest extends TestCase
         $this->assertStringContainsString('Live menyambungkan ulang...', $view);
         $this->assertStringContainsString("consecutiveFailures<3?'● Live menyambungkan ulang...':'● Live terputus'", $view);
         $this->assertStringContainsString("status.textContent='● Live tersambung'", $view);
-        $this->assertStringContainsString("data.reader.online?'● Reader Online':'● Reader Offline'", $view);
+        $this->assertStringContainsString("data.reader.online?'● Reader aktif di server':'● Reader belum terlihat / terlambat'", $view);
         $this->assertStringContainsString('rfid-live-highlight-error', $view);
         $this->assertStringContainsString('if(!event.id||handledEventIds.has(eventId))return', $view);
         $this->assertStringContainsString("variant==='error'", $view);

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Academic;
 
 use App\Enums\RfidAttendanceResultCode;
-use App\Models\{AcademicYear, ClassroomMembership, RfidAttendanceEvent, RfidDevice, Semester, StudentAttendance, StudentRfidCard};
+use App\Models\{AcademicYear, ClassroomMembership, RfidAttendanceEvent, RfidDevice, Semester, Student, StudentAttendance, StudentRfidCard};
 use App\Services\Settings\ApplicationSettingService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -43,6 +43,9 @@ class RfidAttendanceService
         }
 
         $result = DB::transaction(function () use ($card, $device, $membership, $year, $semester): array {
+            // Kunci siswa yang sudah ada, termasuk untuk request tanpa request_id
+            // dan scan serentak dari reader berbeda saat absensi belum ada.
+            Student::query()->lockForUpdate()->findOrFail($card->student_id);
             $existing = StudentAttendance::where('student_id', $card->student_id)->where('classroom_id', $membership->classroom_id)->whereDate('attendance_date', today())->lockForUpdate()->first();
             $card->update(['last_used_at' => now()]);
             if ($existing) {
