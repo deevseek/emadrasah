@@ -1,5 +1,5 @@
 <x-app-layout :title="$journal->exists ? 'Ubah Jurnal Mengajar' : 'Isi Jurnal Mengajar'">
-    <form method="post" action="{{ $journal->exists ? route('academic.teaching-journals.update', $journal) : route('academic.teaching-journals.store') }}" class="card card-body space-y-6">
+    <form id="journal-form" method="post" action="{{ $journal->exists ? route('academic.teaching-journals.update', $journal) : route('academic.teaching-journals.store') }}" class="card card-body space-y-6">
         @csrf
         @if($journal->exists) @method('put') @endif
         <x-ui.page-header :title="($journal->exists ? 'Ubah' : 'Isi').' Jurnal Mengajar'" description="Catat uraian mengajar, metode pembelajaran, dan absensi siswa dalam satu proses." />
@@ -21,32 +21,67 @@
 
         <section>
             <h2 class="text-lg font-black text-emerald-900">Absensi Siswa</h2>
-            <p class="mb-3 text-sm text-slate-600">Absensi ini tersimpan bersama jurnal sekaligus memperbarui data absensi harian siswa.</p>
-            @error('attendances')<p class="mb-2 text-sm font-semibold text-red-600">{{$message}}</p>@enderror
-            @foreach($rooms as $room)
-                <div class="attendance-roster overflow-x-auto" data-classroom="{{$room->id}}">
-                    <table class="w-full text-sm"><thead><tr class="bg-emerald-900 text-white"><th class="p-2 text-left">Nama Siswa</th><th class="p-2">Status</th><th class="p-2 text-left">Keterangan</th></tr></thead><tbody>
-                    @foreach($room->students->sortBy('full_name')->values() as $index=>$student)
-                        @php($record=$savedAttendance->get($student->id))
-                        @php($fromRfid=($record?->source?->value ?? $record?->source) === 'rfid')
-                        <tr class="border-b"><td class="p-2 font-semibold">{{$student->full_name}}<input type="hidden" name="attendances[{{$index}}][student_id]" value="{{$student->id}}">@error("attendances.$index.student_id")<p class="mt-1 text-sm text-red-600">{{$message}}</p>@enderror</td><td class="p-2">@if($fromRfid)<input type="hidden" name="attendances[{{$index}}][status]" value="present"><span class="block rounded-lg bg-emerald-100 px-3 py-2 text-center font-semibold text-emerald-800">✓ Hadir otomatis (RFID)</span>@else<select class="input" required name="attendances[{{$index}}][status]">@foreach(['present'=>'Hadir','sick'=>'Sakit','permitted'=>'Izin','absent'=>'Alpa'] as $value=>$label)<option value="{{$value}}" @selected(old("attendances.$index.status",$record?->status?->value ?? 'present')===$value)>{{$label}}</option>@endforeach</select>@error("attendances.$index.status")<p class="mt-1 text-sm text-red-600">{{$message}}</p>@enderror@endif</td><td class="p-2"><input class="input" maxlength="1000" name="attendances[{{$index}}][notes]" value="{{old("attendances.$index.notes",$record?->notes)}}" placeholder="Opsional" @disabled($fromRfid)>@error("attendances.$index.notes")<p class="mt-1 text-sm text-red-600">{{$message}}</p>@enderror</td></tr>
-                    @endforeach
-                    </tbody></table>
-                    @if($room->students->isEmpty())<p class="p-4 text-slate-500">Rombel belum memiliki siswa aktif.</p>@endif
-                </div>
-            @endforeach
+            <p class="mb-3 text-sm text-slate-600">Kehadiran mengikuti absensi harian. Koreksi khusus pelajaran wajib disertai alasan dan tidak mengubah absensi harian.</p>
+            @if($errors->any())<ul class="text-red-600">@foreach($errors->all() as $error)<li>{{$error}}</li>@endforeach</ul>@endif
+            <p id="attendance-message" class="text-sm text-slate-600" role="status"></p>
+            <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-emerald-900 text-white"><tr><th class="p-2">Nama Siswa</th><th>Status Awal / Sumber / Kedatangan</th><th>Koreksi Pelajaran</th><th>Keterangan / Alasan</th></tr></thead><tbody id="attendance-rows"></tbody></table></div>
         </section>
         <button class="btn btn-primary w-full">Simpan Jurnal dan Absensi</button>
     </form>
     <script>
-        const classroom = document.getElementById('journal-classroom');
-        function showRoster() {
-            document.querySelectorAll('.attendance-roster').forEach((roster) => {
-                const active = roster.dataset.classroom === classroom.value;
-                roster.hidden = !active;
-                roster.querySelectorAll('input,select').forEach((input) => input.disabled = !active);
-            });
+        const form = document.getElementById('journal-form');
+        const body = document.getElementById('attendance-rows');
+        const message = document.getElementById('attendance-message');
+        const submit = form.querySelector('button');
+        const labels = {pending:'Belum Tercatat',present:'Hadir',sick:'Sakit',permitted:'Izin',absent:'Alpa'};
+        let generation = 0;
+        const oldRows = @json(old('attendances', []));
+        let initial = true;
+        async function loadAttendance() {
+            const current = ++generation;
+            submit.disabled = true; body.replaceChildren(); message.textContent = 'Memuat absensi harian…';
+            const params = new URLSearchParams();
+            ['academic_year_id','semester_id','classroom_id','academic_subject_id','journal_date'].forEach(key => params.set(key, form.elements[key].value));
+            @if($journal->exists) params.set('journal_id', @json($journal->id)); @endif
+            try {
+                const response = await fetch(@json(route('academic.teaching-journals.attendance')) + '?' + params, {headers:{Accept:'application/json'}});
+                if (!response.ok) throw new Error('Absensi tidak dapat dimuat. Periksa tahun ajaran, semester, rombel, dan tanggal.');
+                const data = await response.json();
+                if(current !== generation) return;
+                data.rows.forEach((row,index) => {
+                    const tr = document.createElement('tr'); tr.className = 'border-b';
+                    const name = document.createElement('td'); name.className = 'p-2'; name.textContent = row.name;
+                    const id = document.createElement('input'); id.type='hidden'; id.name=`attendances[${index}][student_id]`; id.value=row.student_id; name.append(id);
+                    const info = document.createElement('td'); info.textContent = labels[row.daily_status]+' · '+({rfid:'RFID',manual:'Manual'}[row.daily_source] || 'Belum Tercatat')+' · '+(row.arrival_at || '—');
+                    const correction = document.createElement('td');
+                    const mode = document.createElement('select'); mode.className='input'; mode.name=`attendances[${index}][mode]`;
+                    const modes = {daily:'Ikuti absensi harian',manual:'Koreksi khusus pelajaran'};
+                    if(row.origin !== 'daily') modes.keep='Pertahankan catatan tersimpan';
+                    Object.entries(modes).forEach(([value,label]) => mode.add(new Option(label,value)));
+                    mode.value=row.origin === 'daily' ? 'daily' : 'keep';
+                    const status = document.createElement('select'); status.className='input'; status.required=true; status.name=`attendances[${index}][status]`;
+                    Object.entries(labels).forEach(([value,label]) => status.add(new Option(label,value))); status.value=row.status;
+                    correction.append(mode,status);
+                    const noteCell=document.createElement('td'); const notes=document.createElement('input'); notes.className='input'; notes.maxLength=1000; notes.name=`attendances[${index}][notes]`; notes.value=row.notes || ''; noteCell.append(notes);
+                    if(initial) {const old=oldRows.find(item => Number(item.student_id) === row.student_id); if(old){mode.value=old.mode || mode.value; status.value=old.status; notes.value=old.notes || '';}}
+                    function toggle(){ status.disabled=false; if(mode.value !== 'manual') status.value=row.status; status.querySelector('option[value="pending"]').disabled=mode.value === 'manual'; if(mode.value === 'manual' && status.value === 'pending') status.value=''; notes.readOnly=mode.value !== 'manual'; notes.required=mode.value === 'manual'; status.style.pointerEvents=mode.value === 'manual' ? '' : 'none'; }
+                    mode.addEventListener('change',toggle); toggle(); tr.append(name,info,correction,noteCell); body.append(tr);
+                });
+                initial=false; message.textContent=data.rows.length ? '' : 'Rombel belum memiliki siswa aktif pada tanggal ini.'; submit.disabled=!data.rows.length;
+            } catch(error){if(current===generation) message.textContent=error.message;}
         }
-        classroom.addEventListener('change', showRoster); showRoster();
+        ['semester_id','classroom_id','academic_subject_id','journal_date','lesson_number'].forEach(key => form.elements[key].addEventListener('change', () => {initial=false; loadAttendance();}));
+        form.elements.academic_year_id.addEventListener('change', async () => {
+            initial=false; const current=++generation; submit.disabled=true; body.replaceChildren();
+            try {
+                const response=await fetch(@json(route('academic.teaching-journals.attendance'))+'?options=1&academic_year_id='+encodeURIComponent(form.elements.academic_year_id.value), {headers:{Accept:'application/json'}});
+                if(!response.ok) throw new Error('Pilihan periode tidak dapat dimuat.');
+                const data=await response.json();
+                if(current !== generation) return;
+                for(const [key,items] of Object.entries(data)) {const select=form.elements[key]; select.replaceChildren(); items.forEach(item=>select.add(new Option(item.label,item.id)));}
+                loadAttendance();
+            } catch(error){message.textContent=error.message;}
+        });
+        loadAttendance();
     </script>
 </x-app-layout>

@@ -47,8 +47,8 @@ class TeachingJournalReportService
                 'no' => (string) ($index + 1), 'hari_tanggal' => $journal->journal_date->translatedFormat('l, d F Y'),
                 'jam_ke' => $journal->lesson_number ?: '—', 'mapel' => $journal->subject->name, 'guru' => $journal->personnel->full_name,
                 'uraian_mengajar' => $journal->topic, 'metode' => $journal->learning_method ?: '—',
-                'hadir' => (string) ($counts['present'] ?? 0), 'tidak_hadir' => (string) ($journal->attendances->count() - ($counts['present'] ?? 0)),
-                'sakit' => (string) ($counts['sick'] ?? 0), 'izin' => (string) ($counts['permitted'] ?? 0), 'alpa' => (string) ($counts['absent'] ?? 0), 'keterangan' => $journal->notes ?: '—',
+                'hadir' => (string) ($counts['present'] ?? 0), 'tidak_hadir' => (string) (($counts['sick'] ?? 0) + ($counts['permitted'] ?? 0) + ($counts['absent'] ?? 0)),
+                'sakit' => (string) ($counts['sick'] ?? 0), 'izin' => (string) ($counts['permitted'] ?? 0), 'alpa' => (string) ($counts['absent'] ?? 0), 'keterangan' => ($journal->notes ?: '—').(($counts['pending'] ?? 0) ? ' | Belum Tercatat: '.$counts['pending'] : ''),
             ];
             $row = $match[0];
             foreach ($values as $key => $value) $row = str_replace('${'.$key.'}', $this->xml($value), $row);
