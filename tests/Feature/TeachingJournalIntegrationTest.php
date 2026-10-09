@@ -251,20 +251,42 @@ class TeachingJournalIntegrationTest extends TestCase
         $this->assertSame('present', $daily->refresh()->status->value);
     }
 
-    public function test_arrival_after_lesson_start_does_not_mark_missed_lesson_present(): void
+    public function test_rfid_arrival_after_lesson_start_inherits_daily_present_status(): void
     {
         [$user, $payload] = $this->journalContext();
-        $this->daily($payload, 'present', 'rfid', '09:30:00');
+        $daily = $this->daily($payload, 'present', 'rfid', '13:44:41');
+        $before = $daily->refresh()->getAttributes();
         $schedule = LessonSchedule::create([
             'academic_year_id' => $payload['academic_year_id'], 'semester_id' => $payload['semester_id'],
             'classroom_id' => $payload['classroom_id'], 'academic_subject_id' => $payload['academic_subject_id'],
             'day_of_week' => 3, 'start_time' => '07:00:00', 'end_time' => '08:00:00', 'active' => true,
         ]);
         $first = app(TeachingJournalService::class)->save($payload, $user);
-        $this->assertSame('pending', $first->attendances()->sole()->status->value);
+        $this->assertSame('present', $first->attendances()->sole()->status->value);
+        $this->actingAs($user)->getJson(route('academic.teaching-journals.attendance').'?'.http_build_query($payload))
+            ->assertOk()->assertJsonPath('rows.0.status', 'present')->assertJsonPath('rows.0.daily_status', 'present')
+            ->assertJsonPath('rows.0.daily_source', 'rfid')->assertJsonPath('rows.0.arrival_at', $payload['journal_date'].' 13:44:41');
         $schedule->update(['start_time' => '10:00:00', 'end_time' => '11:00:00']);
         $next = app(TeachingJournalService::class)->save($payload, $user);
         $this->assertSame('present', $next->attendances()->sole()->status->value);
+        $this->assertSame($before, $daily->refresh()->getAttributes());
+    }
+
+    public function test_afternoon_rfid_without_schedule_is_present_on_roster_save_and_edit(): void
+    {
+        [$user, $payload] = $this->journalContext();
+        $daily = $this->daily($payload, 'present', 'rfid', '13:44:41');
+        $before = $daily->refresh()->getAttributes();
+        $this->actingAs($user)->getJson(route('academic.teaching-journals.attendance').'?'.http_build_query($payload))
+            ->assertOk()->assertJsonPath('rows.0.status', 'present')->assertJsonPath('rows.0.daily_status', 'present');
+        $payload['attendances'][0]['status'] = 'pending';
+        $journal = app(TeachingJournalService::class)->save($payload, $user);
+        $detail = $journal->attendances()->sole();
+        $this->assertSame('present', $detail->status->value);
+        $detail->update(['status' => 'pending']);
+        app(TeachingJournalService::class)->save($payload, $user, $journal);
+        $this->assertSame('present', $detail->refresh()->status->value);
+        $this->assertSame($before, $daily->refresh()->getAttributes());
     }
 
     public function test_roster_endpoint_uses_date_and_room_filters(): void
