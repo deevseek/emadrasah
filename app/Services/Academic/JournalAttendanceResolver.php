@@ -7,7 +7,6 @@ namespace App\Services\Academic;
 use App\Models\AcademicYear;
 use App\Models\Classroom;
 use App\Models\ClassroomMembership;
-use App\Models\LessonSchedule;
 use App\Models\Semester;
 use App\Models\StudentAttendance;
 use App\Models\TeachingJournal;
@@ -44,26 +43,11 @@ class JournalAttendanceResolver
             ->when($studentId, fn ($q) => $q->where('student_id', $studentId))
             ->when(DB::transactionLevel() > 0, fn ($q) => $q->lockForUpdate())
             ->get()->keyBy('student_id');
-        $daySchedules = LessonSchedule::where('classroom_id', $context['classroom_id'])
-            ->where('academic_year_id', $context['academic_year_id'])->where('semester_id', $context['semester_id'])
-            ->where('day_of_week', $date->dayOfWeekIso)
-            ->where('active', true)->get();
-        $schedules = $daySchedules->where('academic_subject_id', $context['academic_subject_id']);
-        $safeStart = ($schedules->isNotEmpty() ? $schedules : $daySchedules)->min('start_time') ?? '07:00:00';
 
-        return ($members ?? $this->members($context, $studentId))->mapWithKeys(function ($member) use ($daily, $safeStart, $date): array {
+        return ($members ?? $this->members($context, $studentId))->mapWithKeys(function ($member) use ($daily): array {
             $record = $daily->get($member->student_id);
             $status = $record?->status->value ?? 'pending';
             $source = $record?->source->value;
-            if ($source === 'rfid' && $record->scanned_at) {
-                $arrival = $record->scanned_at->copy()->timezone(config('app.timezone', 'Asia/Jakarta'));
-                // With repeated sessions, arrival must precede the earliest possible
-                // lesson. With no schedule at all, use a conservative 07:00 cutoff.
-                $start = $date->copy()->setTimeFromTimeString($safeStart);
-                if ($arrival->gt($start)) {
-                    $status = 'pending';
-                }
-            }
 
             return [$member->student_id => [
                 'student_id' => $member->student_id, 'name' => $member->student->full_name,

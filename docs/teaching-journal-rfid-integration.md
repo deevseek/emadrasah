@@ -16,7 +16,7 @@ Sumber: `origin/main`, commit `9570e77b2828816a7bc82b0e4d36fe8b89b14292`, diperi
 
 1. Endpoint `POST /api/rfid/attendance` tetap menggunakan autentikasi perangkat, payload, idempotensi `request_id`, respons, dan locking yang sudah tersedia.
 2. Scan mencatat satu `student_attendances` dengan status `present`, sumber `rfid`, waktu scan, dan reader. Keanggotaan RFID harus sesuai tahun ajaran aktif dan masa keanggotaan.
-3. Resolver membaca absensi harian untuk siswa, rombel, tahun ajaran, semester, tanggal, dan jadwal mata pelajaran yang relevan.
+3. Resolver membaca absensi harian untuk siswa, rombel, tahun ajaran, semester, dan tanggal. Status harian menjadi status awal jurnal tanpa batas jam kedatangan.
 4. Saat jurnal disimpan, resolver menyediakan status awal; input status otomatis dari browser tidak dipercaya. Detail jurnal disimpan melalui upsert kelompok dalam transaksi, tanpa menulis absensi harian.
 5. Scan dan penyimpanan absensi harian manual menyinkronkan detail jurnal dengan `origin=daily`. Koreksi guru (`manual`) dan snapshot lama (`legacy`) tidak ditimpa.
 6. Kunci siswa diambil berurutan sebelum penyimpanan jurnal/absensi. Pembacaan absensi di dalam transaksi memakai locking read agar tidak memakai snapshot MySQL yang sudah tertinggal setelah menunggu kunci.
@@ -27,12 +27,13 @@ Pergantian tanggal atau rombel pada form memuat ulang roster dan status. Perubah
 
 ## Belum scan dan keterlambatan
 
+Perbaikan lanjutan pada 9 Oktober 2026 menghapus batas waktu yang sebelumnya mengubah Hadir dari RFID menjadi Belum Tercatat. Regresi mencakup endpoint roster, simpan dan edit jurnal, serta sinkronisasi melalui API RFID pada pukul 13:44:41. Validasi lanjutan: 45 test jurnal/RFID lulus dengan 225 assertions pada PHP 8.3 dan SQLite di memori. Tidak diperlukan migration baru untuk perbaikan lanjutan ini.
+
 - Tanpa absensi harian: `pending`, ditampilkan **Belum Tercatat**. Status ini hanya ada pada enum jurnal; empat status resmi absensi harian tetap sama.
 - Sakit, Izin, dan Alpa yang sudah dikonfirmasi pada absensi harian menjadi status awal jurnal.
-- RFID yang waktunya setelah awal pelajaran tidak otomatis menjadikan pelajaran itu Hadir. Status awal tetap Belum Tercatat untuk dikonfirmasi guru; absensi harian tetap Hadir.
-- Pelajaran setelah kedatangan menjadi Hadir apabila jadwal menunjukkan kedatangan sebelum pelajaran dimulai.
-- Jika mata pelajaran mempunyai beberapa sesi pada hari yang sama, resolver memakai awal sesi paling dini secara konservatif. Data `lesson_number` berupa teks bebas dan jadwal belum mempunyai pemetaan nomor jam ke sesi; sesi berikutnya yang ambigu memerlukan koreksi guru.
-- Jika jadwal mata pelajaran belum tersedia, dipakai awal jadwal rombel yang paling dini. Jika tidak ada jadwal sama sekali, batas konservatif adalah **07.00 waktu aplikasi**. Siswa yang datang setelah batas itu tetap bisa scan, tetapi kehadiran per pelajaran memerlukan konfirmasi. Timezone aplikasi mengikuti pengaturan yang sudah ada, dengan default Asia/Jakarta.
+- RFID dengan absensi harian Hadir tetap menjadi Hadir pada jurnal, termasuk jika tap dilakukan setelah awal pelajaran atau pukul 13:44:41 dan jadwal belum tersedia. Waktu kedatangan tetap ditampilkan sebagai informasi.
+- Jika siswa tidak mengikuti pelajaran tertentu, guru memakai koreksi khusus pelajaran dengan alasan. Koreksi tersebut tidak mengubah absensi harian dan tidak ditimpa sinkronisasi RFID.
+- Jurnal otomatis yang terlanjur tersimpan sebagai Belum Tercatat dapat diperbarui dengan menyimpan ulang jurnal atau melalui sinkronisasi absensi harian. Tidak ada perubahan massal pada riwayat jurnal.
 - Tidak ada perubahan otomatis menjadi Alpa berdasarkan lewatnya waktu.
 
 HTML, PDF, dan DOCX menghitung Tidak Hadir hanya dari Sakit + Izin + Alpa. Belum Tercatat ditampilkan terpisah pada detail dan dalam kolom Keterangan laporan. Bentuk tabel serta placeholder template DOCX lama tetap dipertahankan.
@@ -43,7 +44,7 @@ HTML, PDF, dan DOCX menghitung Tidak Hadir hanya dari Sakit + Izin + Alpa. Belum
 |---|---|
 | `app/Enums/JournalAttendanceStatus.php` | Enum jurnal dengan Belum Tercatat tanpa mengubah enum absensi harian. |
 | `app/Models/TeachingJournalAttendance.php` | Cast enum jurnal dan pengarsipan soft delete. |
-| `app/Services/Academic/JournalAttendanceResolver.php` | Roster berdasarkan konteks, resolusi absensi harian/jadwal, dan sinkronisasi detail otomatis. |
+| `app/Services/Academic/JournalAttendanceResolver.php` | Roster berdasarkan konteks, resolusi absensi harian, dan sinkronisasi detail otomatis. |
 | `app/Services/Academic/TeachingJournalService.php` | Pisahkan data harian, upsert detail, koreksi guru, transaksi, locking, dan audit perubahan konteks. |
 | `app/Services/Academic/RfidAttendanceService.php` | Validasi keanggotaan periode aktif dan sinkronisasi jurnal setelah pencatatan RFID. |
 | `app/Services/Academic/AcademicEntryService.php` | Sinkronisasi setelah absensi harian manual serta urutan kunci siswa yang konsisten. |

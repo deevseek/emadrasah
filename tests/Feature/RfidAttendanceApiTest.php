@@ -353,7 +353,7 @@ class RfidAttendanceApiTest extends TestCase
 
     public function test_scan_synchronizes_saved_automatic_lessons_and_preserves_teacher_exception(): void
     {
-        $this->travelTo(Carbon::parse('2026-10-07 06:45:00', 'Asia/Jakarta'));
+        $this->travelTo(Carbon::parse('2026-10-07 13:44:41', 'Asia/Jakarta'));
         [$device, $card, $semester] = $this->makeAttendanceContext();
         $membership = ClassroomMembership::where('student_id', $card->student_id)->firstOrFail();
         $user = User::factory()->create();
