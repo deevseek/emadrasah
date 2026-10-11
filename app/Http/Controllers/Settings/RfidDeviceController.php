@@ -10,10 +10,27 @@ use App\Http\Requests\Rfid\StoreRfidDeviceRequest;
 use App\Models\RfidDevice;
 use App\Services\Rfid\RfidDeviceService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 
 class RfidDeviceController extends Controller
 {
+    public function live(): JsonResponse
+    {
+        $devices = RfidDevice::query()->orderBy('id')->get()->map(fn (RfidDevice $device): array => [
+            'id' => $device->id,
+            'online' => $device->isOnline(),
+            'is_active' => $device->is_active,
+            'last_seen' => $device->last_seen_at?->diffForHumans() ?? 'Belum pernah terlihat di server',
+            'last_heartbeat' => $device->last_heartbeat_at?->diffForHumans() ?? 'Belum tercatat',
+        ]);
+
+        return response()->json([
+            'devices' => $devices,
+            'online_count' => $devices->where('online', true)->count(),
+        ])->header('Cache-Control', 'no-store, private');
+    }
+
     public function index(): View
     {
         return view('settings.rfid-devices.index', [
