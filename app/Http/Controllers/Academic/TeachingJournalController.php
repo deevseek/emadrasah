@@ -6,8 +6,8 @@ namespace App\Http\Controllers\Academic;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Academic\{TeachingJournalRequest, TeachingJournalTemplateRequest};
-use App\Models\{AcademicSubject, AcademicYear, Classroom, Personnel, Semester, StudentAttendance, TeachingJournal, TeachingJournalTemplate};
-use App\Services\Academic\{TeachingJournalReportService, TeachingJournalService, TeachingJournalTemplateService};
+use App\Models\{AcademicSubject, AcademicYear, Classroom, Personnel, Semester, TeachingJournal, TeachingJournalTemplate};
+use App\Services\Academic\{JournalAttendanceResolver, TeachingJournalReportService, TeachingJournalService, TeachingJournalTemplateService};
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\{RedirectResponse, Request, Response};
@@ -23,7 +23,7 @@ class TeachingJournalController extends Controller
         return view('academic.teaching-journals.index', $this->options($year) + compact('journals', 'year', 'semester', 'date') + ['template' => TeachingJournalTemplate::where('is_active', true)->latest()->first()]);
     }
 
-    public function create(Request $request, TeachingJournalService $service): View
+    public function create(Request $request, TeachingJournalService $service, JournalAttendanceResolver $attendance): View
     {
         abort_unless($service->activePersonnel($request->user()), 403, TeachingJournalService::NO_PERSONNEL);
         $year = $request->integer('academic_year_id') ?: AcademicYear::where('is_active', true)->value('id');
@@ -31,8 +31,9 @@ class TeachingJournalController extends Controller
         $date = $request->date('journal_date') ?? today();
         $classroomId = $request->integer('classroom_id');
         $journal = new TeachingJournal(['academic_year_id' => $year, 'semester_id' => $semester, 'classroom_id' => $classroomId ?: null, 'journal_date' => $date]);
-        $savedAttendance = StudentAttendance::query()->where('classroom_id', $classroomId)->whereDate('attendance_date', $date)->get()->keyBy('student_id');
-        return view('academic.teaching-journals.form', $this->options($year) + compact('journal', 'savedAttendance'));
+        $dailyAttendance = $attendance->daily($classroomId, $date);
+        $snapshotAttendance = collect();
+        return view('academic.teaching-journals.form', $this->options($year) + compact('journal', 'dailyAttendance', 'snapshotAttendance'));
     }
 
     public function store(TeachingJournalRequest $request, TeachingJournalService $service): RedirectResponse
@@ -48,11 +49,11 @@ class TeachingJournalController extends Controller
         return view('academic.teaching-journals.show', ['journal' => $teachingJournal, 'attendance' => $teachingJournal->attendances->countBy(fn ($row) => $row->status->value)]);
     }
 
-    public function edit(Request $request, TeachingJournal $teachingJournal): View
+    public function edit(Request $request, TeachingJournal $teachingJournal, JournalAttendanceResolver $attendance): View
     {
         $this->ensureManage($request, $teachingJournal);
         $teachingJournal->load('attendances');
-        return view('academic.teaching-journals.form', $this->options($teachingJournal->academic_year_id) + ['journal' => $teachingJournal, 'savedAttendance' => $teachingJournal->attendances->keyBy('student_id')]);
+        return view('academic.teaching-journals.form', $this->options($teachingJournal->academic_year_id) + ['journal' => $teachingJournal, 'dailyAttendance' => $attendance->daily($teachingJournal->classroom_id, $teachingJournal->journal_date), 'snapshotAttendance' => $teachingJournal->attendances->keyBy('student_id')]);
     }
 
     public function update(TeachingJournalRequest $request, TeachingJournal $teachingJournal, TeachingJournalService $service): RedirectResponse
