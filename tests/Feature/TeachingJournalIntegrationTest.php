@@ -110,6 +110,59 @@ class TeachingJournalIntegrationTest extends TestCase
         $this->assertStringNotContainsString('validation.', implode(' ', $errors));
     }
 
+    public function test_create_without_classroom_uses_first_accessible_room_and_loads_its_daily_attendance(): void
+    {
+        [$user, $payload] = $this->journalContext();
+        $studentId = $payload['attendances'][0]['student_id'];
+        StudentAttendance::create(['academic_year_id' => $payload['academic_year_id'], 'semester_id' => $payload['semester_id'], 'classroom_id' => $payload['classroom_id'], 'student_id' => $studentId, 'attendance_date' => today(), 'status' => 'present', 'source' => 'manual', 'recorded_by' => $user->id]);
+
+        $response = $this->actingAs($user)->get(route('academic.teaching-journals.create'));
+
+        $response->assertOk()
+            ->assertSee('value="'.$payload['classroom_id'].'" selected', false)
+            ->assertSee('Absensi harian manual')
+            ->assertSee('Hadir');
+        $this->assertSame($payload['classroom_id'], $response->viewData('journal')->classroom_id);
+    }
+
+    public function test_create_uses_explicit_classroom_and_date_without_leaking_previous_context(): void
+    {
+        [$user, $payload] = $this->journalContext();
+        $gradeId = Classroom::findOrFail($payload['classroom_id'])->grade_level_id;
+        $otherRoom = Classroom::create(['academic_year_id' => $payload['academic_year_id'], 'grade_level_id' => $gradeId, 'code' => 'B', 'is_active' => true]);
+        $otherStudent = Student::create(['id' => 204, 'full_name' => 'Siswa Konteks Baru', 'gender' => 'male', 'status' => 'active']);
+        ClassroomMembership::create(['student_id' => $otherStudent->id, 'classroom_id' => $otherRoom->id, 'academic_year_id' => $payload['academic_year_id'], 'status' => 'active', 'joined_at' => '2026-07-01']);
+        StudentAttendance::create(['academic_year_id' => $payload['academic_year_id'], 'semester_id' => $payload['semester_id'], 'classroom_id' => $otherRoom->id, 'student_id' => $otherStudent->id, 'attendance_date' => '2026-10-15', 'status' => 'present', 'source' => 'manual', 'recorded_by' => $user->id]);
+        StudentAttendance::create(['academic_year_id' => $payload['academic_year_id'], 'semester_id' => $payload['semester_id'], 'classroom_id' => $payload['classroom_id'], 'student_id' => $payload['attendances'][0]['student_id'], 'attendance_date' => '2026-10-14', 'status' => 'absent', 'source' => 'manual', 'recorded_by' => $user->id]);
+
+        $response = $this->actingAs($user)->get(route('academic.teaching-journals.create', ['academic_year_id' => $payload['academic_year_id'], 'semester_id' => $payload['semester_id'], 'classroom_id' => $otherRoom->id, 'journal_date' => '2026-10-15', 'lesson_number' => '3-4']));
+
+        $response->assertOk()->assertSee('Siswa Konteks Baru')->assertSee('Absensi harian manual')->assertSee('Hadir');
+        $this->assertSame($otherRoom->id, $response->viewData('journal')->classroom_id);
+        $this->assertTrue($response->viewData('dailyAttendance')->has($otherStudent->id));
+        $this->assertFalse($response->viewData('dailyAttendance')->has($payload['attendances'][0]['student_id']));
+    }
+
+    public function test_create_rejects_explicit_classroom_that_teacher_cannot_access(): void
+    {
+        [$user, $payload] = $this->journalContext();
+        $user->assignRole(Role::findByName('guru'));
+
+        $this->actingAs($user)->get(route('academic.teaching-journals.create', ['academic_year_id' => $payload['academic_year_id'], 'classroom_id' => $payload['classroom_id']]))
+            ->assertSessionHasErrors('classroom_id');
+    }
+
+    public function test_create_form_automatically_reloads_changed_attendance_context(): void
+    {
+        $view = file_get_contents(resource_path('views/academic/teaching-journals/form.blade.php'));
+
+        $this->assertStringContainsString("'[name=\"academic_year_id\"],[name=\"semester_id\"],[name=\"journal_date\"],[name=\"classroom_id\"]'", $view);
+        $this->assertStringContainsString('field.addEventListener(\'change\', reloadContext)', $view);
+        $this->assertStringContainsString('clearTimeout(contextReloadTimer)', $view);
+        $this->assertStringContainsString('version !== contextVersion', $view);
+        $this->assertStringNotContainsString('Muat Data Absensi Sesuai Konteks', $view);
+    }
+
     public function test_opening_lesson_becomes_daily_source_and_following_lessons_inherit_every_status(): void
     {
         [$user, $payload] = $this->journalContext();

@@ -18,7 +18,7 @@
             @endforeach
             @can('teaching-journals.view-all')<label class="md:col-span-2">Ustaz/Ustazah<select class="input" name="personnel_id">@foreach($teachers as $item)<option value="{{$item->id}}" @selected(old('personnel_id',$journal->personnel_id)==$item->id)>{{$item->full_name}}</option>@endforeach</select>@error('personnel_id')<p class="mt-1 text-sm text-red-600">{{$message}}</p>@enderror</label>@endcan
         </section>
-        @unless($journal->exists)<div class="rounded-xl border border-emerald-200 bg-emerald-50 p-3"><button class="btn btn-secondary" type="button" data-reload-attendance>Muat Data Absensi Sesuai Konteks</button><p class="mt-2 text-xs text-slate-600">Gunakan tombol ini setelah mengganti tahun ajaran, semester, tanggal, atau rombel agar data harian yang tepat dimuat.</p></div>@endunless
+        @unless($journal->exists)<p class="hidden rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800" data-context-loading role="status">Memuat absensi sesuai konteks yang dipilih…</p>@endunless
 
         <section>
             <h2 class="text-lg font-black text-emerald-900">Absensi Siswa</h2>
@@ -65,9 +65,33 @@
             });
         }
         classroom.addEventListener('change', showRoster); lessonNumber.addEventListener('input', showRoster); showRoster();
-        document.querySelector('[data-reload-attendance]')?.addEventListener('click', () => {
-            const query = new URLSearchParams({academic_year_id: document.querySelector('[name="academic_year_id"]').value, semester_id: document.querySelector('[name="semester_id"]').value, journal_date: document.querySelector('[name="journal_date"]').value, classroom_id: classroom.value});
-            window.location.assign(`{{ route('academic.teaching-journals.create') }}?${query}`);
-        });
+        @unless($journal->exists)
+        let contextReloadTimer;
+        let contextVersion = 0;
+        const reloadContext = (event) => {
+            const version = ++contextVersion;
+            clearTimeout(contextReloadTimer);
+            document.querySelector('[data-context-loading]').classList.remove('hidden');
+            document.querySelectorAll('.attendance-roster').forEach((roster) => {
+                roster.hidden = true;
+                roster.querySelectorAll('input,select').forEach((input) => input.disabled = true);
+            });
+            contextReloadTimer = setTimeout(() => {
+                if (version !== contextVersion) return;
+                const query = new URLSearchParams({
+                    academic_year_id: document.querySelector('[name="academic_year_id"]').value,
+                    journal_date: document.querySelector('[name="journal_date"]').value,
+                    academic_subject_id: document.querySelector('[name="academic_subject_id"]').value,
+                    lesson_number: lessonNumber.value,
+                });
+                if (event.target.name !== 'academic_year_id') {
+                    query.set('semester_id', document.querySelector('[name="semester_id"]').value);
+                    query.set('classroom_id', classroom.value);
+                }
+                window.location.assign(`{{ route('academic.teaching-journals.create') }}?${query}`);
+            }, 250);
+        };
+        document.querySelectorAll('[name="academic_year_id"],[name="semester_id"],[name="journal_date"],[name="classroom_id"]').forEach((field) => field.addEventListener('change', reloadContext));
+        @endunless
     </script>
 </x-app-layout>
