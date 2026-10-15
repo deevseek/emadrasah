@@ -12,7 +12,11 @@ use Illuminate\View\View;
 
 class ReportController extends Controller
 {
-    public function __invoke(Request $request, AcademicAccessService $access): View
+    /**
+     * Mendukung route eksplisit `[ReportController::class, 'index']` yang sudah
+     * tersimpan pada route cache di sebagian instalasi production.
+     */
+    public function index(Request $request, AcademicAccessService $access): View
     {
         $year = $request->integer('academic_year_id') ?: AcademicYear::where('is_active', true)->value('id');
         $semester = $request->integer('semester_id') ?: Semester::where('academic_year_id', $year)->where('is_active', true)->value('id');
@@ -59,5 +63,13 @@ class ReportController extends Controller
             'semesters' => Semester::where('academic_year_id', $year)->get(),
             'rooms' => $access->classrooms($request->user())->where('academic_year_id', $year)->get(),
         ]);
+    }
+
+    /**
+     * Kompatibilitas untuk instalasi yang masih menggunakan controller invokable.
+     */
+    public function __invoke(Request $request, AcademicAccessService $access): View
+    {
+        return $this->index($request, $access);
     }
 }

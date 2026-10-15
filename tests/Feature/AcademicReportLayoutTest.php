@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Http\Controllers\Academic\ReportController;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 class AcademicReportLayoutTest extends TestCase
@@ -27,5 +29,15 @@ class AcademicReportLayoutTest extends TestCase
 
         $this->assertStringContainsString("->where('semester_id', \$semester)", $controller);
         $this->assertStringContainsString("\$teachingQuery->where('classroom_id', \$roomId)", $controller);
+    }
+
+    public function test_academic_report_route_targets_existing_index_action(): void
+    {
+        $this->assertTrue(method_exists(ReportController::class, 'index'));
+        $this->assertTrue(method_exists(ReportController::class, '__invoke'));
+        $this->assertSame(
+            ReportController::class.'@index',
+            Route::getRoutes()->getByName('academic.reports.index')?->getActionName(),
+        );
     }
 }
