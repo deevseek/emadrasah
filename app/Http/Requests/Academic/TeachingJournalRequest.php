@@ -4,12 +4,18 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Academic;
 
+use App\Models\AcademicYear;
+use App\Models\Semester;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class TeachingJournalRequest extends FormRequest
 {
-    public function authorize(): bool { return $this->user()?->can('teaching-journals.manage') ?? false; }
+    public function authorize(): bool
+    {
+        return $this->user()?->can('teaching-journals.manage') ?? false;
+    }
+
     public function rules(): array
     {
         $year = $this->integer('academic_year_id');
@@ -31,7 +37,8 @@ class TeachingJournalRequest extends FormRequest
             'notes' => ['nullable', 'string', 'max:10000'],
             'attendances' => [$openingLesson ? 'required' : 'prohibited', 'array', 'min:1'],
             'attendances.*.student_id' => ['required', 'integer', 'distinct', 'exists:students,id'],
-            'attendances.*.status' => ['required', Rule::in(['present', 'sick', 'permitted', 'absent'])],
+            'attendances.*.status' => ['required', Rule::in(['present', 'sick', 'permitted', 'absent', 'pending'])],
+            'attendances.*.mode' => ['nullable', Rule::in(['daily', 'manual', 'keep'])],
             'attendances.*.notes' => ['nullable', 'string', 'max:1000'],
             'attendance_corrections' => [$openingLesson ? 'prohibited' : 'nullable', 'array'],
             'attendance_corrections.*.student_id' => ['required', 'integer', 'distinct', 'exists:students,id'],
