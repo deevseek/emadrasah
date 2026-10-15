@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Academic;
 
-use App\Models\AcademicYear;
-use App\Models\Semester;
+use App\Services\Academic\JournalAttendanceResolver;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
