@@ -13,6 +13,9 @@ class AuthenticateRfidDevice
 {
     public function handle(Request $request, Closure $next): Response
     {
+        // Firmware harus menerima status HTTP JSON, termasuk validasi tanpa
+        // header Accept, bukan redirect/halaman HTML yang sulit didiagnosis.
+        $request->headers->set('Accept', 'application/json');
         $deviceId = (string) $request->header('X-Device-Id');
         $token = (string) $request->header('X-Device-Token');
         $device = $deviceId !== '' && $token !== '' ? RfidDevice::query()->where('device_id', $deviceId)->where('is_active', true)->first() : null;
