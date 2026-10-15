@@ -76,7 +76,9 @@ class TeachingJournalService
 
     public function delete(TeachingJournal $journal, User $user): void
     {
-        if (! $user->can('teaching-journals.view-all') && $journal->personnel_id !== $user->personnel?->id) throw new AuthorizationException;
+        if (! $user->can('teaching-journals.view-all') && $journal->personnel_id !== $user->personnel?->id) {
+            throw new AuthorizationException;
+        }
         DB::transaction(function () use ($journal, $user): void {
             activity('akademik')->causedBy($user)->withProperties(['tanggal' => $journal->journal_date->toDateString(), 'rombel_id' => $journal->classroom_id])->log('Menghapus Jurnal Mengajar');
             $journal->delete();

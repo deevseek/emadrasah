@@ -34,7 +34,7 @@ class RfidWriterPageTest extends TestCase
         $response = $this->actingAs($operator)->get("https://madrasah.test/students/{$student->id}");
 
         $response->assertOk()
-            ->assertSee("const writerUrl = \"/students/{$student->id}/rfid-writer\";", false)
+            ->assertSee('const writerUrl = '.json_encode("/students/{$student->id}/rfid-writer").';', false)
             ->assertDontSee('http://internal-app.test/students', false);
     }
 }
