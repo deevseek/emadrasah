@@ -17,6 +17,7 @@ Route::middleware(['auth', 'active', 'force-password-change'])->prefix('pengatur
     Route::post('/aplikasi/bri/test', [ApplicationSettingController::class, 'testBri'])->middleware('permission:finance.bri.configure')->name('application-settings.bri.test');
     Route::middleware('permission:rfid-device.manage')->prefix('perangkat-rfid')->name('rfid-devices.')->group(function (): void {
         Route::get('/', [RfidDeviceController::class, 'index'])->name('index');
+        Route::get('/live', [RfidDeviceController::class, 'live'])->name('live');
         Route::post('/', [RfidDeviceController::class, 'store'])->name('store');
         Route::post('/{device}/ganti-token', [RfidDeviceController::class, 'rotateToken'])->name('rotate-token');
         Route::patch('/{device}/status', [RfidDeviceController::class, 'toggle'])->name('toggle');

@@ -65,6 +65,35 @@ class StudentAttendanceXlsxExportTest extends TestCase
         $this->actingAs($user)->get(route('academic.attendance.export', ['month' => 'September']))->assertSessionHasErrors(['classroom_id', 'month']);
     }
 
+    public function test_academic_report_module_displays_attendance_download_form(): void
+    {
+        [$user, $classroom] = $this->records();
+        $user->givePermissionTo(Permission::findOrCreate('academic-reports.view'));
+
+        $this->actingAs($user)
+            ->get(route('academic.reports.index', ['academic_year_id' => $classroom->academic_year_id]))
+            ->assertOk()
+            ->assertSee('Unduh Laporan Absensi Siswa')
+            ->assertSee(route('academic.reports.attendance.export'), false)
+            ->assertSee('type="month"', false)
+            ->assertSee($classroom->display_name);
+    }
+
+    public function test_report_user_can_download_attendance_without_attendance_module_permission(): void
+    {
+        [$user, $classroom] = $this->records();
+        $user->revokePermissionTo('academic-attendance.view');
+        $user->givePermissionTo(Permission::findOrCreate('academic-reports.view'));
+
+        $response = $this->actingAs($user)->get(route('academic.reports.attendance.export', [
+            'classroom_id' => $classroom->id,
+            'month' => '2026-09',
+        ]));
+
+        $response->assertOk();
+        $response->assertDownload('laporan-absensi-kelas-1-a-2026-09.xlsx');
+    }
+
     private function records(): array
     {
         $user = User::factory()->create(['must_change_password' => false]);
