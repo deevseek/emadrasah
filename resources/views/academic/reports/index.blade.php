@@ -4,8 +4,17 @@
             <x-ui.page-header
                 title="Laporan Akademik"
                 description="Pantau kehadiran, capaian nilai, dan kelengkapan jurnal mengajar dalam satu laporan."
-            />
+            >
+                <button onclick="window.print()" class="btn btn-secondary" type="button">Cetak / Simpan PDF</button>
+            </x-ui.page-header>
         </div>
+
+        <form method="GET" action="{{ route('academic.reports.attendance.export') }}" class="card card-body grid gap-4 print:hidden md:grid-cols-[1fr_1fr_auto]">
+            <h2 class="font-bold text-emerald-950 md:col-span-3">Unduh Laporan Absensi Siswa</h2>
+            <label><span class="label">Rombel laporan</span><select class="input mt-1" name="classroom_id" required><option value="">Pilih rombel</option>@foreach($rooms as $item)<option value="{{ $item->id }}" @selected($room?->id == $item->id)>{{ $item->display_name }}</option>@endforeach</select></label>
+            <label><span class="label">Bulan laporan</span><input class="input mt-1" type="month" name="month" value="{{ request('month', now()->format('Y-m')) }}" required></label>
+            <button class="btn btn-primary self-end" type="submit">Unduh Laporan XLSX</button>
+        </form>
 
         <form method="GET" action="{{ route('academic.reports.index') }}" class="card card-body print:hidden">
             <div class="mb-5 flex flex-col gap-2 border-b border-slate-100 pb-4 sm:flex-row sm:items-center sm:justify-between">
