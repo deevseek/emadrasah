@@ -20,6 +20,10 @@ class StudentAttendanceXlsxExportTest extends TestCase
         StudentAttendance::create(['academic_year_id' => $classroom->academic_year_id, 'semester_id' => $semester->id, 'classroom_id' => $classroom->id, 'student_id' => $student->id, 'attendance_date' => '2026-09-02', 'status' => 'sick', 'recorded_by' => $user->id]);
         StudentAttendance::create(['academic_year_id' => $classroom->academic_year_id, 'semester_id' => $semester->id, 'classroom_id' => $classroom->id, 'student_id' => $student->id, 'attendance_date' => '2026-09-03', 'status' => 'permitted', 'recorded_by' => $user->id]);
         StudentAttendance::create(['academic_year_id' => $classroom->academic_year_id, 'semester_id' => $semester->id, 'classroom_id' => $classroom->id, 'student_id' => $student->id, 'attendance_date' => '2026-09-04', 'status' => 'absent', 'recorded_by' => $user->id]);
+        ClassroomMembership::where('student_id', $student->id)->update([
+            'status' => 'moved',
+            'left_at' => '2026-09-15',
+        ]);
 
         $response = $this->actingAs($user)->get(route('academic.attendance.export', ['classroom_id' => $classroom->id, 'month' => '2026-09']))->assertOk();
         $response->assertDownload('laporan-absensi-kelas-1-a-2026-09.xlsx');
@@ -34,9 +38,25 @@ class StudentAttendanceXlsxExportTest extends TestCase
         $this->assertStringContainsString('Ahmad Falah', $sheet);
         $this->assertStringContainsString('Keterangan: H = Hadir, S = Sakit, I = Izin, A = Alpa', $sheet);
         $this->assertStringContainsString('orientation="landscape"', $sheet);
+        $this->assertStringContainsString('<dimension ref="A1:AM', $sheet);
+        $this->assertStringContainsString('<printOptions horizontalCentered="1"/><pageMargins', $sheet);
         $this->assertStringContainsString('<c r="AI9" t="inlineStr" s="2"><is><t xml:space="preserve">1</t>', $sheet);
         $this->assertStringContainsString('<c r="AJ9" t="inlineStr" s="2"><is><t xml:space="preserve">1</t>', $sheet);
         $this->assertStringContainsString('<c r="AK9" t="inlineStr" s="2"><is><t xml:space="preserve">1</t>', $sheet);
+
+        $styles = (string) $this->zipEntry($response->baseResponse->getFile()->getPathname(), 'xl/styles.xml');
+        $this->assertStringNotContainsString('<xf fontId=', $styles);
+    }
+
+    private function zipEntry(string $path, string $entry): string
+    {
+        $zip = new ZipArchive;
+        $this->assertTrue($zip->open($path) === true);
+        $contents = $zip->getFromName($entry);
+        $zip->close();
+        $this->assertNotFalse($contents);
+
+        return $contents;
     }
 
     public function test_export_requires_classroom_and_valid_month(): void
