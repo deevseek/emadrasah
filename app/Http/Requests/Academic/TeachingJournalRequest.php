@@ -4,12 +4,18 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Academic;
 
+use App\Models\AcademicYear;
+use App\Models\Semester;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class TeachingJournalRequest extends FormRequest
 {
-    public function authorize(): bool { return $this->user()?->can('teaching-journals.manage') ?? false; }
+    public function authorize(): bool
+    {
+        return $this->user()?->can('teaching-journals.manage') ?? false;
+    }
+
     public function rules(): array
     {
         $year = $this->integer('academic_year_id');
@@ -31,7 +37,8 @@ class TeachingJournalRequest extends FormRequest
             'notes' => ['nullable', 'string', 'max:10000'],
             'attendances' => [$openingLesson ? 'required' : 'prohibited', 'array', 'min:1'],
             'attendances.*.student_id' => ['required', 'integer', 'distinct', 'exists:students,id'],
-            'attendances.*.status' => ['required', Rule::in(['present', 'sick', 'permitted', 'absent'])],
+            'attendances.*.status' => ['required', Rule::in(['present', 'sick', 'permitted', 'absent', 'pending'])],
+            'attendances.*.mode' => ['nullable', Rule::in(['daily', 'manual', 'keep'])],
             'attendances.*.notes' => ['nullable', 'string', 'max:1000'],
             'attendance_corrections' => [$openingLesson ? 'prohibited' : 'nullable', 'array'],
             'attendance_corrections.*.student_id' => ['required', 'integer', 'distinct', 'exists:students,id'],
@@ -72,6 +79,50 @@ class TeachingJournalRequest extends FormRequest
             'attendance_corrections.*.student_id' => 'siswa yang dikoreksi',
             'attendance_corrections.*.status' => 'status koreksi',
             'attendance_corrections.*.reason' => 'alasan koreksi',
+        ];
+    }
+
+    public function after(): array
+    {
+        return [function ($validator): void {
+            $date = $this->input('journal_date');
+            foreach ([AcademicYear::find($this->integer('academic_year_id')), Semester::find($this->integer('semester_id'))] as $period) {
+                if ($period && $date && ($date < $period->starts_at->toDateString() || $date > $period->ends_at->toDateString())) {
+                    $validator->errors()->add('journal_date', 'Tanggal jurnal harus berada dalam tahun ajaran dan semester yang dipilih.');
+                }
+            }
+        }];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'topic.max' => 'Uraian mengajar tidak boleh lebih dari 5.000 karakter.',
+        ];
+    }
+
+    public function attributes(): array
+    {
+        return [
+            'academic_year_id' => 'tahun ajaran',
+            'semester_id' => 'semester',
+            'classroom_id' => 'rombel',
+            'academic_subject_id' => 'mata pelajaran',
+            'personnel_id' => 'ustaz/ustazah',
+            'journal_date' => 'hari/tanggal',
+            'lesson_number' => 'jam ke',
+            'topic' => 'uraian mengajar',
+            'learning_objectives' => 'tujuan pembelajaran',
+            'learning_material' => 'materi pembelajaran',
+            'learning_method' => 'metode pembelajaran',
+            'learning_activity' => 'kegiatan pembelajaran',
+            'assignment' => 'tugas',
+            'notes' => 'keterangan/catatan',
+            'attendances' => 'absensi siswa',
+            'attendances.*.student_id' => 'siswa',
+            'attendances.*.status' => 'status kehadiran',
+            'attendances.*.mode' => ['nullable', Rule::in(['daily', 'manual', 'keep'])],
+            'attendances.*.notes' => 'keterangan absensi',
         ];
     }
 }

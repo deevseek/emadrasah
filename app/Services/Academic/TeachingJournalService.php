@@ -27,8 +27,12 @@ class TeachingJournalService
         return DB::transaction(function () use ($data, $user, $journal): TeachingJournal {
             Classroom::query()->whereKey($data['classroom_id'])->lockForUpdate()->firstOrFail();
             $personnel = $this->activePersonnel($user);
-            if (! $personnel || ! $personnel->is_active) throw new AuthorizationException(self::NO_PERSONNEL);
-            if ($journal && ! $user->can('teaching-journals.view-all') && $journal->personnel_id !== $personnel->id) throw new AuthorizationException('Anda hanya dapat mengubah jurnal milik sendiri.');
+            if (! $personnel || ! $personnel->is_active) {
+                throw new AuthorizationException(self::NO_PERSONNEL);
+            }
+            if ($journal && ! $user->can('teaching-journals.view-all') && $journal->personnel_id !== $personnel->id) {
+                throw new AuthorizationException('Anda hanya dapat mengubah jurnal milik sendiri.');
+            }
 
             $openingLesson = $this->attendanceResolver->isOpeningLesson($data['lesson_number']);
             $attendanceRows = collect($data['attendances'] ?? []);
@@ -38,6 +42,11 @@ class TeachingJournalService
 
             $members = $this->attendanceResolver->members((int) $data['classroom_id'], $data['journal_date']);
             if ($openingLesson) $this->attendanceResolver->assertCompleteRoster($members, $attendanceRows);
+
+            if ($contextChanged) {
+                activity('akademik')->causedBy($user)->performedOn($journal)->withProperties(['konteks_lama' => $journal->only(['academic_year_id', 'semester_id', 'classroom_id', 'journal_date']), 'absensi_lama' => $previous->values()->toArray()])->log('Mengubah konteks jurnal dan memuat ulang absensi harian');
+                $journal->attendances()->whereNotIn('student_id', $memberIds)->delete();
+            }
 
             $data['personnel_id'] = $user->can('teaching-journals.view-all') && isset($data['personnel_id']) ? (int) $data['personnel_id'] : $personnel->id;
             $data['personnel_id'] = Personnel::whereKey($data['personnel_id'])->where('is_active', true)->firstOrFail()->id;
@@ -76,7 +85,9 @@ class TeachingJournalService
 
     public function delete(TeachingJournal $journal, User $user): void
     {
-        if (! $user->can('teaching-journals.view-all') && $journal->personnel_id !== $user->personnel?->id) throw new AuthorizationException;
+        if (! $user->can('teaching-journals.view-all') && $journal->personnel_id !== $user->personnel?->id) {
+            throw new AuthorizationException;
+        }
         DB::transaction(function () use ($journal, $user): void {
             activity('akademik')->causedBy($user)->withProperties(['tanggal' => $journal->journal_date->toDateString(), 'rombel_id' => $journal->classroom_id])->log('Menghapus Jurnal Mengajar');
             $journal->delete();
