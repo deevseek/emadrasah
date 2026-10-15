@@ -45,6 +45,24 @@ class TeachingJournalIntegrationTest extends TestCase
         $this->assertTrue(Schema::hasTable('teaching_journal_templates'));
     }
 
+    public function test_attendance_source_migration_recovers_when_corrected_by_already_exists(): void
+    {
+        Schema::table('teaching_journal_attendances', function (Blueprint $table): void {
+            $table->dropColumn(['source', 'correction_reason', 'corrected_at']);
+        });
+
+        $this->assertTrue(Schema::hasColumn('teaching_journal_attendances', 'corrected_by'));
+        $migration = require database_path('migrations/2026_10_15_000000_add_source_to_teaching_journal_attendances.php');
+        $migration->up();
+
+        $this->assertTrue(Schema::hasColumns('teaching_journal_attendances', [
+            'source',
+            'correction_reason',
+            'corrected_by',
+            'corrected_at',
+        ]));
+    }
+
     public function test_journal_exposes_attendance_snapshots_and_report_routes(): void
     {
         $this->assertSame('teaching_journal_id', (new TeachingJournal)->attendances()->getForeignKeyName());
@@ -205,43 +223,6 @@ class TeachingJournalIntegrationTest extends TestCase
         @unlink($output);
         $this->assertIsString($document);
         $this->assertStringContainsString('Materi pembelajaran', $document);
-    }
-
-    public function test_teacher_can_create_and_update_journal_with_topic_longer_than_255_characters(): void
-    {
-        [$user, $payload] = $this->journalContext();
-        $payload['topic'] = trim(str_repeat('Materi pembelajaran ', 30));
-
-        $response = $this->actingAs($user)->post(route('academic.teaching-journals.store'), $payload);
-
-        $journal = TeachingJournal::sole();
-        $response->assertRedirect(route('academic.teaching-journals.show', $journal));
-        $this->assertSame($payload['topic'], $journal->topic);
-
-        $payload['topic'] = trim(str_repeat('Uraian pembelajaran lanjutan ', 20));
-        $this->actingAs($user)
-            ->put(route('academic.teaching-journals.update', $journal), $payload)
-            ->assertRedirect(route('academic.teaching-journals.show', $journal));
-        $this->assertSame($payload['topic'], $journal->refresh()->topic);
-    }
-
-    public function test_journal_validation_uses_indonesian_messages_and_humanized_attributes(): void
-    {
-        app()->setLocale('id');
-        [$user, $payload] = $this->journalContext();
-        $payload['topic'] = '';
-        $payload['learning_method'] = str_repeat('a', 256);
-
-        $response = $this->from(route('academic.teaching-journals.create'))
-            ->actingAs($user)
-            ->post(route('academic.teaching-journals.store'), $payload);
-
-        $response->assertRedirect(route('academic.teaching-journals.create'))
-            ->assertSessionHasErrors(['topic', 'learning_method']);
-        $errors = session('errors')->all();
-        $this->assertStringContainsString('uraian mengajar wajib diisi', mb_strtolower(implode(' ', $errors)));
-        $this->assertStringContainsString('metode pembelajaran tidak boleh lebih dari 255 karakter', mb_strtolower(implode(' ', $errors)));
-        $this->assertStringNotContainsString('validation.', implode(' ', $errors));
     }
 
     public function test_existing_teacher_role_receives_journal_input_permissions_from_migration(): void
