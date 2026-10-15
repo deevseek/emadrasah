@@ -29,6 +29,7 @@ return [
         'string' => ':attribute minimal terdiri dari :min karakter.',
     ],
     'numeric' => ':attribute harus berupa angka.',
+    'prohibited' => ':attribute tidak boleh dikirim.',
     'required' => ':attribute wajib diisi.',
     'required_if' => ':attribute wajib diisi ketika :other bernilai :value.',
     'required_with' => ':attribute wajib diisi ketika :values tersedia.',

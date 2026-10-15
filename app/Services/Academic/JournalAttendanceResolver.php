@@ -4,73 +4,78 @@ declare(strict_types=1);
 
 namespace App\Services\Academic;
 
-use App\Models\AcademicYear;
-use App\Models\Classroom;
-use App\Models\ClassroomMembership;
-use App\Models\Semester;
-use App\Models\StudentAttendance;
-use App\Models\TeachingJournal;
-use Carbon\Carbon;
+use App\Models\{ClassroomMembership, StudentAttendance, TeachingJournal, User};
+use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class JournalAttendanceResolver
 {
-    public function members(array $context, ?int $studentId = null): Collection
+    public function isOpeningLesson(?string $lessonNumber): bool
     {
-        return ClassroomMembership::with('student')->where('classroom_id', $context['classroom_id'])
-            ->where('academic_year_id', $context['academic_year_id'])->where('status', 'active')
-            ->when($studentId, fn ($q) => $q->where('student_id', $studentId))
-            ->whereDate('joined_at', '<=', $context['journal_date'])
-            ->where(fn ($q) => $q->whereNull('left_at')->orWhereDate('left_at', '>=', $context['journal_date']))
-            ->get()->unique('student_id');
+        preg_match_all('/\d+/', (string) $lessonNumber, $matches);
+
+        return array_slice(array_map('intval', $matches[0]), 0, 2) === [1, 2];
     }
 
-    public function resolve(array $context, ?int $studentId = null, ?Collection $members = null): Collection
+    public function members(int $classroomId, CarbonInterface|string $date): Collection
     {
-        $year = AcademicYear::find($context['academic_year_id']);
-        $semester = Semester::where('academic_year_id', $context['academic_year_id'])->find($context['semester_id']);
-        $room = Classroom::where('academic_year_id', $context['academic_year_id'])->where('is_active', true)->find($context['classroom_id']);
-        $day = Carbon::parse($context['journal_date'])->toDateString();
-        if (! $year || ! $semester || ! $room || $day < $year->starts_at->toDateString() || $day > $year->ends_at->toDateString() || $day < $semester->starts_at->toDateString() || $day > $semester->ends_at->toDateString()) {
-            throw ValidationException::withMessages(['journal_date' => 'Tanggal dan rombel jurnal harus sesuai tahun ajaran dan semester yang dipilih.']);
-        }
-        $date = Carbon::parse($context['journal_date'], config('app.timezone', 'Asia/Jakarta'));
-        $daily = StudentAttendance::where('classroom_id', $context['classroom_id'])
-            ->where('academic_year_id', $context['academic_year_id'])->where('semester_id', $context['semester_id'])
+        return ClassroomMembership::query()
+            ->where('classroom_id', $classroomId)
+            ->whereDate('joined_at', '<=', $date)
+            ->where(fn ($query) => $query->whereNull('left_at')->orWhereDate('left_at', '>=', $date))
+            ->with('student')
+            ->get()
+            ->pluck('student')
+            ->filter()
+            ->sortBy('full_name')
+            ->values();
+    }
+
+    public function daily(int $classroomId, CarbonInterface|string $date): Collection
+    {
+        return StudentAttendance::query()
+            ->where('classroom_id', $classroomId)
             ->whereDate('attendance_date', $date)
-            ->when($studentId, fn ($q) => $q->where('student_id', $studentId))
-            ->when(DB::transactionLevel() > 0, fn ($q) => $q->lockForUpdate())
-            ->get()->keyBy('student_id');
-
-        return ($members ?? $this->members($context, $studentId))->mapWithKeys(function ($member) use ($daily): array {
-            $record = $daily->get($member->student_id);
-            $status = $record?->status->value ?? 'pending';
-            $source = $record?->source->value;
-
-            return [$member->student_id => [
-                'student_id' => $member->student_id, 'name' => $member->student->full_name,
-                'status' => $status, 'notes' => $record?->notes, 'origin' => 'daily',
-                'daily_source' => $source, 'arrival_at' => $record?->scanned_at?->format('Y-m-d H:i:s'),
-            ]];
-        });
+            ->get()
+            ->keyBy('student_id');
     }
 
-    public function synchronize(StudentAttendance $attendance): void
+    public function assertCompleteRoster(Collection $members, Collection $rows): void
     {
-        DB::transaction(function () use ($attendance): void {
-            TeachingJournal::where('classroom_id', $attendance->classroom_id)
-                ->where('academic_year_id', $attendance->academic_year_id)->where('semester_id', $attendance->semester_id)
-                ->whereDate('journal_date', $attendance->attendance_date)->orderBy('id')->get()
-                ->each(function ($journal) use ($attendance): void {
-                    $journal = TeachingJournal::whereKey($journal->id)->lockForUpdate()->firstOrFail();
-                    $resolved = $this->resolve($journal->getAttributes(), $attendance->student_id)->get($attendance->student_id);
-                    if ($resolved) {
-                        $journal->attendances()->where('student_id', $attendance->student_id)->where('origin', 'daily')
-                            ->update(collect($resolved)->except(['student_id', 'name'])->all());
-                    }
-                });
-        });
+        $expected = $members->pluck('id')->map(fn ($id) => (int) $id)->sort()->values();
+        $submitted = $rows->pluck('student_id')->map(fn ($id) => (int) $id)->unique()->sort()->values();
+        if ($expected->all() !== $submitted->all() || $rows->count() !== $submitted->count()) {
+            throw ValidationException::withMessages(['attendances' => 'Absensi wajib diisi satu kali untuk seluruh siswa yang terdaftar pada rombel dan tanggal tersebut.']);
+        }
+    }
+
+    public function writeSnapshots(TeachingJournal $journal, Collection $members, Collection $daily, array $corrections, User $actor): void
+    {
+        $existing = $journal->attendances()->get()->keyBy('student_id');
+        $corrections = collect($corrections)->keyBy(fn ($row) => (int) $row['student_id']);
+
+        foreach ($members as $student) {
+            $old = $existing->get($student->id);
+            $correction = $corrections->get($student->id);
+            if ($correction) {
+                $values = ['status' => $correction['status'], 'source' => 'correction', 'notes' => $correction['reason'], 'correction_reason' => $correction['reason'], 'corrected_by' => $actor->id, 'corrected_at' => now()];
+            } elseif (in_array($old?->source, ['correction', 'legacy'], true)) {
+                continue;
+            } elseif ($record = $daily->get($student->id)) {
+                $values = ['status' => $record->status->value, 'source' => 'daily', 'notes' => $record->notes, 'correction_reason' => null, 'corrected_by' => null, 'corrected_at' => null];
+            } else {
+                $values = ['status' => 'pending', 'source' => 'pending', 'notes' => null, 'correction_reason' => null, 'corrected_by' => null, 'corrected_at' => null];
+            }
+            $journal->attendances()->updateOrCreate(['student_id' => $student->id], $values);
+        }
+        $journal->attendances()->whereNotIn('student_id', $members->pluck('id'))->where('source', '!=', 'legacy')->delete();
+    }
+
+    public function syncFollowingJournals(int $classroomId, CarbonInterface|string $date, Collection $members, Collection $daily, User $actor): void
+    {
+        TeachingJournal::query()->where('classroom_id', $classroomId)->whereDate('journal_date', $date)->lockForUpdate()->get()
+            ->filter(fn (TeachingJournal $journal) => ! $this->isOpeningLesson($journal->lesson_number))
+            ->each(fn (TeachingJournal $journal) => $this->writeSnapshots($journal, $members, $daily, [], $actor));
     }
 }

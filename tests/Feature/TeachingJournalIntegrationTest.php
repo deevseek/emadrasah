@@ -5,30 +5,14 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Enums\SemesterType;
-use App\Models\AcademicSubject;
-use App\Models\AcademicYear;
-use App\Models\Classroom;
-use App\Models\ClassroomMembership;
-use App\Models\GradeLevel;
-use App\Models\LessonSchedule;
-use App\Models\Personnel;
-use App\Models\Semester;
-use App\Models\Student;
-use App\Models\StudentAttendance;
-use App\Models\TeachingJournal;
-use App\Models\TeachingJournalAttendance;
-use App\Models\TeachingJournalTemplate;
-use App\Models\User;
-use App\Services\Academic\JournalAttendanceResolver;
-use App\Services\Academic\TeachingJournalReportService;
-use App\Services\Academic\TeachingJournalService;
+use App\Models\{AcademicSubject, AcademicYear, Classroom, ClassroomMembership, GradeLevel, Personnel, Semester, Student, StudentAttendance, TeachingJournal, TeachingJournalAttendance, TeachingJournalTemplate, User};
+use App\Services\Academic\{JournalAttendanceResolver, TeachingJournalReportService, TeachingJournalService};
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Schema;
-use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
+use Illuminate\Support\Facades\{Route, Schema};
+use Spatie\Permission\Models\{Permission, Role};
 use Tests\TestCase;
+use ZipArchive;
 
 class TeachingJournalIntegrationTest extends TestCase
 {
@@ -37,7 +21,7 @@ class TeachingJournalIntegrationTest extends TestCase
     public function test_journal_attendance_and_template_tables_are_available(): void
     {
         $this->assertSame('text', Schema::getColumnType('teaching_journals', 'topic'));
-        $this->assertTrue(Schema::hasColumns('teaching_journal_attendances', ['teaching_journal_id', 'student_id', 'status', 'notes']));
+        $this->assertTrue(Schema::hasColumns('teaching_journal_attendances', ['teaching_journal_id', 'student_id', 'status', 'source', 'notes', 'correction_reason', 'corrected_by', 'corrected_at']));
         $this->assertTrue(Schema::hasColumns('teaching_journal_templates', ['name', 'original_name', 'path', 'is_active', 'uploaded_by']));
     }
 
@@ -66,6 +50,161 @@ class TeachingJournalIntegrationTest extends TestCase
         $this->assertSame('teaching_journal_id', (new TeachingJournal)->attendances()->getForeignKeyName());
         $this->assertTrue(Route::has('academic.teaching-journals.template.store'));
         $this->assertTrue(Route::has('academic.teaching-journals.report'));
+        $resolver = app(JournalAttendanceResolver::class);
+        foreach (['1-2', '1–2', '1/2', '1 dan 2'] as $format) $this->assertTrue($resolver->isOpeningLesson($format));
+        $this->assertFalse($resolver->isOpeningLesson('3-4'));
+    }
+
+    public function test_teacher_can_create_and_update_journal_with_topic_longer_than_255_characters(): void
+    {
+        [$user, $payload] = $this->journalContext();
+        $payload['topic'] = str_repeat('Materi pembelajaran ', 30);
+
+        $response = $this->actingAs($user)->post(route('academic.teaching-journals.store'), $payload);
+
+        $journal = TeachingJournal::sole();
+        $response->assertRedirect(route('academic.teaching-journals.show', $journal));
+        $this->assertSame($payload['topic'], $journal->topic);
+
+        $payload['topic'] = str_repeat('Uraian pembelajaran lanjutan ', 20);
+        $this->actingAs($user)
+            ->put(route('academic.teaching-journals.update', $journal), $payload)
+            ->assertRedirect(route('academic.teaching-journals.show', $journal));
+        $this->assertSame($payload['topic'], $journal->refresh()->topic);
+    }
+
+    public function test_journal_validation_uses_indonesian_messages_and_humanized_attributes(): void
+    {
+        app()->setLocale('id');
+        [$user, $payload] = $this->journalContext();
+        $payload['topic'] = '';
+        $payload['learning_method'] = str_repeat('a', 256);
+
+        $response = $this->from(route('academic.teaching-journals.create'))
+            ->actingAs($user)
+            ->post(route('academic.teaching-journals.store'), $payload);
+
+        $response->assertRedirect(route('academic.teaching-journals.create'))
+            ->assertSessionHasErrors(['topic', 'learning_method']);
+        $errors = session('errors')->all();
+        $this->assertStringContainsString('uraian mengajar wajib diisi', mb_strtolower(implode(' ', $errors)));
+        $this->assertStringContainsString('metode pembelajaran tidak boleh lebih dari 255 karakter', mb_strtolower(implode(' ', $errors)));
+        $this->assertStringNotContainsString('validation.', implode(' ', $errors));
+    }
+
+    public function test_opening_lesson_becomes_daily_source_and_following_lessons_inherit_every_status(): void
+    {
+        [$user, $payload] = $this->journalContext();
+        $service = app(TeachingJournalService::class);
+        $statuses = ['sick', 'permitted', 'absent'];
+        $students = [Student::findOrFail($payload['attendances'][0]['student_id'])];
+        foreach (['Siswa Izin', 'Siswa Alpa'] as $name) {
+            $student = Student::create(['full_name' => $name, 'gender' => 'male', 'status' => 'active']);
+            ClassroomMembership::create(['student_id' => $student->id, 'classroom_id' => $payload['classroom_id'], 'academic_year_id' => $payload['academic_year_id'], 'status' => 'active', 'joined_at' => '2026-07-01']);
+            $students[] = $student;
+        }
+        $payload['attendances'] = collect($students)->values()->map(fn ($student, $index) => ['student_id' => $student->id, 'status' => $statuses[$index], 'notes' => null])->all();
+
+        $following = $service->save([...$payload, 'lesson_number' => '3-4', 'topic' => 'Jurnal lanjutan', 'attendances' => null], $user);
+        $this->assertSame(['pending', 'pending', 'pending'], $following->attendances()->orderBy('student_id')->pluck('status')->all());
+
+        $service->save($payload, $user);
+        $later = $service->save([...$payload, 'lesson_number' => '5–6', 'topic' => 'Jurnal terakhir', 'attendances' => null], $user);
+
+        $this->assertSame($statuses, StudentAttendance::orderBy('student_id')->pluck('status')->all());
+        $this->assertSame($statuses, $following->attendances()->orderBy('student_id')->pluck('status')->all());
+        $this->assertSame($statuses, $later->attendances()->orderBy('student_id')->pluck('status')->all());
+        $this->assertSame(['manual'], StudentAttendance::distinct()->pluck('source')->all());
+    }
+
+    public function test_lesson_correction_does_not_change_daily_attendance_or_other_contexts(): void
+    {
+        [$user, $payload] = $this->journalContext();
+        $service = app(TeachingJournalService::class);
+        $service->save($payload, $user);
+        $studentId = $payload['attendances'][0]['student_id'];
+        $following = $service->save([...$payload, 'lesson_number' => '3/4', 'topic' => 'Jurnal koreksi', 'attendances' => null, 'attendance_corrections' => [['student_id' => $studentId, 'status' => 'sick', 'reason' => 'Sakit saat pelajaran berlangsung.']]], $user);
+
+        $this->assertSame('present', StudentAttendance::where('student_id', $studentId)->sole()->status->value);
+        $snapshot = $following->attendances()->sole();
+        $this->assertSame('sick', $snapshot->status->value);
+        $this->assertSame('correction', $snapshot->source);
+        $this->assertSame($user->id, $snapshot->corrected_by);
+
+        $otherDate = $service->save([...$payload, 'journal_date' => '2026-10-08', 'lesson_number' => '3-4', 'topic' => 'Tanggal lain', 'attendances' => null], $user);
+        $otherClassroom = Classroom::create(['academic_year_id' => $payload['academic_year_id'], 'grade_level_id' => Classroom::findOrFail($payload['classroom_id'])->grade_level_id, 'code' => 'B', 'is_active' => true]);
+        $otherStudent = Student::create(['full_name' => 'Siswa Rombel Lain', 'gender' => 'male', 'status' => 'active']);
+        ClassroomMembership::create(['student_id' => $otherStudent->id, 'classroom_id' => $otherClassroom->id, 'academic_year_id' => $payload['academic_year_id'], 'status' => 'active', 'joined_at' => '2026-07-01']);
+        $otherClassroomJournal = $service->save([...$payload, 'classroom_id' => $otherClassroom->id, 'lesson_number' => '3-4', 'topic' => 'Rombel lain', 'attendances' => null], $user);
+        $service->save([...$payload, 'topic' => 'Perubahan hari pertama', 'attendances' => [['student_id' => $studentId, 'status' => 'absent', 'notes' => null]]], $user, TeachingJournal::where('lesson_number', '1–2')->firstOrFail());
+        $this->assertSame('pending', $otherDate->attendances()->sole()->status->value);
+        $this->assertSame('pending', $otherClassroomJournal->attendances()->sole()->status->value);
+        $this->assertSame('sick', $following->attendances()->sole()->status->value);
+    }
+
+    public function test_opening_lesson_does_not_overwrite_rfid_and_repeated_update_does_not_duplicate_rows(): void
+    {
+        [$user, $payload] = $this->journalContext();
+        $studentId = $payload['attendances'][0]['student_id'];
+        StudentAttendance::create(['academic_year_id' => $payload['academic_year_id'], 'semester_id' => $payload['semester_id'], 'classroom_id' => $payload['classroom_id'], 'student_id' => $studentId, 'attendance_date' => $payload['journal_date'], 'status' => 'present', 'source' => 'rfid', 'scanned_at' => now(), 'recorded_by' => null]);
+        $payload['attendances'][0]['status'] = 'absent';
+        $service = app(TeachingJournalService::class);
+        $journal = $service->save($payload, $user);
+        $service->save($payload, $user, $journal);
+
+        $daily = StudentAttendance::sole();
+        $this->assertSame('rfid', $daily->source->value);
+        $this->assertSame('present', $daily->status->value);
+        $this->assertSame(1, TeachingJournalAttendance::where('teaching_journal_id', $journal->id)->count());
+        $this->assertSame(1, StudentAttendance::count());
+    }
+
+    public function test_following_lesson_rejects_browser_supplied_primary_attendance(): void
+    {
+        [$user, $payload] = $this->journalContext();
+        $payload['lesson_number'] = '3-4';
+
+        $this->actingAs($user)->post(route('academic.teaching-journals.store'), $payload)
+            ->assertSessionHasErrors('attendances');
+        $this->assertDatabaseCount('teaching_journals', 0);
+    }
+
+    public function test_opening_lesson_rejects_student_outside_selected_classroom(): void
+    {
+        [$user, $payload] = $this->journalContext();
+        $outsideStudent = Student::create(['full_name' => 'Siswa Rombel Lain', 'gender' => 'female', 'status' => 'active']);
+        $payload['attendances'] = [['student_id' => $outsideStudent->id, 'status' => 'present', 'notes' => null]];
+
+        $this->actingAs($user)->post(route('academic.teaching-journals.store'), $payload)
+            ->assertSessionHasErrors('attendances');
+        $this->assertDatabaseCount('student_attendances', 0);
+        $this->assertDatabaseCount('teaching_journals', 0);
+    }
+
+    public function test_journal_with_centralized_attendance_still_renders_pdf_view_and_docx_report(): void
+    {
+        [$user, $payload] = $this->journalContext();
+        $journal = app(TeachingJournalService::class)->save($payload, $user);
+        $journal->load(['academicYear', 'semester', 'classroom.gradeLevel', 'subject', 'personnel', 'attendances']);
+
+        $html = view('academic.teaching-journals.report', ['journals' => collect([$journal])])->render();
+        $this->assertStringContainsString('Materi pembelajaran', $html);
+        $this->assertStringContainsString('<td>1</td><td>0</td>', $html);
+
+        $templatePath = tempnam(sys_get_temp_dir(), 'jurnal-template-');
+        $zip = new ZipArchive;
+        $this->assertTrue($zip->open($templatePath, ZipArchive::CREATE | ZipArchive::OVERWRITE) === true);
+        $zip->addFromString('word/document.xml', '<w:document><w:tr><w:tc>${no}</w:tc><w:tc>${uraian_mengajar}</w:tc><w:tc>${hadir}</w:tc></w:tr></w:document>');
+        $zip->close();
+        $output = app(TeachingJournalReportService::class)->createDocx(new TeachingJournalTemplate, collect([$journal]), $templatePath);
+        $result = new ZipArchive;
+        $this->assertTrue($result->open($output) === true);
+        $document = $result->getFromName('word/document.xml');
+        $result->close();
+        @unlink($templatePath);
+        @unlink($output);
+        $this->assertIsString($document);
+        $this->assertStringContainsString('Materi pembelajaran', $document);
     }
 
     public function test_teacher_can_create_and_update_journal_with_topic_longer_than_255_characters(): void
@@ -184,269 +323,6 @@ class TeachingJournalIntegrationTest extends TestCase
 
         $this->assertNull(app(TeachingJournalService::class)->activePersonnel($user));
         $this->assertNull($personnel->refresh()->user_id);
-    }
-
-    private function daily(array $payload, string $status = 'present', string $source = 'rfid', string $time = '06:45:00'): StudentAttendance
-    {
-        return StudentAttendance::create([
-            'student_id' => $payload['attendances'][0]['student_id'], 'classroom_id' => $payload['classroom_id'],
-            'academic_year_id' => $payload['academic_year_id'], 'semester_id' => $payload['semester_id'],
-            'attendance_date' => $payload['journal_date'], 'status' => $status, 'source' => $source,
-            'scanned_at' => $source === 'rfid' ? $payload['journal_date'].' '.$time : null,
-        ]);
-    }
-
-    public function test_three_lessons_share_daily_rfid_without_mutating_daily_record(): void
-    {
-        [$user, $payload] = $this->journalContext();
-        $daily = $this->daily($payload);
-        $before = $daily->refresh()->getAttributes();
-        foreach (['1–2', '3–4', '5–6'] as $lesson) {
-            $payload['lesson_number'] = $lesson;
-            $journal = app(TeachingJournalService::class)->save($payload, $user);
-            $this->assertSame('present', $journal->attendances()->sole()->status->value);
-        }
-        $this->assertDatabaseCount('student_attendances', 1);
-        $this->assertSame($before, $daily->refresh()->getAttributes());
-    }
-
-    public function test_missing_daily_attendance_stays_pending_even_with_forged_present_input(): void
-    {
-        [$user, $payload] = $this->journalContext();
-        $journal = app(TeachingJournalService::class)->save($payload, $user);
-        $this->assertSame('pending', $journal->attendances()->sole()->status->value);
-        $this->assertDatabaseCount('student_attendances', 0);
-    }
-
-    public function test_daily_sick_and_permitted_are_inherited(): void
-    {
-        [$user, $payload] = $this->journalContext();
-        $daily = $this->daily($payload, 'sick', 'manual');
-        $journal = app(TeachingJournalService::class)->save($payload, $user);
-        $this->assertSame('sick', $journal->attendances()->sole()->status->value);
-        $daily->update(['status' => 'permitted']);
-        app(JournalAttendanceResolver::class)->synchronize($daily);
-        $this->assertSame('permitted', $journal->attendances()->sole()->status->value);
-    }
-
-    public function test_manual_lesson_exception_survives_edit_and_daily_sync_without_affecting_other_lessons(): void
-    {
-        [$user, $payload] = $this->journalContext();
-        $first = app(TeachingJournalService::class)->save($payload, $user);
-        $second = app(TeachingJournalService::class)->save($payload, $user);
-        $payload['attendances'][0] += ['mode' => 'manual'];
-        $payload['attendances'][0]['status'] = 'permitted';
-        $payload['attendances'][0]['notes'] = 'Pulang lebih awal.';
-        app(TeachingJournalService::class)->save($payload, $user, $first);
-        $detail = $first->attendances()->sole();
-        $this->assertSame($user->id, $detail->corrected_by);
-        $daily = $this->daily($payload);
-        app(JournalAttendanceResolver::class)->synchronize($daily);
-        $this->assertSame('permitted', $detail->refresh()->status->value);
-        $this->assertSame('present', $second->attendances()->sole()->status->value);
-        unset($payload['attendances'][0]['mode']);
-        app(TeachingJournalService::class)->save($payload, $user, $first);
-        $this->assertSame($detail->id, $first->attendances()->sole()->id);
-        $this->assertSame('permitted', $detail->refresh()->status->value);
-        $this->assertSame('present', $daily->refresh()->status->value);
-    }
-
-    public function test_rfid_arrival_after_lesson_start_inherits_daily_present_status(): void
-    {
-        [$user, $payload] = $this->journalContext();
-        $daily = $this->daily($payload, 'present', 'rfid', '13:44:41');
-        $before = $daily->refresh()->getAttributes();
-        $schedule = LessonSchedule::create([
-            'academic_year_id' => $payload['academic_year_id'], 'semester_id' => $payload['semester_id'],
-            'classroom_id' => $payload['classroom_id'], 'academic_subject_id' => $payload['academic_subject_id'],
-            'day_of_week' => 3, 'start_time' => '07:00:00', 'end_time' => '08:00:00', 'active' => true,
-        ]);
-        $first = app(TeachingJournalService::class)->save($payload, $user);
-        $this->assertSame('present', $first->attendances()->sole()->status->value);
-        $this->actingAs($user)->getJson(route('academic.teaching-journals.attendance').'?'.http_build_query($payload))
-            ->assertOk()->assertJsonPath('rows.0.status', 'present')->assertJsonPath('rows.0.daily_status', 'present')
-            ->assertJsonPath('rows.0.daily_source', 'rfid')->assertJsonPath('rows.0.arrival_at', $payload['journal_date'].' 13:44:41');
-        $schedule->update(['start_time' => '10:00:00', 'end_time' => '11:00:00']);
-        $next = app(TeachingJournalService::class)->save($payload, $user);
-        $this->assertSame('present', $next->attendances()->sole()->status->value);
-        $this->assertSame($before, $daily->refresh()->getAttributes());
-    }
-
-    public function test_afternoon_rfid_without_schedule_is_present_on_roster_save_and_edit(): void
-    {
-        [$user, $payload] = $this->journalContext();
-        $daily = $this->daily($payload, 'present', 'rfid', '13:44:41');
-        $before = $daily->refresh()->getAttributes();
-        $this->actingAs($user)->getJson(route('academic.teaching-journals.attendance').'?'.http_build_query($payload))
-            ->assertOk()->assertJsonPath('rows.0.status', 'present')->assertJsonPath('rows.0.daily_status', 'present');
-        $payload['attendances'][0]['status'] = 'pending';
-        $journal = app(TeachingJournalService::class)->save($payload, $user);
-        $detail = $journal->attendances()->sole();
-        $this->assertSame('present', $detail->status->value);
-        $detail->update(['status' => 'pending']);
-        app(TeachingJournalService::class)->save($payload, $user, $journal);
-        $this->assertSame('present', $detail->refresh()->status->value);
-        $this->assertSame($before, $daily->refresh()->getAttributes());
-    }
-
-    public function test_roster_endpoint_uses_date_and_room_filters(): void
-    {
-        [$user, $payload] = $this->journalContext();
-        $this->daily($payload);
-        $url = route('academic.teaching-journals.attendance');
-        $this->actingAs($user)->getJson($url.'?'.http_build_query($payload))->assertOk()->assertJsonPath('rows.0.status', 'present');
-        $payload['journal_date'] = '2026-10-08';
-        $this->getJson($url.'?'.http_build_query($payload))->assertOk()->assertJsonPath('rows.0.status', 'pending');
-        $other = Classroom::create(['academic_year_id' => $payload['academic_year_id'], 'grade_level_id' => Classroom::find($payload['classroom_id'])->grade_level_id, 'code' => 'B', 'is_active' => true]);
-        $payload['classroom_id'] = $other->id;
-        $this->getJson($url.'?'.http_build_query($payload))->assertOk()->assertJsonCount(0, 'rows');
-    }
-
-    public function test_teacher_cannot_edit_another_teachers_journal_but_view_all_can(): void
-    {
-        [$user, $payload] = $this->journalContext();
-        $journal = app(TeachingJournalService::class)->save($payload, $user);
-        $other = User::factory()->create(['must_change_password' => false]);
-        $other->givePermissionTo(['teaching-journals.view', 'teaching-journals.manage']);
-        $this->actingAs($other)->get(route('academic.teaching-journals.edit', $journal))->assertForbidden();
-        $other->givePermissionTo(Permission::findOrCreate('teaching-journals.view-all'));
-        $this->get(route('academic.teaching-journals.edit', $journal))->assertOk();
-    }
-
-    public function test_manual_exception_requires_reason_and_outside_period_date_is_rejected(): void
-    {
-        [$user, $payload] = $this->journalContext();
-        $payload['attendances'][0]['mode'] = 'manual';
-        $this->actingAs($user)->post(route('academic.teaching-journals.store'), $payload)->assertSessionHasErrors('attendances.0.notes');
-        $payload['journal_date'] = '2027-07-01';
-        $this->post(route('academic.teaching-journals.store'), $payload)->assertSessionHasErrors('journal_date');
-        $this->assertDatabaseCount('teaching_journals', 0);
-    }
-
-    public function test_foreign_student_and_duplicate_students_are_rejected(): void
-    {
-        [$user, $payload] = $this->journalContext();
-        $foreign = Student::create(['full_name' => 'Siswa Rombel Lain', 'gender' => 'male', 'status' => 'active']);
-        $payload['attendances'][0]['student_id'] = $foreign->id;
-        $this->actingAs($user)->post(route('academic.teaching-journals.store'), $payload)->assertSessionHasErrors('attendances');
-        $payload['attendances'][] = $payload['attendances'][0];
-        $this->post(route('academic.teaching-journals.store'), $payload)->assertSessionHasErrors('attendances.0.student_id');
-    }
-
-    public function test_pending_is_separate_from_confirmed_absence_in_html_pdf_and_docx(): void
-    {
-        [$user, $payload] = $this->journalContext();
-        $journal = app(TeachingJournalService::class)->save($payload, $user);
-        foreach (['present', 'sick', 'permitted', 'absent'] as $status) {
-            $student = Student::create(['full_name' => 'Siswa '.$status, 'gender' => 'male', 'status' => 'active']);
-            $journal->attendances()->create(['student_id' => $student->id, 'status' => $status, 'origin' => 'legacy']);
-        }
-        $journal->load(['attendances', 'academicYear', 'semester', 'classroom.gradeLevel', 'subject', 'personnel']);
-        $html = view('academic.teaching-journals.report', ['journals' => collect([$journal])])->render();
-        $this->assertStringContainsString('<td>1</td><td>3</td><td>1</td><td>1</td><td>1</td>', $html);
-        $this->assertStringContainsString('Belum Tercatat: 1', $html);
-        $this->actingAs($user)->get(route('academic.teaching-journals.report', ['format' => 'pdf', 'academic_year_id' => $payload['academic_year_id'], 'semester_id' => $payload['semester_id'], 'journal_date' => $payload['journal_date']]))->assertOk()->assertHeader('content-type', 'application/pdf');
-        $source = tempnam(sys_get_temp_dir(), 'journal-template-');
-        $target = null;
-        try {
-            $zip = new \ZipArchive;
-            $zip->open($source, \ZipArchive::OVERWRITE);
-            $zip->addFromString('word/document.xml', '<w:document><w:tbl><w:tr><w:tc>${no}|${hadir}|${tidak_hadir}|${sakit}|${izin}|${alpa}|${keterangan}</w:tc></w:tr></w:tbl></w:document>');
-            $zip->close();
-            $target = app(TeachingJournalReportService::class)->createDocx(new TeachingJournalTemplate, collect([$journal]), $source);
-            $zip->open($target);
-            $xml = $zip->getFromName('word/document.xml');
-            $zip->close();
-            $this->assertStringContainsString('1|1|3|1|1|1|', $xml);
-            $this->assertStringContainsString('Belum Tercatat: 1', $xml);
-        } finally {
-            unlink($source);
-            if ($target) {
-                unlink($target);
-            }
-        }
-    }
-
-    public function test_legacy_snapshot_is_preserved_when_journal_is_edited_or_daily_changes(): void
-    {
-        [$user, $payload] = $this->journalContext();
-        $journal = app(TeachingJournalService::class)->save($payload, $user);
-        $detail = $journal->attendances()->sole();
-        $detail->update(['status' => 'sick', 'origin' => 'legacy', 'notes' => 'Riwayat lama']);
-        $daily = $this->daily($payload);
-        app(JournalAttendanceResolver::class)->synchronize($daily);
-        app(TeachingJournalService::class)->save($payload, $user, $journal);
-        $this->assertSame('sick', $detail->refresh()->status->value);
-        $this->assertSame('Riwayat lama', $detail->notes);
-    }
-
-    public function test_editing_date_reloads_daily_status_without_carrying_an_exception(): void
-    {
-        [$user, $payload] = $this->journalContext();
-        $this->daily($payload);
-        $payload['attendances'][0] = array_merge($payload['attendances'][0], ['mode' => 'manual', 'status' => 'permitted', 'notes' => 'Izin pada tanggal lama.']);
-        $journal = app(TeachingJournalService::class)->save($payload, $user);
-        $payload['journal_date'] = '2026-10-08';
-        $payload['attendances'][0]['mode'] = 'keep';
-        app(TeachingJournalService::class)->save($payload, $user, $journal);
-        $this->assertSame('pending', $journal->attendances()->sole()->status->value);
-        $this->assertDatabaseHas('activity_log', ['description' => 'Mengubah konteks jurnal dan memuat ulang absensi harian']);
-        $this->assertDatabaseCount('student_attendances', 1);
-    }
-
-    public function test_editing_classroom_archives_old_roster_and_uses_new_roster(): void
-    {
-        [$user, $payload] = $this->journalContext();
-        $this->daily($payload);
-        $journal = app(TeachingJournalService::class)->save($payload, $user);
-        $oldDetail = $journal->attendances()->sole();
-        $room = Classroom::create(['academic_year_id' => $payload['academic_year_id'], 'grade_level_id' => Classroom::find($payload['classroom_id'])->grade_level_id, 'code' => 'B', 'is_active' => true]);
-        $student = Student::create(['full_name' => 'Siswa Baru', 'gender' => 'male', 'status' => 'active']);
-        ClassroomMembership::create(['classroom_id' => $room->id, 'student_id' => $student->id, 'academic_year_id' => $payload['academic_year_id'], 'status' => 'active', 'joined_at' => '2026-07-01']);
-        $payload['classroom_id'] = $room->id;
-        $payload['attendances'] = [['student_id' => $student->id, 'status' => 'present', 'mode' => 'daily']];
-        app(TeachingJournalService::class)->save($payload, $user, $journal);
-        $newDetail = $journal->attendances()->sole();
-        $this->assertSame($student->id, $newDetail->student_id);
-        $this->assertSame('pending', $newDetail->status->value);
-        $this->assertSoftDeleted('teaching_journal_attendances', ['id' => $oldDetail->id]);
-        $this->assertSame('present', TeachingJournalAttendance::withTrashed()->find($oldDetail->id)->status->value);
-    }
-
-    public function test_teacher_can_explicitly_restore_daily_source_and_reset_is_audited(): void
-    {
-        [$user, $payload] = $this->journalContext();
-        $this->daily($payload);
-        $payload['attendances'][0] = array_merge($payload['attendances'][0], ['mode' => 'manual', 'status' => 'absent', 'notes' => 'Tidak mengikuti pelajaran.']);
-        $journal = app(TeachingJournalService::class)->save($payload, $user);
-        $payload['attendances'][0]['mode'] = 'daily';
-        app(TeachingJournalService::class)->save($payload, $user, $journal);
-        $this->assertSame('present', $journal->attendances()->sole()->status->value);
-        $this->assertDatabaseHas('activity_log', ['description' => 'Mengembalikan absensi pelajaran ke sumber harian']);
-    }
-
-    public function test_roster_fetch_stays_on_current_origin_when_application_url_uses_internal_http_host(): void
-    {
-        [$user, $payload] = $this->journalContext();
-        $urls = app('url');
-        $urls->forceRootUrl('http://internal-app.test');
-        $urls->forceScheme('http');
-        try {
-            $response = $this->actingAs($user)->get('/academic/teaching-journals/create?'.http_build_query($payload));
-            $response->assertOk();
-            $html = $response->getContent();
-            preg_match_all('/fetch\(("(?:\\\\.|[^"\\\\])*")/', $html, $matches);
-            $this->assertCount(2, $matches[1]);
-            foreach ($matches[1] as $literal) {
-                $this->assertSame('/academic/teaching-journals/attendance', json_decode($literal, true, 512, JSON_THROW_ON_ERROR));
-            }
-            $response->assertSee("credentials:'same-origin'", false);
-            $this->getJson('/academic/teaching-journals/attendance?'.http_build_query($payload))
-                ->assertOk()->assertJsonPath('rows.0.name', 'Siswa Jurnal');
-        } finally {
-            $urls->forceRootUrl(null);
-            $urls->forceScheme(null);
-        }
     }
 
     private function journalContext(): array

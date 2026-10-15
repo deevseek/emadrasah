@@ -13,19 +13,8 @@ class TeachingJournalAttendance extends Model
     use SoftDeletes;
 
     protected $guarded = [];
-
-    protected function casts(): array
-    {
-        return ['status' => JournalAttendanceStatus::class];
-    }
-
-    public function journal()
-    {
-        return $this->belongsTo(TeachingJournal::class, 'teaching_journal_id');
-    }
-
-    public function student()
-    {
-        return $this->belongsTo(Student::class);
-    }
+    protected function casts(): array { return ['status' => JournalAttendanceStatus::class, 'corrected_at' => 'datetime']; }
+    public function journal() { return $this->belongsTo(TeachingJournal::class, 'teaching_journal_id'); }
+    public function student() { return $this->belongsTo(Student::class); }
+    public function correctedBy() { return $this->belongsTo(User::class, 'corrected_by'); }
 }

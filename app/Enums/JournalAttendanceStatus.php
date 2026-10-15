@@ -6,16 +6,20 @@ namespace App\Enums;
 
 enum JournalAttendanceStatus: string
 {
-    case Pending = 'pending';
     case Present = 'present';
     case Sick = 'sick';
     case Permitted = 'permitted';
     case Absent = 'absent';
+    case Pending = 'pending';
 
     public function label(): string
     {
         return match ($this) {
-            self::Pending => 'Belum Tercatat',self::Present => 'Hadir',self::Sick => 'Sakit',self::Permitted => 'Izin',self::Absent => 'Alpa'
+            self::Present => 'Hadir',
+            self::Sick => 'Sakit',
+            self::Permitted => 'Izin',
+            self::Absent => 'Alpa',
+            self::Pending => 'Belum diisi oleh guru jam 1–2',
         };
     }
 }

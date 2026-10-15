@@ -19,7 +19,7 @@ class TeachingJournalRequest extends FormRequest
     public function rules(): array
     {
         $year = $this->integer('academic_year_id');
-
+        $openingLesson = app(JournalAttendanceResolver::class)->isOpeningLesson($this->string('lesson_number')->toString());
         return [
             'academic_year_id' => ['required', 'exists:academic_years,id'],
             'semester_id' => ['required', Rule::exists('semesters', 'id')->where('academic_year_id', $year)],
@@ -35,11 +35,50 @@ class TeachingJournalRequest extends FormRequest
             'learning_activity' => ['nullable', 'string', 'max:10000'],
             'assignment' => ['nullable', 'string', 'max:10000'],
             'notes' => ['nullable', 'string', 'max:10000'],
-            'attendances' => ['required', 'array', 'min:1'],
+            'attendances' => [$openingLesson ? 'required' : 'prohibited', 'array', 'min:1'],
             'attendances.*.student_id' => ['required', 'integer', 'distinct', 'exists:students,id'],
             'attendances.*.status' => ['required', Rule::in(['present', 'sick', 'permitted', 'absent', 'pending'])],
             'attendances.*.mode' => ['nullable', Rule::in(['daily', 'manual', 'keep'])],
             'attendances.*.notes' => ['nullable', 'string', 'max:1000'],
+            'attendance_corrections' => [$openingLesson ? 'prohibited' : 'nullable', 'array'],
+            'attendance_corrections.*.student_id' => ['required', 'integer', 'distinct', 'exists:students,id'],
+            'attendance_corrections.*.status' => ['nullable', Rule::in(['present', 'sick', 'permitted', 'absent'])],
+            'attendance_corrections.*.reason' => ['nullable', 'required_with:attendance_corrections.*.status', 'string', 'max:1000'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'topic.max' => 'Uraian mengajar tidak boleh lebih dari 5.000 karakter.',
+        ];
+    }
+
+    public function attributes(): array
+    {
+        return [
+            'academic_year_id' => 'tahun ajaran',
+            'semester_id' => 'semester',
+            'classroom_id' => 'rombel',
+            'academic_subject_id' => 'mata pelajaran',
+            'personnel_id' => 'ustaz/ustazah',
+            'journal_date' => 'hari/tanggal',
+            'lesson_number' => 'jam ke',
+            'topic' => 'uraian mengajar',
+            'learning_objectives' => 'tujuan pembelajaran',
+            'learning_material' => 'materi pembelajaran',
+            'learning_method' => 'metode pembelajaran',
+            'learning_activity' => 'kegiatan pembelajaran',
+            'assignment' => 'tugas',
+            'notes' => 'keterangan/catatan',
+            'attendances' => 'absensi siswa',
+            'attendances.*.student_id' => 'siswa',
+            'attendances.*.status' => 'status kehadiran',
+            'attendances.*.notes' => 'keterangan absensi',
+            'attendance_corrections' => 'koreksi absensi khusus pelajaran',
+            'attendance_corrections.*.student_id' => 'siswa yang dikoreksi',
+            'attendance_corrections.*.status' => 'status koreksi',
+            'attendance_corrections.*.reason' => 'alasan koreksi',
         ];
     }
 

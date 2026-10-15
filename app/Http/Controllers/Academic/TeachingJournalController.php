@@ -5,19 +5,9 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Academic;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Academic\TeachingJournalRequest;
-use App\Http\Requests\Academic\TeachingJournalTemplateRequest;
-use App\Models\AcademicSubject;
-use App\Models\AcademicYear;
-use App\Models\Classroom;
-use App\Models\Personnel;
-use App\Models\Semester;
-use App\Models\TeachingJournal;
-use App\Models\TeachingJournalTemplate;
-use App\Services\Academic\JournalAttendanceResolver;
-use App\Services\Academic\TeachingJournalReportService;
-use App\Services\Academic\TeachingJournalService;
-use App\Services\Academic\TeachingJournalTemplateService;
+use App\Http\Requests\Academic\{TeachingJournalRequest, TeachingJournalTemplateRequest};
+use App\Models\{AcademicSubject, AcademicYear, Classroom, Personnel, Semester, TeachingJournal, TeachingJournalTemplate};
+use App\Services\Academic\{JournalAttendanceResolver, TeachingJournalReportService, TeachingJournalService, TeachingJournalTemplateService};
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -38,7 +28,7 @@ class TeachingJournalController extends Controller
         return view('academic.teaching-journals.index', $this->options($year) + compact('journals', 'year', 'semester', 'date') + ['template' => TeachingJournalTemplate::where('is_active', true)->latest()->first()]);
     }
 
-    public function create(Request $request, TeachingJournalService $service): View
+    public function create(Request $request, TeachingJournalService $service, JournalAttendanceResolver $attendance): View
     {
         abort_unless($service->activePersonnel($request->user()), 403, TeachingJournalService::NO_PERSONNEL);
         $year = $request->integer('academic_year_id') ?: AcademicYear::where('is_active', true)->value('id');
@@ -46,42 +36,9 @@ class TeachingJournalController extends Controller
         $date = $request->date('journal_date') ?? today();
         $classroomId = $request->integer('classroom_id');
         $journal = new TeachingJournal(['academic_year_id' => $year, 'semester_id' => $semester, 'classroom_id' => $classroomId ?: null, 'journal_date' => $date]);
-
-        return view('academic.teaching-journals.form', $this->options($year) + compact('journal'));
-    }
-
-    public function attendance(Request $request, JournalAttendanceResolver $resolver): JsonResponse
-    {
-        abort_unless($request->user()->can('teaching-journals.manage'), 403);
-        if ($request->boolean('options')) {
-            $request->validate(['academic_year_id' => ['required', 'exists:academic_years,id']]);
-
-            return response()->json([
-                'semester_id' => Semester::where('academic_year_id', $request->integer('academic_year_id'))->get()->map(fn ($item) => ['id' => $item->id, 'label' => $item->display_name]),
-                'classroom_id' => Classroom::with('gradeLevel')->where('academic_year_id', $request->integer('academic_year_id'))->where('is_active', true)->get()->map(fn ($item) => ['id' => $item->id, 'label' => $item->display_name]),
-            ]);
-        }
-        $context = $request->validate([
-            'academic_year_id' => ['required', 'exists:academic_years,id'],
-            'semester_id' => ['required', Rule::exists('semesters', 'id')->where('academic_year_id', $request->integer('academic_year_id'))],
-            'classroom_id' => ['required', Rule::exists('classrooms', 'id')->where('academic_year_id', $request->integer('academic_year_id'))->where('is_active', true)],
-            'academic_subject_id' => ['required', 'exists:academic_subjects,id'],
-            'journal_date' => ['required', 'date'],
-        ]);
-        $rows = $resolver->resolve($context)->map(fn ($row) => $row + ['daily_status' => $row['status']]);
-        if ($request->filled('journal_id')) {
-            $journal = TeachingJournal::findOrFail($request->integer('journal_id'));
-            $this->ensureManage($request, $journal);
-            if ($journal->academic_year_id == $context['academic_year_id'] && $journal->semester_id == $context['semester_id'] && $journal->classroom_id == $context['classroom_id'] && $journal->journal_date->toDateString() === $context['journal_date']) {
-                foreach ($journal->attendances()->where('origin', '!=', 'daily')->get() as $saved) {
-                    if ($rows->has($saved->student_id)) {
-                        $rows->put($saved->student_id, array_merge($rows->get($saved->student_id), ['status' => $saved->status->value, 'notes' => $saved->notes, 'origin' => $saved->origin]));
-                    }
-                }
-            }
-        }
-
-        return response()->json(['rows' => $rows->values()]);
+        $dailyAttendance = $attendance->daily($classroomId, $date);
+        $snapshotAttendance = collect();
+        return view('academic.teaching-journals.form', $this->options($year) + compact('journal', 'dailyAttendance', 'snapshotAttendance'));
     }
 
     public function store(TeachingJournalRequest $request, TeachingJournalService $service): RedirectResponse
@@ -99,11 +56,11 @@ class TeachingJournalController extends Controller
         return view('academic.teaching-journals.show', ['journal' => $teachingJournal, 'attendance' => $teachingJournal->attendances->countBy(fn ($row) => $row->status->value)]);
     }
 
-    public function edit(Request $request, TeachingJournal $teachingJournal): View
+    public function edit(Request $request, TeachingJournal $teachingJournal, JournalAttendanceResolver $attendance): View
     {
         $this->ensureManage($request, $teachingJournal);
-
-        return view('academic.teaching-journals.form', $this->options($teachingJournal->academic_year_id) + ['journal' => $teachingJournal]);
+        $teachingJournal->load('attendances');
+        return view('academic.teaching-journals.form', $this->options($teachingJournal->academic_year_id) + ['journal' => $teachingJournal, 'dailyAttendance' => $attendance->daily($teachingJournal->classroom_id, $teachingJournal->journal_date), 'snapshotAttendance' => $teachingJournal->attendances->keyBy('student_id')]);
     }
 
     public function update(TeachingJournalRequest $request, TeachingJournal $teachingJournal, TeachingJournalService $service): RedirectResponse
