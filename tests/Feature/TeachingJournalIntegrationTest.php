@@ -227,7 +227,8 @@ class TeachingJournalIntegrationTest extends TestCase
 
     public function test_existing_teacher_role_receives_journal_input_permissions_from_migration(): void
     {
-        $role = Role::findByName('guru');
+        $role = Role::findOrCreate('guru');
+        $role->givePermissionTo([Permission::findOrCreate('teaching-journals.view'), Permission::findOrCreate('teaching-journals.manage')]);
         $role->revokePermissionTo(['teaching-journals.view', 'teaching-journals.manage']);
 
         $migration = require database_path('migrations/2026_09_07_000000_grant_teaching_journal_permissions_to_teachers.php');
