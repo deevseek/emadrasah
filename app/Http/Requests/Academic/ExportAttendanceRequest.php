@@ -10,7 +10,11 @@ class ExportAttendanceRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('academic-attendance.view') ?? false;
+        $permission = $this->routeIs('academic.reports.attendance.export')
+            ? 'academic-reports.view'
+            : 'academic-attendance.view';
+
+        return $this->user()?->can($permission) ?? false;
     }
 
     public function rules(): array

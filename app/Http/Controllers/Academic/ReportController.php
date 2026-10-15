@@ -72,4 +72,18 @@ class ReportController extends Controller
     {
         return $this->index($request, $access);
     }
+    public function exportAttendance(
+        \App\Http\Requests\Academic\ExportAttendanceRequest $request,
+        AcademicAccessService $access,
+        \App\Services\Academic\StudentAttendanceXlsxService $service,
+    ): \Symfony\Component\HttpFoundation\BinaryFileResponse {
+        $classroom = $access->ensureClassroom($request->user(), $request->integer('classroom_id'));
+        $month = \Carbon\CarbonImmutable::createFromFormat('!Y-m', $request->validated('month'));
+        $path = $service->export($classroom, $month, $request->user());
+
+        return response()->download($path, $service->filename($classroom, $month), [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ])->deleteFileAfterSend();
+    }
+
 }

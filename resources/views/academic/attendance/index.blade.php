@@ -1,4 +1,7 @@
 <x-app-layout title="Absensi Siswa"><div class="index-stack">
+<x-ui.page-header title="Absensi Siswa" description="Kelola kehadiran dan unduh laporan absensi siswa.">
+<a class="btn btn-secondary" href="{{ route('academic.attendance.history', ['classroom_id' => $room?->id]) }}">Laporan / Unduh Absensi</a>
+</x-ui.page-header>
 @if(session('success'))<x-ui.alert type="success">{{ session('success') }}</x-ui.alert>@endif @if($errors->any())<x-ui.alert type="danger">{{ $errors->first() }}</x-ui.alert>@endif
 <form method="get" class="filter-bar grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
 @foreach([['Tahun Ajaran','academic_year_id',$years,$year,'name'],['Semester','semester_id',$semesters,$semester,'display_name'],['Rombel','classroom_id',$rooms,$room?->id,'display_name']] as [$label,$name,$items,$selected,$display])<label>{{ $label }}<select name="{{ $name }}" class="input" @if($name==='academic_year_id') onchange="this.form.submit()" @endif>@if($name==='classroom_id')<option value="">Pilih rombel</option>@endif @foreach($items as $item)<option value="{{$item->id}}" @selected($selected==$item->id)>{{$item->{$display} }}</option>@endforeach</select></label>@endforeach
