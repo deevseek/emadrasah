@@ -143,6 +143,23 @@ class TeachingJournalController extends Controller
         return ['years' => AcademicYear::latest('starts_at')->get(), 'semesters' => $semesters ?? Semester::where('academic_year_id', $year)->get(), 'rooms' => $rooms ?? Classroom::with(['gradeLevel', 'students'])->where('academic_year_id', $year)->where('is_active', true)->get(), 'subjects' => AcademicSubject::where('is_active', true)->orderBy('sort_order')->get(), 'teachers' => Personnel::where('is_active', true)->orderBy('full_name')->get()];
     }
 
+    private function ensureView(Request $request, TeachingJournal $journal): void
+    {
+        $user = $request->user();
+        abort_unless($user?->can('teaching-journals.view'), 403);
+
+        if ($user->can('teaching-journals.view-all')) {
+            return;
+        }
+
+        $personnelId = $user->personnel?->id;
+        abort_unless(
+            $personnelId !== null && (int) $journal->personnel_id === (int) $personnelId,
+            403,
+            'Anda hanya dapat melihat jurnal milik sendiri.',
+        );
+    }
+
     private function ensureManage(Request $request, TeachingJournal $journal): void
     {
         abort_unless($request->user()->can('teaching-journals.manage'), 403);
