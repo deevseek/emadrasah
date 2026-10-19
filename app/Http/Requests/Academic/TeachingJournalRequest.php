@@ -34,7 +34,7 @@ class TeachingJournalRequest extends FormRequest
             'personnel_id' => ['nullable', 'integer'],
             'journal_date' => ['required', 'date'],
             'lesson_number' => ['required', 'string', 'max:50'],
-            'topic' => ['required', 'string', 'max:5000'],
+            'topic' => ['nullable', 'string', 'max:5000'],
             'learning_objectives' => ['nullable', 'string', 'max:10000'],
             'learning_material' => ['nullable', 'string', 'max:10000'],
             'learning_method' => ['required', 'string', 'max:255'],
