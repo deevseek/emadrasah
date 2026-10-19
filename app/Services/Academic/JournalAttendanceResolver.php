@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services\Academic;
 
-use App\Models\{ClassroomMembership, StudentAttendance, TeachingJournal, User};
+use App\Models\ClassroomMembership;
+use App\Models\StudentAttendance;
+use App\Models\TeachingJournal;
+use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
@@ -70,6 +73,27 @@ class JournalAttendanceResolver
             $journal->attendances()->updateOrCreate(['student_id' => $student->id], $values);
         }
         $journal->attendances()->whereNotIn('student_id', $members->pluck('id'))->where('source', '!=', 'legacy')->delete();
+    }
+
+    public function synchronize(StudentAttendance $attendance): void
+    {
+        // Pemanggil RFID menjalankan sinkronisasi dalam transaksi scan yang sama.
+        $journals = TeachingJournal::where('classroom_id', $attendance->classroom_id)
+            ->where('academic_year_id', $attendance->academic_year_id)
+            ->where('semester_id', $attendance->semester_id)
+            ->whereDate('journal_date', $attendance->attendance_date)
+            ->with(['attendances' => fn ($q) => $q->where('student_id', $attendance->student_id)])
+            ->lockForUpdate()->get();
+        foreach ($journals as $journal) {
+            $old = $journal->attendances->first();
+            if (in_array($old?->source, ['correction', 'legacy'], true)) {
+                continue;
+            }
+            $journal->attendances()->updateOrCreate(['student_id' => $attendance->student_id], [
+                'status' => $attendance->status->value, 'source' => 'daily', 'notes' => $attendance->notes,
+                'correction_reason' => null, 'corrected_by' => null, 'corrected_at' => null,
+            ]);
+        }
     }
 
     public function syncFollowingJournals(int $classroomId, CarbonInterface|string $date, Collection $members, Collection $daily, User $actor): void
