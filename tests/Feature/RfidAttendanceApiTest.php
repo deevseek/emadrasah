@@ -28,6 +28,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Mockery\MockInterface;
+use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
 
 class RfidAttendanceApiTest extends TestCase
@@ -152,7 +153,9 @@ class RfidAttendanceApiTest extends TestCase
         app(RfidAttendanceService::class)->record($card->card_token, $card->uid, $device);
         $membership = ClassroomMembership::where('student_id', $card->student_id)->firstOrFail();
         $user = User::factory()->create();
+        $user->givePermissionTo(Permission::findOrCreate('teaching-journals.manage'));
         Personnel::create(['user_id' => $user->id, 'full_name' => 'Guru Uji', 'gender' => 'male', 'employment_status' => 'Tetap', 'position' => 'Guru', 'is_active' => true]);
+        Classroom::whereKey($membership->classroom_id)->update(['homeroom_personnel_id' => Personnel::where('user_id', $user->id)->sole()->id]);
         $subject = AcademicSubject::create(['name' => 'Pelajaran Uji', 'is_active' => true]);
 
         $journal = app(TeachingJournalService::class)->save([
@@ -357,18 +360,21 @@ class RfidAttendanceApiTest extends TestCase
         [$device, $card, $semester] = $this->makeAttendanceContext();
         $membership = ClassroomMembership::where('student_id', $card->student_id)->firstOrFail();
         $user = User::factory()->create();
+        $user->givePermissionTo(Permission::findOrCreate('teaching-journals.manage'));
         Personnel::create(['user_id' => $user->id, 'full_name' => 'Guru Sinkronisasi', 'gender' => 'male', 'employment_status' => 'Tetap', 'position' => 'Guru', 'is_active' => true]);
+        Classroom::whereKey($membership->classroom_id)->update(['homeroom_personnel_id' => Personnel::where('user_id', $user->id)->sole()->id]);
         $subject = AcademicSubject::create(['name' => 'Mapel Sinkronisasi', 'is_active' => true]);
         $payload = [
             'academic_year_id' => $semester->academic_year_id, 'semester_id' => $semester->id,
             'classroom_id' => $membership->classroom_id, 'academic_subject_id' => $subject->id,
-            'journal_date' => today()->toDateString(), 'lesson_number' => '1-2',
+            'journal_date' => today()->toDateString(), 'lesson_number' => '3-4',
             'topic' => 'Sinkronisasi', 'learning_method' => 'Diskusi',
             'attendances' => [['student_id' => $card->student_id, 'status' => 'present']],
         ];
+        unset($payload['attendances']);
         $automatic = app(TeachingJournalService::class)->save($payload, $user);
         $this->assertSame('pending', $automatic->attendances()->sole()->status->value);
-        $payload['attendances'][0] = ['student_id' => $card->student_id, 'status' => 'permitted', 'mode' => 'manual', 'notes' => 'Tidak mengikuti pelajaran ini.'];
+        $payload['attendance_corrections'] = [['student_id' => $card->student_id, 'status' => 'permitted', 'reason' => 'Tidak mengikuti pelajaran ini.']];
         $manual = app(TeachingJournalService::class)->save($payload, $user);
         $this->withHeaders(['X-Device-ID' => $device->device_id, 'X-Device-Token' => 'token-live'])->postJson('/api/rfid/attendance', self::PAYLOAD)->assertCreated()->assertJsonPath('status', 'present');
         $this->assertSame('present', $automatic->attendances()->sole()->status->value);

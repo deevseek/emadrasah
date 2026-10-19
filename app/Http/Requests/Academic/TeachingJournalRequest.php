@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Academic;
 
 use App\Services\Academic\JournalAttendanceResolver;
+use App\Services\Academic\TeachingJournalAccessService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -12,18 +13,24 @@ class TeachingJournalRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('teaching-journals.manage') ?? false;
+        if (! $this->user()) {
+            return false;
+        }
+        app(TeachingJournalAccessService::class)->ensureManage($this->user(), $this->route('teaching_journal'));
+
+        return true;
     }
 
     public function rules(): array
     {
         $year = $this->integer('academic_year_id');
         $openingLesson = app(JournalAttendanceResolver::class)->isOpeningLesson($this->string('lesson_number')->toString());
+
         return [
-            'academic_year_id' => ['required', 'exists:academic_years,id'],
-            'semester_id' => ['required', Rule::exists('semesters', 'id')->where('academic_year_id', $year)],
-            'classroom_id' => ['required', Rule::exists('classrooms', 'id')->where('academic_year_id', $year)->where('is_active', true)],
-            'academic_subject_id' => ['required', Rule::exists('academic_subjects', 'id')->when(! $this->route('teaching_journal'), fn ($query) => $query->where('is_active', true))],
+            'academic_year_id' => ['required', 'integer', 'exists:academic_years,id'],
+            'semester_id' => ['required', 'integer', Rule::exists('semesters', 'id')->where('academic_year_id', $year)],
+            'classroom_id' => ['required', 'integer', Rule::exists('classrooms', 'id')->where('academic_year_id', $year)],
+            'academic_subject_id' => ['required', 'integer', Rule::exists('academic_subjects', 'id')],
             'personnel_id' => ['nullable', 'integer'],
             'journal_date' => ['required', 'date'],
             'lesson_number' => ['required', 'string', 'max:50'],
@@ -49,6 +56,18 @@ class TeachingJournalRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'required' => ':attribute wajib diisi.',
+            'exists' => ':attribute yang dipilih tidak valid atau tidak sesuai periode.',
+            'integer' => ':attribute harus berupa angka bulat.',
+            'date' => ':attribute harus berupa tanggal yang valid.',
+            'string' => ':attribute harus berupa teks.',
+            'max.string' => ':attribute tidak boleh lebih dari :max karakter.',
+            'array' => ':attribute harus berupa daftar.',
+            'min.array' => ':attribute wajib berisi minimal :min data.',
+            'in' => ':attribute yang dipilih tidak valid.',
+            'distinct' => ':attribute tidak boleh diisi berulang.',
+            'prohibited' => ':attribute tidak boleh diisi pada jam pelajaran ini.',
+            'required_with' => ':attribute wajib diisi apabila koreksi diberikan.',
             'topic.max' => 'Uraian mengajar tidak boleh lebih dari 5.000 karakter.',
         ];
     }

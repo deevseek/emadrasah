@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Http\Controllers\Academic\TeachingJournalController;
-use App\Models\{Personnel, TeachingJournal, User};
-use App\Services\Academic\AcademicAccessService;
+use App\Models\Personnel;
+use App\Models\TeachingJournal;
+use App\Models\User;
+use App\Services\Academic\TeachingJournalAccessService;
+use App\Services\Academic\TeachingJournalService;
 use Illuminate\Http\Request;
 use Mockery;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -57,10 +60,13 @@ class TeachingJournalViewAuthorizationTest extends TestCase
         $user->shouldReceive('can')->with('teaching-journals.view')->andReturn($view);
         $user->shouldReceive('can')->with('teaching-journals.view-all')->andReturn($viewAll);
         $user->setRelation('personnel', $personnelId === null ? null : new Personnel(['id' => $personnelId]));
+        $service = Mockery::mock(TeachingJournalService::class);
+        $service->shouldReceive('activePersonnel')->with($user)->andReturn($user->personnel);
+        $this->app->instance(TeachingJournalService::class, $service);
         $request = Request::create('/');
         $request->setUserResolver(fn () => $user);
         $journal = new TeachingJournal(['personnel_id' => $ownerId]);
-        $controller = new TeachingJournalController(Mockery::mock(AcademicAccessService::class));
+        $controller = new TeachingJournalController(Mockery::mock(TeachingJournalAccessService::class));
 
         $method = new \ReflectionMethod($controller, 'ensureView');
         $method->invoke($controller, $request, $journal);
