@@ -1,6 +1,6 @@
 <x-app-layout :title="$journal->exists ? 'Ubah Jurnal Mengajar' : 'Isi Jurnal Mengajar'">
     @php($contextValue = fn ($key, $fallback = null) => request()->header('X-Journal-Context') ? $fallback : old($key, $fallback))
-    <form id="journal-form" method="post" action="{{ $journal->exists ? route('academic.teaching-journals.update', $journal) : route('academic.teaching-journals.store') }}" class="card card-body space-y-6">
+    <form id="journal-form" method="post" enctype="multipart/form-data" action="{{ $journal->exists ? route('academic.teaching-journals.update', $journal) : route('academic.teaching-journals.store') }}" class="card card-body space-y-6">
         @csrf
         @if($journal->exists) @method('put') @endif
         <x-ui.page-header :title="($journal->exists ? 'Ubah' : 'Isi').' Jurnal Mengajar'" description="Catat metode pembelajaran dan absensi siswa dalam satu proses." />
@@ -13,9 +13,35 @@
             <label>Mata Pelajaran<select class="input" name="academic_subject_id" required>@foreach($subjects as $item)<option value="{{$item->id}}" @selected($contextValue('academic_subject_id',$journal->academic_subject_id)==$item->id)>{{$item->name}}</option>@endforeach</select>@error('academic_subject_id')<p class="mt-1 text-sm text-red-600">{{$message}}</p>@enderror</label>
             <label>Jam ke<input id="journal-lesson-number" class="input" required name="lesson_number" value="{{$contextValue('lesson_number',$journal->lesson_number)}}" placeholder="Contoh: 1–2">@error('lesson_number')<p class="mt-1 text-sm text-red-600">{{$message}}</p>@enderror</label>
             <label class="md:col-span-2">Metode Pembelajaran<input class="input" required maxlength="255" name="learning_method" value="{{$contextValue('learning_method',$journal->learning_method)}}" placeholder="Contoh: diskusi, demonstrasi, dan tanya jawab">@error('learning_method')<p class="mt-1 text-sm text-red-600">{{$message}}</p>@enderror</label>
-            @foreach(['learning_material'=>'Materi Pembelajaran','assignment'=>'Tugas','notes'=>'Keterangan/Catatan'] as $key=>$label)
+            @foreach(['learning_material'=>'Materi Pembelajaran','notes'=>'Keterangan/Catatan'] as $key=>$label)
                 <label>{{$label}}<textarea class="input min-h-24" maxlength="10000" name="{{$key}}">{{$contextValue($key,$journal->$key)}}</textarea>@error($key)<p class="mt-1 text-sm text-red-600">{{$message}}</p>@enderror</label>
             @endforeach
+            <fieldset class="space-y-3 rounded-xl border border-slate-200 p-4 md:col-span-2">
+                <legend class="px-2 font-bold text-emerald-900">Tugas</legend>
+                <label class="block">Keterangan Tugas<textarea class="input min-h-24" maxlength="10000" name="assignment">{{$contextValue('assignment',$journal->assignment)}}</textarea></label>
+                @error('assignment')<p class="text-sm text-red-600">{{$message}}</p>@enderror
+                <label class="block">Upload File dari Komputer<input class="input" type="file" name="assignment_files[]" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.txt"></label>
+                <p class="text-sm text-slate-500">Maksimal 10 lampiran per jurnal, masing-masing file maksimal 10 MB. Format: PDF, Word, Excel, PowerPoint, JPG, PNG, atau TXT. Pilih ulang file jika penyimpanan belum berhasil.</p>
+                @error('assignment_files')<p class="text-sm text-red-600">{{$message}}</p>@enderror
+                @foreach($errors->get('assignment_files.*') as $messages)@foreach($messages as $message)<p class="text-sm text-red-600">{{$message}}</p>@endforeach @endforeach
+                <div class="space-y-2" data-google-drive-picker data-client-id="{{$drivePicker['ready'] ? $drivePicker['clientId'] : ''}}" data-api-key="{{$drivePicker['ready'] ? $drivePicker['apiKey'] : ''}}" data-app-id="{{$drivePicker['ready'] ? $drivePicker['appId'] : ''}}" data-existing-count="{{$journal->exists ? $journal->attachments->count() : 0}}">
+                    <button type="button" class="btn btn-secondary" data-drive-select disabled>Pilih dari Google Drive</button>
+                    <p class="text-sm text-slate-600">Login Google untuk memilih file, lalu tekan Simpan Jurnal agar salinan file tersimpan di e-Madrasah. Dokumen Google akan dikonversi ke Word, Excel, PowerPoint, atau PDF.</p>
+                    <p class="text-sm text-slate-600" data-drive-status role="status" aria-live="polite">{{$drivePicker['ready'] ? 'Memuat pemilih Google Drive…' : 'Pemilih Google Drive belum diaktifkan. Hubungi operator untuk mengisi konfigurasi Google Cloud pada Pengaturan Aplikasi.'}}</p>
+                    <ul class="space-y-1 text-sm text-emerald-800" data-selected-assignment-files></ul>
+                </div>
+                <label class="block">Tautan Google Drive (opsional)<input class="input" type="url" name="assignment_drive_url" maxlength="2048" value="{{$contextValue('assignment_drive_url')}}" placeholder="https://drive.google.com/file/d/…/view"></label>
+                <p class="text-sm text-slate-500">Tempel tautan file Google Drive atau Google Docs. File tetap berada di Drive; pastikan izin berbagi mengizinkan penerima jurnal membukanya.</p>
+                @error('assignment_drive_url')<p class="text-sm text-red-600">{{$message}}</p>@enderror
+                @if($journal->exists && $journal->attachments->isNotEmpty())
+                    <ul class="space-y-2">@foreach($journal->attachments as $attachment)<li class="flex flex-wrap items-center gap-3">
+                        @if($attachment->drive_url)<a class="text-emerald-800 underline" href="{{$attachment->drive_url}}" target="_blank" rel="noopener noreferrer">{{$attachment->original_name}} ↗</a>
+                        @else<a class="text-emerald-800 underline" href="{{route('academic.teaching-journals.attachments.download',[$journal,$attachment])}}">{{$attachment->original_name}}</a>@endif
+                        <label class="text-sm"><input type="checkbox" name="remove_assignment_attachments[]" value="{{$attachment->id}}" @checked(in_array($attachment->id,$contextValue('remove_assignment_attachments',[])))> Hapus lampiran saat disimpan</label>
+                    </li>@endforeach</ul>
+                @endif
+                @error('remove_assignment_attachments')<p class="text-sm text-red-600">{{$message}}</p>@enderror
+            </fieldset>
             @can('teaching-journals.view-all')<label class="md:col-span-2">Ustaz/Ustazah<select class="input" name="personnel_id">@foreach($teachers as $item)<option value="{{$item->id}}" @selected($contextValue('personnel_id',$journal->personnel_id)==$item->id)>{{$item->full_name}}</option>@endforeach</select>@error('personnel_id')<p class="mt-1 text-sm text-red-600">{{$message}}</p>@enderror</label>@endcan
         </section>
         <p class="hidden rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800" data-context-loading role="status">Memuat absensi sesuai konteks yang dipilih…</p>
@@ -46,7 +72,7 @@
                 </div>
             @endforeach
         </section>
-        <button class="btn btn-primary w-full">Simpan Jurnal dan Absensi</button>
+        <button data-journal-submit class="btn btn-primary w-full">Simpan Jurnal dan Absensi</button>
     </form>
     <script>
         const classroom = document.getElementById('journal-classroom');
@@ -71,7 +97,8 @@
         let contextVersion = 0;
         const reloadContext = (event) => {
             contextLoading = true;
-            document.querySelector('#journal-form button').disabled = true;
+            document.getElementById('journal-form').dataset.contextLoading = 'true';
+            document.querySelector('#journal-form [data-journal-submit]').disabled = true;
             const version = ++contextVersion;
             clearTimeout(contextReloadTimer);
             document.querySelector('[data-context-loading]').textContent = 'Memuat absensi sesuai konteks yang dipilih…';
@@ -108,9 +135,10 @@
                     }
                     document.getElementById('journal-attendance-context').innerHTML = doc.getElementById('journal-attendance-context').innerHTML;
                     contextLoading = false;
+                    document.getElementById('journal-form').dataset.contextLoading = 'false';
                     showRoster();
                     document.querySelector('[data-context-loading]').classList.add('hidden');
-                    document.querySelector('#journal-form button').disabled = !classroom.value;
+                    document.querySelector('#journal-form [data-journal-submit]').disabled = !classroom.value || document.getElementById('journal-form').dataset.driveBusy === 'true';
                 } catch (error) {
                     if (version !== contextVersion) return;
                     document.querySelector('[data-context-loading]').textContent = error.message;
@@ -120,4 +148,5 @@
         document.querySelectorAll('[name="academic_year_id"],[name="semester_id"],[name="journal_date"],[name="classroom_id"]').forEach((field) => field.addEventListener('change', reloadContext));
         document.getElementById('journal-form').addEventListener('submit', (event) => { if (contextLoading) event.preventDefault(); });
     </script>
+    <script type="module" src="{{asset('js/journal-drive-picker.js')}}"></script>
 </x-app-layout>

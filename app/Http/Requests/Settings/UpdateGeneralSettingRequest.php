@@ -9,6 +9,10 @@ class UpdateGeneralSettingRequest extends FormRequest
     protected function prepareForValidation():void{$data=collect($this->except(['_token','_method']))->map(fn($value)=>is_string($value)?trim($value):$value)->all();foreach(['maintenance_mode','attendance_rfid_enabled','rfid_writer_enabled'] as$key)$data[$key]=$this->boolean($key);if(isset($data['app_email']))$data['app_email']=strtolower($data['app_email']);$this->merge($data);}
     public function rules():array{$image=['nullable','file','mimes:png,jpg,jpeg,webp','max:2048'];return [
         'app_name'=>['required','string','max:100'],'app_short_name'=>['required','string','max:50'],'app_description'=>['nullable','string','max:255'],'institution_name'=>['required','string','max:150'],'app_email'=>['nullable','email','max:255'],'app_phone'=>['nullable','string','max:30'],'app_website'=>['nullable','url','max:255'],
+        'google_drive_picker_enabled'=>['sometimes','boolean'],
+        'google_drive_client_id'=>[Rule::requiredIf(fn()=> $this->boolean('google_drive_picker_enabled')), 'nullable','string','max:255','regex:/^[A-Za-z0-9_-]+\.apps\.googleusercontent\.com$/'],
+        'google_drive_api_key'=>[Rule::requiredIf(fn()=> $this->boolean('google_drive_picker_enabled')), 'nullable','string','max:255','regex:/^[A-Za-z0-9_-]+$/'],
+        'google_drive_app_id'=>[Rule::requiredIf(fn()=> $this->boolean('google_drive_picker_enabled')), 'nullable','string','max:30','regex:/^[0-9]+$/'],
         'primary_logo'=>$image,'login_logo'=>$image,'print_logo'=>$image,'favicon'=>['nullable','file','mimes:png,ico','max:512'],
         'primary_color'=>['required','regex:/^#[0-9A-Fa-f]{6}$/'],'default_theme'=>['required',Rule::in(['light'])],'sidebar_mode'=>['required',Rule::in(['expanded','compact'])],
         'default_language'=>['required',Rule::in(['id'])],'timezone'=>['required','timezone'],'date_format'=>['required',Rule::in(['DD/MM/YYYY','DD-MM-YYYY','YYYY-MM-DD'])],'time_format'=>['required',Rule::in(['24','12'])],'first_day_of_week'=>['required',Rule::in(['monday','sunday'])],
@@ -18,6 +22,12 @@ class UpdateGeneralSettingRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'google_drive_client_id.required' => 'OAuth Client ID wajib diisi untuk mengaktifkan pemilih Google Drive.',
+            'google_drive_client_id.regex' => 'Gunakan OAuth Client ID aplikasi web yang berakhiran .apps.googleusercontent.com.',
+            'google_drive_api_key.required' => 'API key browser wajib diisi untuk mengaktifkan pemilih Google Drive.',
+            'google_drive_api_key.regex' => 'Format API key Google tidak valid.',
+            'google_drive_app_id.required' => 'Nomor proyek Google Cloud wajib diisi untuk mengaktifkan pemilih Google Drive.',
+            'google_drive_app_id.regex' => 'Nomor proyek Google Cloud harus berisi angka.',
             'primary_logo.file' => 'Logo Utama gagal diunggah. Silakan pilih kembali berkas gambar yang valid.',
             'primary_logo.mimes' => 'Logo Utama harus berformat PNG, JPG, JPEG, atau WEBP.',
             'primary_logo.max' => 'Ukuran Logo Utama maksimal 2 MB.',

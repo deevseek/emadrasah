@@ -14,21 +14,25 @@ use App\Models\ClassroomMembership;
 use App\Models\Personnel;
 use App\Models\Semester;
 use App\Models\TeachingJournal;
+use App\Models\TeachingJournalAttachment;
 use App\Models\TeachingJournalTemplate;
 use App\Services\Academic\JournalAttendanceResolver;
 use App\Services\Academic\TeachingJournalAccessService;
 use App\Services\Academic\TeachingJournalReportService;
 use App\Services\Academic\TeachingJournalService;
 use App\Services\Academic\TeachingJournalTemplateService;
+use App\Services\Settings\ApplicationSettingService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class TeachingJournalController extends Controller
 {
@@ -79,7 +83,7 @@ class TeachingJournalController extends Controller
     public function show(Request $request, TeachingJournal $teachingJournal): View
     {
         $this->ensureView($request, $teachingJournal);
-        $teachingJournal->load(['personnel', 'classroom.gradeLevel', 'subject', 'attendances.student']);
+        $teachingJournal->load(['personnel', 'classroom.gradeLevel', 'subject', 'attendances.student', 'attachments']);
 
         return view('academic.teaching-journals.show', ['journal' => $teachingJournal, 'attendance' => $teachingJournal->attendances->countBy(fn ($row) => $row->status->value)]);
     }
@@ -88,7 +92,7 @@ class TeachingJournalController extends Controller
     {
         $this->ensureManage($request, $teachingJournal);
         $this->restoreContext($request);
-        $teachingJournal->load('attendances');
+        $teachingJournal->load(['attendances', 'attachments']);
         $year = $request->integer('academic_year_id') ?: $teachingJournal->academic_year_id;
         $semester = $request->integer('semester_id') ?: ($year === $teachingJournal->academic_year_id ? $teachingJournal->semester_id : (int) Semester::where('academic_year_id', $year)->orderByDesc('is_active')->value('id'));
         $date = $request->date('journal_date') ?? $teachingJournal->journal_date;
@@ -120,6 +124,17 @@ class TeachingJournalController extends Controller
         $service->delete($teachingJournal, $request->user());
 
         return redirect()->route('academic.teaching-journals.index')->with('success', 'Jurnal mengajar berhasil dihapus.');
+    }
+
+    public function attachment(Request $request, TeachingJournal $teachingJournal, TeachingJournalAttachment $attachment): StreamedResponse
+    {
+        $this->ensureView($request, $teachingJournal);
+        abort_unless((int) $attachment->teaching_journal_id === (int) $teachingJournal->id && $attachment->path, 404);
+        abort_unless(Storage::disk('local')->exists($attachment->path), 404);
+
+        return Storage::disk('local')->download($attachment->path, $attachment->original_name, [
+            'Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 
     public function uploadTemplate(TeachingJournalTemplateRequest $request, TeachingJournalTemplateService $service): RedirectResponse
@@ -206,7 +221,16 @@ class TeachingJournalController extends Controller
             }
         }
 
-        return array_replace($this->options($journal->academic_year_id, $rooms, $semesters), ['subjects' => $subjects]);
+        $settings = app(ApplicationSettingService::class);
+        $drivePicker = [
+            'enabled' => (bool) $settings->get('google_drive_picker_enabled'),
+            'clientId' => $settings->get('google_drive_client_id'),
+            'apiKey' => $settings->get('google_drive_api_key'),
+            'appId' => $settings->get('google_drive_app_id'),
+        ];
+        $drivePicker['ready'] = $drivePicker['enabled'] && filled($drivePicker['clientId']) && filled($drivePicker['apiKey']) && filled($drivePicker['appId']);
+
+        return array_replace($this->options($journal->academic_year_id, $rooms, $semesters), ['subjects' => $subjects, 'drivePicker' => $drivePicker]);
     }
 
     private function options(int $year, ?Collection $rooms = null, ?Collection $semesters = null): array

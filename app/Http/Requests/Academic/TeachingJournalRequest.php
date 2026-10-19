@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Academic;
 
+use App\Rules\GoogleDriveFileUrl;
 use App\Services\Academic\JournalAttendanceResolver;
 use App\Services\Academic\TeachingJournalAccessService;
 use Illuminate\Foundation\Http\FormRequest;
@@ -39,6 +40,11 @@ class TeachingJournalRequest extends FormRequest
             'learning_material' => ['nullable', 'string', 'max:10000'],
             'learning_method' => ['required', 'string', 'max:255'],
             'learning_activity' => ['nullable', 'string', 'max:10000'],
+            'assignment_drive_url' => ['nullable', 'string', 'max:2048', new GoogleDriveFileUrl],
+            'assignment_files' => ['nullable', 'array', 'max:10'],
+            'assignment_files.*' => ['required', 'file', 'mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,jpg,jpeg,png,txt', 'max:10240'],
+            'remove_assignment_attachments' => ['nullable', 'array', 'max:10'],
+            'remove_assignment_attachments.*' => ['required', 'integer', 'distinct'],
             'assignment' => ['nullable', 'string', 'max:10000'],
             'notes' => ['nullable', 'string', 'max:10000'],
             'attendances' => [$openingLesson ? 'required' : 'prohibited', 'array', 'min:1'],
@@ -68,6 +74,11 @@ class TeachingJournalRequest extends FormRequest
             'distinct' => ':attribute tidak boleh diisi berulang.',
             'prohibited' => ':attribute tidak boleh diisi pada jam pelajaran ini.',
             'required_with' => ':attribute wajib diisi apabila koreksi diberikan.',
+            'assignment_files.max' => 'Maksimal 10 file tugas dapat diunggah.',
+            'assignment_files.*.max' => 'Ukuran setiap file tugas maksimal 10 MB.',
+            'assignment_files.*.mimes' => 'File tugas harus berupa PDF, dokumen Word/Excel/PowerPoint, JPG, PNG, atau TXT.',
+            'assignment_files.*.file' => 'Lampiran tugas harus berupa file yang valid.',
+            'assignment_files.*.uploaded' => 'File tugas gagal diunggah. Periksa ukuran file dan coba kembali.',
             'topic.max' => 'Uraian mengajar tidak boleh lebih dari 5.000 karakter.',
         ];
     }
@@ -88,6 +99,11 @@ class TeachingJournalRequest extends FormRequest
             'learning_method' => 'metode pembelajaran',
             'learning_activity' => 'kegiatan pembelajaran',
             'assignment' => 'tugas',
+            'assignment_drive_url' => 'tautan tugas Google Drive',
+            'assignment_files' => 'file tugas',
+            'assignment_files.*' => 'file tugas',
+            'remove_assignment_attachments' => 'lampiran tugas yang dihapus',
+            'remove_assignment_attachments.*' => 'lampiran tugas yang dihapus',
             'notes' => 'keterangan/catatan',
             'attendances' => 'absensi siswa',
             'attendances.*.student_id' => 'siswa',
