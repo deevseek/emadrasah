@@ -28,6 +28,7 @@ class TeachingJournalService
     public function save(array $data, User $user, ?TeachingJournal $journal = null): TeachingJournal
     {
         $this->access->ensureManage($user, $journal);
+        $data['topic'] = $data['topic'] ?? $journal?->topic ?? '';
         $data['journal_date'] = Carbon::parse($data['journal_date'])->toDateString();
 
         return DB::transaction(function () use ($data, $user, $journal): TeachingJournal {

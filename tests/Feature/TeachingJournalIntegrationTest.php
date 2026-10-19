@@ -116,7 +116,7 @@ class TeachingJournalIntegrationTest extends TestCase
     {
         app()->setLocale('id');
         [$user, $payload] = $this->journalContext();
-        $payload['topic'] = '';
+        $payload['topic'] = str_repeat('a', 5001);
         $payload['learning_method'] = str_repeat('a', 256);
 
         $response = $this->from(route('academic.teaching-journals.create'))
@@ -126,7 +126,7 @@ class TeachingJournalIntegrationTest extends TestCase
         $response->assertRedirect(route('academic.teaching-journals.create'))
             ->assertSessionHasErrors(['topic', 'learning_method']);
         $errors = session('errors')->all();
-        $this->assertStringContainsString('uraian mengajar wajib diisi', mb_strtolower(implode(' ', $errors)));
+        $this->assertStringContainsString('uraian mengajar tidak boleh lebih dari 5.000 karakter', mb_strtolower(implode(' ', $errors)));
         $this->assertStringContainsString('metode pembelajaran tidak boleh lebih dari 255 karakter', mb_strtolower(implode(' ', $errors)));
         $this->assertStringNotContainsString('validation.', implode(' ', $errors));
     }
@@ -527,6 +527,27 @@ class TeachingJournalIntegrationTest extends TestCase
         $admin->givePermissionTo('teaching-journals.manage');
         $this->actingAs($admin)->delete(route('academic.teaching-journals.destroy', $journal))->assertRedirect();
         $this->assertDatabaseCount('teaching_journals', 0);
+    }
+
+    public function test_simplified_form_saves_without_removed_fields_and_preserves_historical_content(): void
+    {
+        [$user, $payload] = $this->journalContext();
+        $response = $this->actingAs($user)->get(route('academic.teaching-journals.create'));
+        $response->assertOk()->assertDontSee('name="topic"', false)
+            ->assertDontSee('name="learning_objectives"', false)
+            ->assertDontSee('name="learning_activity"', false);
+        $simplified = collect($payload)->except(['topic', 'learning_objectives', 'learning_activity'])->all();
+        $this->actingAs($user)->post(route('academic.teaching-journals.store'), $simplified)
+            ->assertSessionHasNoErrors()->assertRedirect();
+        $journal = TeachingJournal::sole();
+        $this->assertSame('', $journal->topic);
+        $journal->update(['topic' => 'Uraian lama', 'learning_objectives' => 'Tujuan lama', 'learning_activity' => 'Kegiatan lama']);
+        $this->actingAs($user)->put(route('academic.teaching-journals.update', $journal), $simplified)
+            ->assertSessionHasNoErrors()->assertRedirect();
+        $journal->refresh();
+        $this->assertSame('Uraian lama', $journal->topic);
+        $this->assertSame('Tujuan lama', $journal->learning_objectives);
+        $this->assertSame('Kegiatan lama', $journal->learning_activity);
     }
 
     private function journalContext(bool $admin = true): array
