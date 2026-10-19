@@ -82,6 +82,26 @@ class ApplicationSettingTest extends TestCase
         $this->actingAs($admin)->get(route('dashboard'))->assertOk();
     }
 
+    public function test_google_drive_picker_configuration_requires_complete_values_and_update_permission(): void
+    {
+        $configuration = [
+            'google_drive_picker_enabled' => true,
+            'google_drive_client_id' => 'test-client.apps.googleusercontent.com',
+            'google_drive_api_key' => 'test_browser_key',
+            'google_drive_app_id' => '1234567890',
+        ];
+        $this->actingAs($this->user(['application-settings.view']))
+            ->put(route('application-settings.update'), $this->data($configuration))->assertForbidden();
+        $admin = $this->user(['application-settings.update']);
+        $this->actingAs($admin)->put(route('application-settings.update'), $this->data(['google_drive_picker_enabled' => true]))
+            ->assertSessionHasErrors(['google_drive_client_id', 'google_drive_api_key', 'google_drive_app_id']);
+        $this->actingAs($admin)->put(route('application-settings.update'), $this->data($configuration))->assertSessionHasNoErrors();
+        $settings = app(ApplicationSettingService::class);
+        $this->assertTrue($settings->get('google_drive_picker_enabled'));
+        $this->assertSame($configuration['google_drive_client_id'], $settings->get('google_drive_client_id'));
+        $this->assertSame($configuration['google_drive_app_id'], $settings->get('google_drive_app_id'));
+    }
+
     private function user(array $permissions): User
     {
         $user = User::factory()->create(['is_active' => true, 'must_change_password' => false]);

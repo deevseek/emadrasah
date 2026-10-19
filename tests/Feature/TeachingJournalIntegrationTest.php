@@ -23,10 +23,13 @@ use App\Services\Academic\AcademicAccessService;
 use App\Services\Academic\JournalAttendanceResolver;
 use App\Services\Academic\TeachingJournalReportService;
 use App\Services\Academic\TeachingJournalService;
+use App\Services\Settings\ApplicationSettingService;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -548,6 +551,140 @@ class TeachingJournalIntegrationTest extends TestCase
         $this->assertSame('Uraian lama', $journal->topic);
         $this->assertSame('Tujuan lama', $journal->learning_objectives);
         $this->assertSame('Kegiatan lama', $journal->learning_activity);
+    }
+
+    public function test_assignment_upload_is_private_downloadable_by_owner_and_survives_updates(): void
+    {
+        Storage::fake('local');
+        [$user, $payload] = $this->journalContext(false);
+        $this->assignSchedule($user, $payload);
+        $file = UploadedFile::fake()->create('Tugas Matematika.pdf', 20, 'application/pdf');
+        $this->actingAs($user)->post(route('academic.teaching-journals.store'), [...$payload, 'assignment_files' => [$file]])
+            ->assertSessionHasNoErrors()->assertRedirect();
+        $journal = TeachingJournal::sole();
+        $attachment = $journal->attachments()->sole();
+        Storage::disk('local')->assertExists($attachment->path);
+        $url = route('academic.teaching-journals.attachments.download', [$journal, $attachment]);
+        $this->actingAs($user)->get($url)->assertOk()->assertDownload('Tugas Matematika.pdf');
+        $this->actingAs($user)->get(route('academic.teaching-journals.show', $journal))->assertOk()->assertSee('Tugas Matematika.pdf');
+        $this->actingAs($user)->get(route('academic.teaching-journals.edit', $journal))->assertOk()->assertSee('enctype="multipart/form-data"', false)->assertSee('Tugas Matematika.pdf');
+        $this->actingAs($user)->put(route('academic.teaching-journals.update', $journal), $payload)->assertSessionHasNoErrors();
+        $this->assertSame(1, $journal->attachments()->count());
+        $other = User::factory()->create(['must_change_password' => false]);
+        $other->givePermissionTo('teaching-journals.view');
+        Personnel::create(['user_id' => $other->id, 'full_name' => 'Guru Lampiran Lain', 'gender' => 'male', 'employment_status' => 'Tetap', 'position' => 'Guru', 'is_active' => true]);
+        $this->actingAs($other)->get($url)->assertForbidden();
+        $other->givePermissionTo(Permission::findOrCreate('teaching-journals.view-all'));
+        $this->actingAs($other)->get($url)->assertOk();
+        $this->actingAs($user)->put(route('academic.teaching-journals.update', $journal), [...$payload, 'remove_assignment_attachments' => [$attachment->id]])->assertSessionHasNoErrors();
+        $this->assertSame(0, $journal->attachments()->count());
+        Storage::disk('local')->assertMissing($attachment->path);
+    }
+
+    public function test_assignment_upload_rejects_unsafe_or_oversized_files_without_saving_journal(): void
+    {
+        Storage::fake('local');
+        [$user, $payload] = $this->journalContext();
+        foreach ([UploadedFile::fake()->create('script.php', 1, 'application/x-php'), UploadedFile::fake()->create('besar.pdf', 10241, 'application/pdf')] as $file) {
+            $this->actingAs($user)->post(route('academic.teaching-journals.store'), [...$payload, 'assignment_files' => [$file]])->assertSessionHasErrors('assignment_files.0');
+        }
+        $this->assertDatabaseCount('teaching_journals', 0);
+        $this->assertSame([], Storage::disk('local')->allFiles());
+    }
+
+    public function test_assignment_drive_link_is_validated_saved_and_not_duplicated(): void
+    {
+        [$user, $payload] = $this->journalContext();
+        foreach (['https://example.com/file.pdf', 'javascript:alert(1)', 'https://drive.google.com.evil.test/file/d/123/view', 'https://drive.google.com/drive/folders/123'] as $url) {
+            $this->actingAs($user)->post(route('academic.teaching-journals.store'), [...$payload, 'assignment_drive_url' => $url])->assertSessionHasErrors('assignment_drive_url');
+        }
+        $this->assertDatabaseCount('teaching_journals', 0);
+        $url = 'https://drive.google.com/file/d/abc_123/view?usp=sharing';
+        $this->actingAs($user)->post(route('academic.teaching-journals.store'), [...$payload, 'assignment_drive_url' => $url])->assertSessionHasNoErrors()->assertRedirect();
+        $journal = TeachingJournal::sole();
+        $this->assertSame($url, $journal->attachments()->sole()->drive_url);
+        $this->actingAs($user)->put(route('academic.teaching-journals.update', $journal), [...$payload, 'assignment_drive_url' => $url])->assertSessionHasNoErrors();
+        $this->assertSame(1, $journal->attachments()->count());
+        $this->actingAs($user)->get(route('academic.teaching-journals.show', $journal))->assertOk()->assertSee('File tugas Google Drive');
+    }
+
+    public function test_attachment_removal_is_scoped_and_failed_save_leaves_no_files_or_journal(): void
+    {
+        Storage::fake('local');
+        [$user, $payload] = $this->journalContext();
+        $this->actingAs($user)->post(route('academic.teaching-journals.store'), [...$payload,
+            'assignment_files' => [UploadedFile::fake()->create('tugas.pdf', 10, 'application/pdf')],
+            'remove_assignment_attachments' => [999999],
+        ])->assertSessionHasErrors('remove_assignment_attachments');
+        $this->assertDatabaseCount('teaching_journals', 0);
+        $this->assertDatabaseCount('student_attendances', 0);
+        $this->assertSame([], Storage::disk('local')->allFiles());
+    }
+
+    public function test_assignment_files_are_cleaned_up_when_save_fails_after_upload(): void
+    {
+        Storage::fake('local');
+        [$user, $payload] = $this->journalContext();
+        $resolver = \Mockery::mock(JournalAttendanceResolver::class)->makePartial();
+        $resolver->shouldReceive('writeSnapshots')->once()->andThrow(new \RuntimeException('Penyimpanan snapshot gagal.'));
+        $this->app->instance(JournalAttendanceResolver::class, $resolver);
+        try {
+            app(TeachingJournalService::class)->save([...$payload, 'assignment_files' => [UploadedFile::fake()->create('tugas.pdf', 10, 'application/pdf')]], $user);
+            $this->fail('Penyimpanan seharusnya gagal.');
+        } catch (\RuntimeException $exception) {
+            $this->assertSame('Penyimpanan snapshot gagal.', $exception->getMessage());
+        }
+        $this->assertDatabaseCount('teaching_journals', 0);
+        $this->assertDatabaseCount('teaching_journal_attachments', 0);
+        $this->assertSame([], Storage::disk('local')->allFiles());
+    }
+
+    public function test_attachments_cannot_be_removed_or_downloaded_through_another_journal(): void
+    {
+        Storage::fake('local');
+        [$user, $payload] = $this->journalContext();
+        $service = app(TeachingJournalService::class);
+        $first = $service->save($payload, $user);
+        $second = $service->save([...$payload, 'lesson_number' => '3-4', 'attendances' => null, 'assignment_files' => [UploadedFile::fake()->create('tugas.pdf', 10, 'application/pdf')]], $user);
+        $attachment = $second->attachments()->sole();
+        $this->actingAs($user)->get(route('academic.teaching-journals.attachments.download', [$first, $attachment]))->assertNotFound();
+        $this->actingAs($user)->put(route('academic.teaching-journals.update', $first), [...$payload, 'remove_assignment_attachments' => [$attachment->id]])->assertSessionHasErrors('remove_assignment_attachments');
+        $this->assertSame(1, $second->attachments()->count());
+        Storage::disk('local')->assertExists($attachment->path);
+        $this->actingAs($user)->delete(route('academic.teaching-journals.destroy', $second))->assertRedirect();
+        $this->assertDatabaseCount('teaching_journal_attachments', 0);
+        Storage::disk('local')->assertMissing($attachment->path);
+    }
+
+    public function test_assignment_attachment_limit_counts_saved_and_new_files_together(): void
+    {
+        Storage::fake('local');
+        [$user, $payload] = $this->journalContext();
+        $journal = app(TeachingJournalService::class)->save($payload, $user);
+        for ($i = 0; $i < 10; $i++) {
+            $journal->attachments()->create(['original_name' => 'File Drive '.$i, 'drive_url' => 'https://drive.google.com/file/d/file_'.$i.'/view']);
+        }
+        $this->actingAs($user)->put(route('academic.teaching-journals.update', $journal), [...$payload, 'assignment_files' => [UploadedFile::fake()->create('tambahan.pdf', 10, 'application/pdf')]])->assertSessionHasErrors('assignment_files');
+        $this->assertSame(10, $journal->attachments()->count());
+        $this->assertSame([], Storage::disk('local')->allFiles());
+    }
+
+    public function test_google_drive_picker_is_disabled_until_operator_configures_google_cloud(): void
+    {
+        [$user] = $this->journalContext();
+        $this->actingAs($user)->get(route('academic.teaching-journals.create'))->assertOk()
+            ->assertSee('Pilih dari Google Drive')->assertSee('Pemilih Google Drive belum diaktifkan');
+        $settings = app(ApplicationSettingService::class);
+        $settings->update($user, [
+            'google_drive_picker_enabled' => true,
+            'google_drive_client_id' => 'test-client.apps.googleusercontent.com',
+            'google_drive_api_key' => 'test_browser_key',
+            'google_drive_app_id' => '1234567890',
+        ]);
+        $response = $this->actingAs($user)->get(route('academic.teaching-journals.create'));
+        $response->assertOk()->assertSee('data-client-id="test-client.apps.googleusercontent.com"', false)
+            ->assertSee('js/journal-drive-picker.js')->assertDontSee('Pemilih Google Drive belum diaktifkan');
+        $this->assertTrue($response->viewData('drivePicker')['ready']);
     }
 
     private function journalContext(bool $admin = true): array

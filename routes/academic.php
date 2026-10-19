@@ -8,3 +8,7 @@ Route::middleware(['auth', 'active', 'force-password-change', 'permission:teachi
         Route::post('/', [\App\Http\Controllers\Academic\LessonScheduleController::class, 'store'])->name('store');
         Route::patch('/{lessonSchedule}/deactivate', [\App\Http\Controllers\Academic\LessonScheduleController::class, 'deactivate'])->name('deactivate');
     });
+
+Route::get('academic/teaching-journals/{teachingJournal}/attachments/{attachment}', [TeachingJournalController::class, 'attachment'])
+    ->middleware(['auth', 'active', 'force-password-change', 'permission:teaching-journals.view'])
+    ->name('academic.teaching-journals.attachments.download');
