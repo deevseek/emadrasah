@@ -3,7 +3,7 @@
     <form id="journal-form" method="post" action="{{ $journal->exists ? route('academic.teaching-journals.update', $journal) : route('academic.teaching-journals.store') }}" class="card card-body space-y-6">
         @csrf
         @if($journal->exists) @method('put') @endif
-        <x-ui.page-header :title="($journal->exists ? 'Ubah' : 'Isi').' Jurnal Mengajar'" description="Catat uraian mengajar, metode pembelajaran, dan absensi siswa dalam satu proses." />
+        <x-ui.page-header :title="($journal->exists ? 'Ubah' : 'Isi').' Jurnal Mengajar'" description="Catat metode pembelajaran dan absensi siswa dalam satu proses." />
 
         <section class="grid gap-4 md:grid-cols-2">
             <label>Tahun Ajaran<select class="input" name="academic_year_id" required>@foreach($years as $item)<option value="{{$item->id}}" @selected($contextValue('academic_year_id',$journal->academic_year_id)==$item->id)>{{$item->name}}</option>@endforeach</select>@error('academic_year_id')<p class="mt-1 text-sm text-red-600">{{$message}}</p>@enderror</label>
@@ -12,9 +12,8 @@
             <label>Rombel<select id="journal-classroom" class="input" name="classroom_id" required>@foreach($rooms as $item)<option value="{{$item->id}}" @selected($contextValue('classroom_id',$journal->classroom_id)==$item->id)>{{$item->display_name}}</option>@endforeach</select>@error('classroom_id')<p class="mt-1 text-sm text-red-600">{{$message}}</p>@enderror</label>
             <label>Mata Pelajaran<select class="input" name="academic_subject_id" required>@foreach($subjects as $item)<option value="{{$item->id}}" @selected($contextValue('academic_subject_id',$journal->academic_subject_id)==$item->id)>{{$item->name}}</option>@endforeach</select>@error('academic_subject_id')<p class="mt-1 text-sm text-red-600">{{$message}}</p>@enderror</label>
             <label>Jam ke<input id="journal-lesson-number" class="input" required name="lesson_number" value="{{$contextValue('lesson_number',$journal->lesson_number)}}" placeholder="Contoh: 1–2">@error('lesson_number')<p class="mt-1 text-sm text-red-600">{{$message}}</p>@enderror</label>
-            <label class="md:col-span-2">Uraian Mengajar<textarea class="input min-h-24" required maxlength="5000" name="topic" placeholder="Materi atau uraian yang diajarkan">{{$contextValue('topic',$journal->topic)}}</textarea>@error('topic')<p class="mt-1 text-sm text-red-600">{{$message}}</p>@enderror</label>
             <label class="md:col-span-2">Metode Pembelajaran<input class="input" required maxlength="255" name="learning_method" value="{{$contextValue('learning_method',$journal->learning_method)}}" placeholder="Contoh: diskusi, demonstrasi, dan tanya jawab">@error('learning_method')<p class="mt-1 text-sm text-red-600">{{$message}}</p>@enderror</label>
-            @foreach(['learning_objectives'=>'Tujuan Pembelajaran','learning_material'=>'Materi Pembelajaran','learning_activity'=>'Kegiatan Pembelajaran','assignment'=>'Tugas','notes'=>'Keterangan/Catatan'] as $key=>$label)
+            @foreach(['learning_material'=>'Materi Pembelajaran','assignment'=>'Tugas','notes'=>'Keterangan/Catatan'] as $key=>$label)
                 <label>{{$label}}<textarea class="input min-h-24" maxlength="10000" name="{{$key}}">{{$contextValue($key,$journal->$key)}}</textarea>@error($key)<p class="mt-1 text-sm text-red-600">{{$message}}</p>@enderror</label>
             @endforeach
             @can('teaching-journals.view-all')<label class="md:col-span-2">Ustaz/Ustazah<select class="input" name="personnel_id">@foreach($teachers as $item)<option value="{{$item->id}}" @selected($contextValue('personnel_id',$journal->personnel_id)==$item->id)>{{$item->full_name}}</option>@endforeach</select>@error('personnel_id')<p class="mt-1 text-sm text-red-600">{{$message}}</p>@enderror</label>@endcan
