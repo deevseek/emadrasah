@@ -4,9 +4,11 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
 const view = readFileSync(new URL('../../resources/views/academic/teaching-journals/form.blade.php', import.meta.url), 'utf8');
-const script = view.match(/<script>([\s\S]*?)<\/script>/)[1];
+// Simulasikan URL route server di belakang proxy yang melihat koneksi HTTP.
+const script = view.match(/<script>([\s\S]*?)<\/script>/)[1]
+    .replace(/\{\{ \$journal->exists \? route\([^\n]+? \}\}/g, 'http://internal-server/academic/teaching-journals/create');
 
-function journalPage({ responseOk = true } = {}) {
+function journalPage({ responseOk = true, pageUrl = 'https://madrasah.example/academic/teaching-journals/create' } = {}) {
     const element = (value = '') => ({
         value, dataset: {}, disabled: false, hidden: false, textContent: '', innerHTML: '',
         classList: { toggle() {}, add() {}, remove() {} },
@@ -62,7 +64,9 @@ function journalPage({ responseOk = true } = {}) {
         document, URLSearchParams,
         setTimeout(callback) { pending = callback; }, clearTimeout() {},
         fetch: async (url, options) => {
-            requests.push({ url, options });
+            const resolved = new URL(url, pageUrl);
+            requests.push({ url: resolved.href, options });
+            if (resolved.origin !== new URL(pageUrl).origin) throw new TypeError('Failed to fetch');
             return { ok: responseOk, redirected: false, text: async () => '<html></html>' };
         },
         DOMParser: class {
@@ -104,3 +108,19 @@ test('kegagalan pemuatan menampilkan pesan pada status tanpa menghapus formulir'
     assert.match(page.status.textContent, /Konteks tidak dapat dimuat/);
     assert.equal(page.submit.disabled, true);
 });
+
+for (const path of ['/academic/teaching-journals/create', '/academic/teaching-journals/7/edit']) {
+    test(`pemuatan memakai HTTPS dan alamat halaman aktif di belakang proxy: ${path}`, async () => {
+        const pageUrl = `https://madrasah.example${path}?classroom_id=1`;
+        const page = journalPage({ pageUrl });
+        page.fields.classroom_id.value = '2';
+        page.fields.classroom_id.change({ target: page.fields.classroom_id });
+        await page.flush();
+        const requested = new URL(page.requests[0].url);
+        assert.equal(requested.origin, 'https://madrasah.example');
+        assert.equal(requested.pathname, path);
+        assert.equal(requested.searchParams.get('classroom_id'), '2');
+        assert.equal(page.form.dataset.contextLoading, 'false');
+        assert.equal(page.submit.disabled, false);
+    });
+}

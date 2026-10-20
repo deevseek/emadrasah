@@ -121,7 +121,7 @@
                 }
                 if (event.target.name === 'semester_id') query.delete('classroom_id');
                 try {
-                    const response = await fetch(`{{ $journal->exists ? route('academic.teaching-journals.edit', $journal) : route('academic.teaching-journals.create') }}?${query}`, {headers: {'Accept': 'text/html', 'X-Journal-Context': '1'}});
+                    const response = await fetch(`?${query}`, {headers: {'Accept': 'text/html', 'X-Journal-Context': '1'}});
                     if (!response.ok || response.redirected) throw new Error('Konteks tidak dapat dimuat. Periksa periode dan rombel yang dipilih.');
                     const doc = new DOMParser().parseFromString(await response.text(), 'text/html');
                     if (version !== contextVersion) return;
