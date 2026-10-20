@@ -44,7 +44,7 @@
             </fieldset>
             @can('teaching-journals.view-all')<label class="md:col-span-2">Ustaz/Ustazah<select class="input" name="personnel_id">@foreach($teachers as $item)<option value="{{$item->id}}" @selected($contextValue('personnel_id',$journal->personnel_id)==$item->id)>{{$item->full_name}}</option>@endforeach</select>@error('personnel_id')<p class="mt-1 text-sm text-red-600">{{$message}}</p>@enderror</label>@endcan
         </section>
-        <p class="hidden rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800" data-context-loading role="status">Memuat absensi sesuai konteks yang dipilih…</p>
+        <p class="hidden rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800" data-context-status role="status">Memuat absensi sesuai konteks yang dipilih…</p>
 
         <section id="journal-attendance-context">
         @if($rooms->isEmpty())<p class="rounded-lg bg-amber-50 p-3 text-amber-900">Belum ada rombel yang ditugaskan. Hubungi Operator Madrasah untuk mengatur jadwal mengajar.</p>@endif
@@ -101,8 +101,8 @@
             document.querySelector('#journal-form [data-journal-submit]').disabled = true;
             const version = ++contextVersion;
             clearTimeout(contextReloadTimer);
-            document.querySelector('[data-context-loading]').textContent = 'Memuat absensi sesuai konteks yang dipilih…';
-            document.querySelector('[data-context-loading]').classList.remove('hidden');
+            document.querySelector('[data-context-status]').textContent = 'Memuat absensi sesuai konteks yang dipilih…';
+            document.querySelector('[data-context-status]').classList.remove('hidden');
             document.querySelectorAll('.attendance-roster').forEach((roster) => {
                 roster.hidden = true;
                 roster.querySelectorAll('input,select').forEach((input) => input.disabled = true);
@@ -137,11 +137,11 @@
                     contextLoading = false;
                     document.getElementById('journal-form').dataset.contextLoading = 'false';
                     showRoster();
-                    document.querySelector('[data-context-loading]').classList.add('hidden');
+                    document.querySelector('[data-context-status]').classList.add('hidden');
                     document.querySelector('#journal-form [data-journal-submit]').disabled = !classroom.value || document.getElementById('journal-form').dataset.driveBusy === 'true';
                 } catch (error) {
                     if (version !== contextVersion) return;
-                    document.querySelector('[data-context-loading]').textContent = error.message;
+                    document.querySelector('[data-context-status]').textContent = error.message;
                 }
             }, 250);
         };
