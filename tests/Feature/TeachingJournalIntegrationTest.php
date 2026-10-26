@@ -392,6 +392,46 @@ class TeachingJournalIntegrationTest extends TestCase
         ], $overrides));
     }
 
+    public function test_btaq_teacher_can_select_active_rooms_and_save_without_a_timetable(): void
+    {
+        [$user, $payload] = $this->journalContext(false);
+        $personnel = Personnel::where('user_id', $user->id)->sole();
+        $btaq = AcademicSubject::create(['name' => 'BTAQ', 'code' => 'BTAQ', 'is_active' => true]);
+        $room = Classroom::findOrFail($payload['classroom_id']);
+        $other = Classroom::create(['academic_year_id' => $room->academic_year_id, 'grade_level_id' => $room->grade_level_id, 'code' => 'B', 'is_active' => true]);
+        Classroom::create(['academic_year_id' => $room->academic_year_id, 'grade_level_id' => $room->grade_level_id, 'code' => 'C', 'is_active' => false]);
+
+        foreach (['Guru BTAQ', ' guru   batq '] as $position) {
+            $personnel->update(['position' => $position]);
+            $response = $this->actingAs($user)->get(route('academic.teaching-journals.create'));
+            $response->assertOk();
+            $this->assertEqualsCanonicalizing([$room->id, $other->id], $response->viewData('rooms')->pluck('id')->all());
+            $this->assertSame([$btaq->id], $response->viewData('subjects')->pluck('id')->all());
+        }
+
+        $this->actingAs($user)->post(route('academic.teaching-journals.store'), [...$payload, 'academic_subject_id' => $btaq->id])
+            ->assertSessionHasNoErrors()->assertRedirect();
+        $this->assertDatabaseHas('teaching_journals', ['personnel_id' => $personnel->id, 'academic_subject_id' => $btaq->id]);
+        $this->actingAs($user)->post(route('academic.teaching-journals.store'), $payload)->assertSessionHasErrors('academic_subject_id');
+        $this->assertSame(0, app(AcademicAccessService::class)->classrooms($user->assignRole(Role::findOrCreate('guru')))->count());
+    }
+
+    public function test_btaq_access_excludes_inactive_subjects_and_rooms_from_other_years(): void
+    {
+        [$user, $payload] = $this->journalContext(false);
+        Personnel::where('user_id', $user->id)->update(['position' => 'Guru BTAQ']);
+        $btaq = AcademicSubject::create(['name' => 'Baca Tulis Al-Quran', 'code' => 'BATQ', 'is_active' => true]);
+        $inactive = AcademicSubject::create(['name' => 'BTAQ', 'is_active' => false]);
+        $year = AcademicYear::create(['name' => '2025/2026', 'starts_at' => '2025-07-01', 'ends_at' => '2026-06-30', 'is_active' => false]);
+        $room = Classroom::create(['academic_year_id' => $year->id, 'grade_level_id' => Classroom::findOrFail($payload['classroom_id'])->grade_level_id, 'code' => 'A', 'is_active' => true]);
+        $response = $this->actingAs($user)->get(route('academic.teaching-journals.create'));
+        $response->assertOk();
+        $this->assertFalse($response->viewData('rooms')->contains('id', $room->id));
+        $this->assertSame([$btaq->id], $response->viewData('subjects')->pluck('id')->all());
+        $this->actingAs($user)->post(route('academic.teaching-journals.store'), [...$payload, 'academic_subject_id' => $inactive->id])->assertSessionHasErrors('classroom_id');
+        $this->actingAs($user)->post(route('academic.teaching-journals.store'), [...$payload, 'classroom_id' => $room->id, 'academic_subject_id' => $btaq->id])->assertSessionHasErrors('classroom_id');
+    }
+
     public function test_subject_teacher_has_all_assigned_rooms_and_only_assigned_subjects(): void
     {
         [$user, $payload] = $this->journalContext(false);
