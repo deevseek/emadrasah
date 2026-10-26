@@ -167,14 +167,15 @@ class TeachingJournalIntegrationTest extends TestCase
         $this->assertFalse($response->viewData('dailyAttendance')->has($payload['attendances'][0]['student_id']));
     }
 
-    public function test_create_rejects_explicit_classroom_that_teacher_cannot_access(): void
+    public function test_teacher_without_assignment_can_create_journal_in_an_active_classroom(): void
     {
         [$user, $payload] = $this->journalContext();
         $user->assignRole(Role::findOrCreate('guru'));
         $user->revokePermissionTo('teaching-journals.view-all');
 
         $this->actingAs($user)->get(route('academic.teaching-journals.create', ['academic_year_id' => $payload['academic_year_id'], 'classroom_id' => $payload['classroom_id']]))
-            ->assertSessionHasErrors('classroom_id');
+            ->assertOk();
+        $this->actingAs($user)->post(route('academic.teaching-journals.store'), $payload)->assertSessionHasNoErrors()->assertRedirect();
     }
 
     public function test_create_form_automatically_reloads_changed_attendance_context(): void
@@ -406,13 +407,13 @@ class TeachingJournalIntegrationTest extends TestCase
             $response = $this->actingAs($user)->get(route('academic.teaching-journals.create'));
             $response->assertOk();
             $this->assertEqualsCanonicalizing([$room->id, $other->id], $response->viewData('rooms')->pluck('id')->all());
-            $this->assertSame([$btaq->id], $response->viewData('subjects')->pluck('id')->all());
+            $this->assertEqualsCanonicalizing([$payload['academic_subject_id'], $btaq->id], $response->viewData('subjects')->pluck('id')->all());
         }
 
         $this->actingAs($user)->post(route('academic.teaching-journals.store'), [...$payload, 'academic_subject_id' => $btaq->id])
             ->assertSessionHasNoErrors()->assertRedirect();
         $this->assertDatabaseHas('teaching_journals', ['personnel_id' => $personnel->id, 'academic_subject_id' => $btaq->id]);
-        $this->actingAs($user)->post(route('academic.teaching-journals.store'), $payload)->assertSessionHasErrors('academic_subject_id');
+        $this->actingAs($user)->post(route('academic.teaching-journals.store'), $payload)->assertSessionHasNoErrors()->assertRedirect();
         $this->assertSame(0, app(AcademicAccessService::class)->classrooms($user->assignRole(Role::findOrCreate('guru')))->count());
     }
 
@@ -427,12 +428,12 @@ class TeachingJournalIntegrationTest extends TestCase
         $response = $this->actingAs($user)->get(route('academic.teaching-journals.create'));
         $response->assertOk();
         $this->assertFalse($response->viewData('rooms')->contains('id', $room->id));
-        $this->assertSame([$btaq->id], $response->viewData('subjects')->pluck('id')->all());
+        $this->assertEqualsCanonicalizing([$payload['academic_subject_id'], $btaq->id], $response->viewData('subjects')->pluck('id')->all());
         $this->actingAs($user)->post(route('academic.teaching-journals.store'), [...$payload, 'academic_subject_id' => $inactive->id])->assertSessionHasErrors('classroom_id');
         $this->actingAs($user)->post(route('academic.teaching-journals.store'), [...$payload, 'classroom_id' => $room->id, 'academic_subject_id' => $btaq->id])->assertSessionHasErrors('classroom_id');
     }
 
-    public function test_subject_teacher_has_all_assigned_rooms_and_only_assigned_subjects(): void
+    public function test_subject_teacher_can_select_and_save_all_active_subjects_without_assignment(): void
     {
         [$user, $payload] = $this->journalContext(false);
         $this->assignSchedule($user, $payload);
@@ -443,8 +444,8 @@ class TeachingJournalIntegrationTest extends TestCase
         $response = $this->actingAs($user)->get(route('academic.teaching-journals.create'));
         $response->assertOk();
         $this->assertEqualsCanonicalizing([$room->id, $other->id], $response->viewData('rooms')->pluck('id')->all());
-        $this->assertSame([$payload['academic_subject_id']], $response->viewData('subjects')->pluck('id')->all());
-        $this->actingAs($user)->post(route('academic.teaching-journals.store'), [...$payload, 'academic_subject_id' => $unassigned->id])->assertSessionHasErrors('academic_subject_id');
+        $this->assertEqualsCanonicalizing([$payload['academic_subject_id'], $unassigned->id], $response->viewData('subjects')->pluck('id')->all());
+        $this->actingAs($user)->post(route('academic.teaching-journals.store'), [...$payload, 'academic_subject_id' => $unassigned->id])->assertSessionHasNoErrors()->assertRedirect();
         // Akses global absensi/nilai tetap hanya rombel wali kelas.
         $this->assertSame(0, app(AcademicAccessService::class)->classrooms($user->assignRole(Role::findOrCreate('guru')))->count());
     }
@@ -469,7 +470,7 @@ class TeachingJournalIntegrationTest extends TestCase
         $this->assertDatabaseCount('teaching_journals', 1);
     }
 
-    public function test_inactive_assignment_blocks_new_context_but_preserves_historical_owner_access(): void
+    public function test_inactive_assignment_does_not_block_journal_creation_or_historical_owner_access(): void
     {
         [$user, $payload] = $this->journalContext(false);
         $schedule = $this->assignSchedule($user, $payload);
@@ -479,8 +480,8 @@ class TeachingJournalIntegrationTest extends TestCase
         $this->actingAs($user)->get(route('academic.teaching-journals.edit', $journal))->assertOk();
         $this->actingAs($user)->put(route('academic.teaching-journals.update', $journal), [...$payload, 'topic' => 'Koreksi jurnal lama'])->assertRedirect();
         $this->assertSame('Koreksi jurnal lama', $journal->refresh()->topic);
-        $this->actingAs($user)->post(route('academic.teaching-journals.store'), $payload)->assertSessionHasErrors('classroom_id');
-        $this->actingAs($user)->put(route('academic.teaching-journals.update', $journal), [...$payload, 'journal_date' => '2026-10-08'])->assertSessionHasErrors('classroom_id');
+        $this->actingAs($user)->post(route('academic.teaching-journals.store'), $payload)->assertSessionHasNoErrors()->assertRedirect();
+        $this->actingAs($user)->put(route('academic.teaching-journals.update', $journal), [...collect($payload)->except('attendances')->all(), 'lesson_number' => '3-4'])->assertSessionHasNoErrors()->assertRedirect();
     }
 
     public function test_teacher_without_active_personnel_is_denied_clearly(): void
