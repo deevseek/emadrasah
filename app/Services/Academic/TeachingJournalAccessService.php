@@ -8,6 +8,7 @@ use App\Models\AcademicSubject;
 use App\Models\AcademicYear;
 use App\Models\Classroom;
 use App\Models\LessonSchedule;
+use App\Models\Personnel;
 use App\Models\Semester;
 use App\Models\TeachingJournal;
 use App\Models\User;
@@ -30,6 +31,10 @@ class TeachingJournalAccessService
         $personnel = $this->personnelAccounts->handle($user);
         if (! $personnel) {
             return $query->whereRaw('1=0');
+        }
+
+        if ($this->isBtaqTeacher($personnel)) {
+            return $query;
         }
 
         return $query->where(fn ($q) => $q->where('homeroom_personnel_id', $personnel->id)
@@ -56,7 +61,21 @@ class TeachingJournalAccessService
             return $query;
         }
 
-        return $query->whereIn('id', $this->schedules($personnel->id, $year, $semester)->where('classroom_id', $room)->select('academic_subject_id'));
+        return $query->where(function (Builder $subjects) use ($personnel, $room, $year, $semester): void {
+            $subjects->whereIn('id', $this->schedules($personnel->id, $year, $semester)->where('classroom_id', $room)->select('academic_subject_id'));
+            if ($this->isBtaqTeacher($personnel)) {
+                $subjects->orWhere(function (Builder $btaq): void {
+                    $btaq->whereRaw('UPPER(TRIM(code)) IN (?, ?)', ['BTAQ', 'BATQ'])
+                        ->orWhereRaw('UPPER(TRIM(name)) IN (?, ?)', ['BTAQ', 'BATQ']);
+                });
+            }
+        });
+    }
+
+    private function isBtaqTeacher(Personnel $personnel): bool
+    {
+        // Jabatan resmi personalia menjadi penugasan lintas rombel khusus BTAQ.
+        return in_array(mb_strtolower(preg_replace('/\s+/u', ' ', trim((string) $personnel->position))), ['guru btaq', 'guru batq'], true);
     }
 
     public function ensureManage(User $user, ?TeachingJournal $journal = null): void
