@@ -7,8 +7,6 @@ namespace App\Services\Academic;
 use App\Models\AcademicSubject;
 use App\Models\AcademicYear;
 use App\Models\Classroom;
-use App\Models\LessonSchedule;
-use App\Models\Personnel;
 use App\Models\Semester;
 use App\Models\TeachingJournal;
 use App\Models\User;
@@ -33,17 +31,7 @@ class TeachingJournalAccessService
             return $query->whereRaw('1=0');
         }
 
-        if ($this->isBtaqTeacher($personnel)) {
-            return $query;
-        }
-
-        return $query->where(fn ($q) => $q->where('homeroom_personnel_id', $personnel->id)
-            ->orWhereIn('id', $this->schedules($personnel->id, $year, $semester)->select('classroom_id')));
-    }
-
-    private function schedules(int $personnel, int $year, int $semester): Builder
-    {
-        return LessonSchedule::query()->where(['personnel_id' => $personnel, 'academic_year_id' => $year, 'semester_id' => $semester, 'active' => true]);
+        return $query;
     }
 
     public function subjects(User $user, int $room, int $year, int $semester): Builder
@@ -56,26 +44,7 @@ class TeachingJournalAccessService
         if (! $personnel) {
             return $query->whereRaw('1=0');
         }
-        // Pertahankan hak lama wali kelas pada rombelnya sendiri.
-        if (Classroom::whereKey($room)->where('academic_year_id', $year)->where('homeroom_personnel_id', $personnel->id)->exists()) {
-            return $query;
-        }
-
-        return $query->where(function (Builder $subjects) use ($personnel, $room, $year, $semester): void {
-            $subjects->whereIn('id', $this->schedules($personnel->id, $year, $semester)->where('classroom_id', $room)->select('academic_subject_id'));
-            if ($this->isBtaqTeacher($personnel)) {
-                $subjects->orWhere(function (Builder $btaq): void {
-                    $btaq->whereRaw('UPPER(TRIM(code)) IN (?, ?)', ['BTAQ', 'BATQ'])
-                        ->orWhereRaw('UPPER(TRIM(name)) IN (?, ?)', ['BTAQ', 'BATQ']);
-                });
-            }
-        });
-    }
-
-    private function isBtaqTeacher(Personnel $personnel): bool
-    {
-        // Jabatan resmi personalia menjadi penugasan lintas rombel khusus BTAQ.
-        return in_array(mb_strtolower(preg_replace('/\s+/u', ' ', trim((string) $personnel->position))), ['guru btaq', 'guru batq'], true);
+        return $query;
     }
 
     public function ensureManage(User $user, ?TeachingJournal $journal = null): void
@@ -117,10 +86,10 @@ class TeachingJournalAccessService
             return;
         }
         if (! $this->classrooms($user, $year->id, $semester->id)->whereKey($room->id)->exists()) {
-            throw ValidationException::withMessages(['classroom_id' => 'Anda tidak memiliki penugasan aktif pada rombel ini. Hubungi Operator Madrasah.']);
+            throw ValidationException::withMessages(['classroom_id' => 'Rombel tidak aktif atau tidak sesuai tahun ajaran yang dipilih.']);
         }
         if (! $this->subjects($user, $room->id, $year->id, $semester->id)->whereKey($data['academic_subject_id'])->exists()) {
-            throw ValidationException::withMessages(['academic_subject_id' => 'Mata pelajaran ini bukan penugasan aktif Anda pada rombel dan semester yang dipilih.']);
+            throw ValidationException::withMessages(['academic_subject_id' => 'Mata pelajaran yang dipilih tidak aktif.']);
         }
     }
 }
