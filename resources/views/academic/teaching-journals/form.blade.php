@@ -47,7 +47,7 @@
         <p class="hidden rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800" data-context-status role="status">Memuat absensi sesuai konteks yang dipilih…</p>
 
         <section id="journal-attendance-context">
-        @if($rooms->isEmpty())<p class="rounded-lg bg-amber-50 p-3 text-amber-900">Belum ada rombel yang ditugaskan. Hubungi Operator Madrasah untuk mengatur jadwal mengajar.</p>@endif
+        @if($rooms->isEmpty())<p class="rounded-lg bg-amber-50 p-3 text-amber-900">Belum ada rombel aktif pada tahun ajaran ini. Hubungi Operator Madrasah untuk mengaktifkan rombel.</p>@endif
             <h2 class="text-lg font-black text-emerald-900">Absensi Siswa</h2>
             <p class="mb-3 text-sm text-slate-600" data-manual-help>Untuk jam 1–2, isi status seluruh siswa. Data ini menjadi absensi resmi harian dan dipakai jurnal berikutnya.</p>
             <p class="mb-3 hidden text-sm text-slate-600" data-auto-help>Jurnal lanjutan menggunakan absensi harian secara otomatis. Koreksi hanya berlaku untuk pelajaran ini dan wajib disertai alasan.</p>
