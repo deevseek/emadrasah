@@ -73,6 +73,13 @@
                     <a href="{{ route('parent.register') }}" class="font-bold text-emerald-800 hover:text-emerald-950">Daftar sebagai orang tua</a>
                     <span class="block text-xs text-slate-500">Siapkan NISN dan tanggal lahir anak sesuai data madrasah.</span>
                 </div>
+
+                <div class="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-center text-sm text-slate-700">
+                    <p class="font-semibold text-emerald-950">Pendaftaran Siswa Baru Online</p>
+                    <p class="mt-1">Calon siswa dapat mendaftar melalui PMBM tanpa akun portal.</p>
+                    <a href="{{ route('pmbm.public.index') }}" class="mt-3 inline-block font-bold text-emerald-800">Informasi dan Pendaftaran Online →</a>
+                    <a href="{{ route('pmbm.status.form') }}" class="mt-2 block text-emerald-800">Cek Status Pendaftaran</a>
+                </div>
             </div>
         </section>
     </main>

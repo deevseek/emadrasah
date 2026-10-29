@@ -13,4 +13,24 @@ class PmbmPublicFlowTest extends TestCase {
  public function test_online_form_is_public_only_while_registration_is_open(): void { $this->setting(); $this->get(route('pmbm.public.create'))->assertOk()->assertSee('Identitas Calon Murid')->assertSee('Data Ayah Kandung')->assertSee('Dokumen Persyaratan'); }
  public function test_closed_registration_cannot_open_online_form(): void { $this->setting(['registration_close_at'=>now()->subMinute()]); $this->get(route('pmbm.public.create'))->assertForbidden(); }
  public function test_status_lookup_requires_birth_date_factor(): void { $this->get(route('pmbm.status.show',['number'=>'PMBM-TEST-0001']))->assertRedirect(); }
+ public function test_login_pages_link_to_public_student_registration(): void
+ {
+  foreach (['login', 'parent.login'] as $route) {
+   $this->get(route($route))->assertOk()
+    ->assertSee('Pendaftaran Siswa Baru Online')
+    ->assertSee(route('pmbm.public.index'))
+    ->assertSee(route('pmbm.status.form'));
+  }
+ }
+ public function test_invalid_submission_preserves_guardian_and_religion_choices(): void
+ {
+  $this->setting();
+  $this->from(route('pmbm.public.create'))->post(route('pmbm.public.store'), [
+   'religion'=>'Katolik', 'guardian_type'=>'other', 'father_citizenship'=>'wna',
+  ])->assertRedirect(route('pmbm.public.create'))->assertSessionHasErrors('full_name');
+  $this->get(route('pmbm.public.create'))->assertOk()
+   ->assertSee('value="other" selected', false)
+   ->assertSee('<option selected>Katolik</option>', false)
+   ->assertSee('value="wna" selected', false);
+ }
 }
