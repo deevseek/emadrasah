@@ -11,7 +11,7 @@ class PmbmPublicInformationService
 {
     public function activeSetting(): ?PmbmSetting
     {
-        return PmbmSetting::with('academicYear')->where('enabled', true)->latest()->first();
+        return PmbmSetting::with(['academicYear', 'documentRequirements' => fn ($query) => $query->where('is_active', true)->whereIn('channel', ['online', 'both'])])->where('enabled', true)->latest()->first();
     }
 
     public function registrationState(?PmbmSetting $setting): string
