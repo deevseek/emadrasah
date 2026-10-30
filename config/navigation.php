@@ -63,8 +63,8 @@ return [
         ['label'=>'Konsultasi Wali Kelas','route'=>'parent.consultation.show','active'=>'parent.consultation.*','permission'=>'parent.consultation.use','icon'=>'users'],
         ['label'=>'Profil','route'=>'parent.profile','active'=>'parent.profile','permission'=>'parent.dashboard.view','icon'=>'users'],
     ]],
-    ['label'=>'PMBM','items'=>[
-        ['label'=>'Dashboard PMBM','route'=>'pmbm.dashboard','active'=>'pmbm.dashboard','permission'=>'pmbm.dashboard.view','icon'=>'dashboard'],
+    ['label'=>'SPMB','items'=>[
+        ['label'=>'Dashboard SPMB','route'=>'pmbm.dashboard','active'=>'pmbm.dashboard','permission'=>'pmbm.dashboard.view','icon'=>'dashboard'],
         ['label'=>'Pendaftar','route'=>'pmbm.applicants.index','active'=>'pmbm.applicants.index|pmbm.applicants.show|pmbm.applicants.edit','permission'=>'pmbm.applicant.view','icon'=>'students'],
         ['label'=>'Pendaftaran Offline','route'=>'pmbm.applicants.create','active'=>'pmbm.applicants.create','permission'=>'pmbm.applicant.create','icon'=>'document'],
         ['label'=>'Pembayaran','route'=>'pmbm.payments.index','active'=>'pmbm.payments.*','permission'=>'pmbm.payment.view','icon'=>'document'],

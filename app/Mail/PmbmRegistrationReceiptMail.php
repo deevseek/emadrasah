@@ -8,4 +8,4 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\{Content, Envelope};
 use Illuminate\Queue\SerializesModels;
-class PmbmRegistrationReceiptMail extends Mailable implements ShouldQueue { use Queueable, SerializesModels; public function __construct(public PmbmApplicant $applicant) {} public function envelope(): Envelope { return new Envelope(subject: 'Tanda Terima Pendaftaran PMBM '.$this->applicant->registration_number); } public function content(): Content { return new Content(view: 'emails.pmbm-registration-receipt'); } }
+class PmbmRegistrationReceiptMail extends Mailable implements ShouldQueue { use Queueable, SerializesModels; public function __construct(public PmbmApplicant $applicant) {} public function envelope(): Envelope { return new Envelope(subject: 'Tanda Terima Pendaftaran SPMB '.$this->applicant->registration_number); } public function content(): Content { return new Content(view: 'emails.pmbm-registration-receipt'); } }

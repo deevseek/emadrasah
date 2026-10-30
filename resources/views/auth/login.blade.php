@@ -55,7 +55,7 @@
 
                 <div class="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-center text-sm text-slate-700">
                     <p class="font-semibold text-emerald-950">Pendaftaran Siswa Baru Online</p>
-                    <p class="mt-1">Calon siswa dapat mendaftar melalui PMBM tanpa akun portal.</p>
+                    <p class="mt-1">Calon siswa dapat mendaftar melalui SPMB tanpa akun portal.</p>
                     <a href="{{ route('pmbm.public.index') }}" class="mt-3 inline-block font-bold text-emerald-800">Informasi dan Pendaftaran Online →</a>
                     <a href="{{ route('pmbm.status.form') }}" class="mt-2 block text-emerald-800">Cek Status Pendaftaran</a>
                 </div>
