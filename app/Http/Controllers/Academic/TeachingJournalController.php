@@ -154,7 +154,9 @@ class TeachingJournalController extends Controller
                 ->with('error', 'Laporan tidak dapat diunduh karena tidak ada jurnal pada filter yang dipilih.');
         }
         $journals->load(['academicYear', 'semester', 'classroom.gradeLevel', 'subject', 'personnel', 'attendances']);
-        $filename = 'laporan-jurnal-'.$date;
+        $filename = $request->input('period') === 'monthly'
+            ? 'rekap-jurnal-bulanan-'.$request->input('journal_month')
+            : 'laporan-jurnal-'.$date;
         if ($format === 'pdf') {
             return Pdf::loadView('academic.teaching-journals.report', compact('journals'))->setPaper('a4', 'landscape')->download($filename.'.pdf');
         }
@@ -166,7 +168,13 @@ class TeachingJournalController extends Controller
 
     private function journalQuery(Request $request, int $year, int $semester, string $date): Builder
     {
-        $query = TeachingJournal::with(['personnel', 'classroom.gradeLevel', 'subject'])->where(['academic_year_id' => $year, 'semester_id' => $semester])->whereDate('journal_date', $date);
+        $query = TeachingJournal::with(['personnel', 'classroom.gradeLevel', 'subject'])->where(['academic_year_id' => $year, 'semester_id' => $semester]);
+        if ($request->input('period') === 'monthly') {
+            $start = \Carbon\CarbonImmutable::createFromFormat('!Y-m', $request->input('journal_month'));
+            $query->whereBetween('journal_date', [$start->toDateString(), $start->endOfMonth()->toDateString()]);
+        } else {
+            $query->whereDate('journal_date', $date);
+        }
         if (! $request->user()->can('teaching-journals.view-all')) {
             $query->where('personnel_id', app(TeachingJournalService::class)->activePersonnel($request->user())?->id ?? 0);
         }
@@ -181,6 +189,14 @@ class TeachingJournalController extends Controller
 
     private function filters(Request $request): array
     {
+        $request->validate([
+            'period' => ['nullable', 'in:daily,monthly'],
+            'journal_date' => ['nullable', 'date_format:Y-m-d'],
+            'journal_month' => ['required_if:period,monthly', 'nullable', 'date_format:Y-m'],
+        ], [
+            'journal_month.required_if' => 'Pilih bulan rekap jurnal.',
+            'journal_month.date_format' => 'Bulan rekap jurnal harus berformat tahun-bulan.',
+        ]);
         $year = $request->integer('academic_year_id') ?: (int) AcademicYear::where('is_active', true)->value('id');
         $semester = $request->integer('semester_id') ?: (int) Semester::where('academic_year_id', $year)->where('is_active', true)->value('id');
 
