@@ -35,7 +35,7 @@ class PmbmPublicInformationService
     public function fees(?PmbmSetting $setting): Collection
     {
         return collect($setting?->fee_items ?? [])->map(fn ($item) => [
-            'name' => $item['name'] ?? 'Biaya PMBM',
+            'name' => $item['name'] ?? 'Biaya SPMB',
             'male' => isset($item['male']) ? (int) $item['male'] : (isset($item['amount']) ? (int) $item['amount'] : null),
             'female' => isset($item['female']) ? (int) $item['female'] : (isset($item['amount']) ? (int) $item['amount'] : null),
         ]);
@@ -45,7 +45,7 @@ class PmbmPublicInformationService
     public function schedules(?PmbmSetting $setting): Collection
     {
         return collect($setting?->schedule_items ?? [])->map(fn ($item) => [
-            'title' => $item['title'] ?? 'Jadwal PMBM',
+            'title' => $item['title'] ?? 'Jadwal SPMB',
             'description' => $item['description'] ?? '',
         ]);
     }

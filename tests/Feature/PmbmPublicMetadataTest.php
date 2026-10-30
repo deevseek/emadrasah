@@ -18,8 +18,8 @@ class PmbmPublicMetadataTest extends TestCase
 
         $this->withHeader('User-Agent', 'WhatsApp/2.0')->get(route('pmbm.public.index'))
             ->assertOk()
-            ->assertSee('<title>Penerimaan Murid Baru Madrasah - MI Muslimat NU Demak</title>', false)
-            ->assertSee('<meta property="og:title" content="Penerimaan Murid Baru Madrasah - MI Muslimat NU Demak">', false)
+            ->assertSee('<title>SPMB (Sistem Penerimaan Murid Baru) - MI Muslimat NU Demak</title>', false)
+            ->assertSee('<meta property="og:title" content="SPMB (Sistem Penerimaan Murid Baru) - MI Muslimat NU Demak">', false)
             ->assertSee('<meta property="og:description" content="Informasi dan pendaftaran calon murid baru MI Muslimat NU Demak. Lihat persyaratan, jadwal, dan alur pendaftaran.">', false)
             ->assertDontSee('Sultan Fatah');
     }

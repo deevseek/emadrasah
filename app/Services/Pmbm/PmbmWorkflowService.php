@@ -134,7 +134,7 @@ class PmbmWorkflowService
             if ($status === ApplicantStatus::Accepted && ! $decision->acceptance_letter_number) $updates['acceptance_letter_number'] = sprintf('SK/PMBM/%s/%06d', now()->format('Y'), $applicant->id);
             if ($status === ApplicantStatus::Waitlisted && ! $decision->waitlist_order) $updates['waitlist_order'] = (PmbmDecision::where('decision', 'waitlisted')->whereHas('applicant', fn ($query) => $query->where('academic_year_id', $applicant->academic_year_id))->max('waitlist_order') ?? 0) + 1;
             $decision->update($updates);
-            $this->registration->transition($applicant, $status, $actor, 'Hasil PMBM dipublikasikan.');
+            $this->registration->transition($applicant, $status, $actor, 'Hasil SPMB dipublikasikan.');
             $this->sendResultMail($applicant, $decision);
         });
     }
@@ -174,6 +174,6 @@ class PmbmWorkflowService
 
     private function requireStatus(PmbmApplicant $applicant, ApplicantStatus ...$statuses): void
     {
-        if (! in_array($applicant->status, $statuses, true)) throw ValidationException::withMessages(['status' => 'Aksi tidak tersedia pada tahap PMBM saat ini.']);
+        if (! in_array($applicant->status, $statuses, true)) throw ValidationException::withMessages(['status' => 'Aksi tidak tersedia pada tahap SPMB saat ini.']);
     }
 }

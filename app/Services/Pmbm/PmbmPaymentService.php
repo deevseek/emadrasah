@@ -52,7 +52,7 @@ class PmbmPaymentService
                 $data['proof_path'] = $proof->store("pmbm/{$applicant->id}/payments", 'local');
             }
             $payment = $applicant->payments()->create($data + ['status' => PaymentStatus::Pending, 'received_by' => $actor?->id]);
-            activity('pmbm')->causedBy($actor)->performedOn($applicant)->withProperties(['payment_id' => $payment->id, 'amount' => $payment->amount])->log('Pembayaran PMBM dicatat.');
+            activity('pmbm')->causedBy($actor)->performedOn($applicant)->withProperties(['payment_id' => $payment->id, 'amount' => $payment->amount])->log('Pembayaran SPMB dicatat.');
 
             return $payment;
         });
@@ -74,7 +74,7 @@ class PmbmPaymentService
                 $setting = PmbmSetting::query()->where('academic_year_id', $applicant->academic_year_id)->first();
                 if (! $setting?->require_payment_before_registration_complete || $summary['remaining'] <= 0) $this->completeRegistration($applicant, $actor);
             }
-            activity('pmbm')->causedBy($actor)->performedOn($applicant)->withProperties(['payment_id' => $payment->id, 'status' => $payment->status->value])->log('Pembayaran PMBM diverifikasi.');
+            activity('pmbm')->causedBy($actor)->performedOn($applicant)->withProperties(['payment_id' => $payment->id, 'status' => $payment->status->value])->log('Pembayaran SPMB diverifikasi.');
         });
     }
 
