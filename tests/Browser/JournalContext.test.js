@@ -8,7 +8,7 @@ const view = readFileSync(new URL('../../resources/views/academic/teaching-journ
 const script = view.match(/<script>([\s\S]*?)<\/script>/)[1]
     .replace(/\{\{ \$journal->exists \? route\([^\n]+? \}\}/g, 'http://internal-server/academic/teaching-journals/create');
 
-function journalPage({ responseOk = true, pageUrl = 'https://madrasah.example/academic/teaching-journals/create' } = {}) {
+function journalPage({ nextSemester = '1', responseOk = true, pageUrl = 'https://madrasah.example/academic/teaching-journals/create' } = {}) {
     const element = (value = '') => ({
         value, dataset: {}, disabled: false, hidden: false, textContent: '', innerHTML: '',
         classList: { toggle() {}, add() {}, remove() {} },
@@ -54,7 +54,7 @@ function journalPage({ responseOk = true, pageUrl = 'https://madrasah.example/ac
         },
     };
     const nextFields = {
-        semester_id: { value: '1', innerHTML: '<option value="1">Ganjil</option>' },
+        semester_id: { value: nextSemester, innerHTML: '<option value="1">Ganjil</option>' },
         classroom_id: { value: '2', innerHTML: '<option value="2">Rombel B</option>' },
         academic_subject_id: { value: '20', innerHTML: '<option value="20">Matematika</option>' },
     };
@@ -124,3 +124,15 @@ for (const path of ['/academic/teaching-journals/create', '/academic/teaching-jo
         assert.equal(page.submit.disabled, false);
     });
 }
+
+test('pergantian tanggal memakai semester yang dipilih server berdasarkan rentang tanggal', async () => {
+    const page = journalPage({ nextSemester: '2' });
+    page.fields.journal_date.value = '2027-01-01';
+    page.fields.journal_date.change({ target: page.fields.journal_date });
+    await page.flush();
+    const query = new URL(page.requests[0].url).searchParams;
+    assert.equal(query.has('semester_id'), false);
+    assert.equal(query.get('classroom_id'), '1');
+    assert.equal(page.fields.semester_id.value, '2');
+    assert.equal(page.submit.disabled, false);
+});

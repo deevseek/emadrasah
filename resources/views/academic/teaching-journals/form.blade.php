@@ -116,7 +116,7 @@
                     lesson_number: lessonNumber.value,
                 });
                 if (event.target.name !== 'academic_year_id') {
-                    query.set('semester_id', document.querySelector('[name="semester_id"]').value);
+                    if (event.target.name !== 'journal_date') query.set('semester_id', document.querySelector('[name="semester_id"]').value);
                     query.set('classroom_id', classroom.value);
                 }
                 if (event.target.name === 'semester_id') query.delete('classroom_id');
@@ -131,7 +131,7 @@
                         current.innerHTML = doc.querySelector(`[name="${name}"]`).innerHTML;
                         if (Array.from(current.options).some(option => option.value === selected)) current.value = selected;
                         // Roster harus sesuai rombel yang dipilih server setelah pergantian periode.
-                        if (name === 'classroom_id') current.value = doc.querySelector(`[name="${name}"]`).value;
+                        if (name === 'classroom_id' || name === 'semester_id') current.value = doc.querySelector(`[name="${name}"]`).value;
                     }
                     document.getElementById('journal-attendance-context').innerHTML = doc.getElementById('journal-attendance-context').innerHTML;
                     contextLoading = false;

@@ -54,12 +54,12 @@ class TeachingJournalController extends Controller
         if ($request->filled('academic_year_id') && ! AcademicYear::whereKey($year)->exists()) {
             throw ValidationException::withMessages(['academic_year_id' => 'Tahun ajaran yang dipilih tidak ditemukan.']);
         }
+        $date = $request->date('journal_date') ?? today();
         $yearSemesters = Semester::where('academic_year_id', $year)->get();
-        $semester = $request->integer('semester_id') ?: (int) ($yearSemesters->firstWhere('is_active', true)?->id ?? $yearSemesters->first()?->id);
+        $semester = $request->integer('semester_id') ?: $this->semesterForDate($yearSemesters, $date);
         if ($request->filled('semester_id') && ! Semester::whereKey($semester)->where('academic_year_id', $year)->exists()) {
             throw ValidationException::withMessages(['semester_id' => 'Semester tidak sesuai dengan tahun ajaran yang dipilih.']);
         }
-        $date = $request->date('journal_date') ?? today();
         $rooms = $this->access->classrooms($request->user(), $year, $semester)->get();
         $classroomId = $request->filled('classroom_id') ? $request->integer('classroom_id') : (int) $rooms->first()?->id;
         if ($request->filled('classroom_id') && ! $rooms->contains('id', $classroomId)) {
@@ -94,8 +94,9 @@ class TeachingJournalController extends Controller
         $this->restoreContext($request);
         $teachingJournal->load(['attendances', 'attachments']);
         $year = $request->integer('academic_year_id') ?: $teachingJournal->academic_year_id;
-        $semester = $request->integer('semester_id') ?: ($year === $teachingJournal->academic_year_id ? $teachingJournal->semester_id : (int) Semester::where('academic_year_id', $year)->orderByDesc('is_active')->value('id'));
         $date = $request->date('journal_date') ?? $teachingJournal->journal_date;
+        $samePeriod = (int) $year === (int) $teachingJournal->academic_year_id && $date->isSameDay($teachingJournal->journal_date);
+        $semester = $request->integer('semester_id') ?: ($samePeriod ? $teachingJournal->semester_id : $this->semesterForDate(Semester::where('academic_year_id', $year)->get(), $date));
         $rooms = $this->access->classrooms($request->user(), $year, $semester)->get();
         if ($date->isSameDay($teachingJournal->journal_date) && $year === $teachingJournal->academic_year_id && $semester === $teachingJournal->semester_id && ! $rooms->contains('id', $teachingJournal->classroom_id)) {
             $rooms->push(Classroom::with('gradeLevel')->findOrFail($teachingJournal->classroom_id));
@@ -185,6 +186,14 @@ class TeachingJournalController extends Controller
         $semester = $request->integer('semester_id') ?: (int) Semester::where('academic_year_id', $year)->where('is_active', true)->value('id');
 
         return [$year, $semester, $request->input('journal_date', today()->toDateString())];
+    }
+
+    private function semesterForDate(Collection $semesters, \Carbon\CarbonInterface $date): int
+    {
+        $matching = $semesters->first(fn (Semester $semester) => $date->toDateString() >= $semester->starts_at->toDateString()
+            && $date->toDateString() <= $semester->ends_at->toDateString());
+
+        return (int) ($matching?->id ?? $semesters->firstWhere('is_active', true)?->id ?? $semesters->first()?->id);
     }
 
     private function restoreContext(Request $request): void

@@ -519,6 +519,52 @@ class TeachingJournalIntegrationTest extends TestCase
         $this->assertSame('rfid', StudentAttendance::sole()->source->value);
     }
 
+    public function test_create_selects_semester_by_journal_date_even_when_another_semester_is_active(): void
+    {
+        [$user, $payload] = $this->journalContext(false);
+        Semester::findOrFail($payload['semester_id'])->update(['is_active' => false]);
+        $genap = Semester::create(['academic_year_id' => $payload['academic_year_id'], 'name' => 'Semester Genap', 'type' => SemesterType::Genap, 'starts_at' => '2027-01-01', 'ends_at' => '2027-06-30', 'is_active' => true]);
+        $this->travelTo(now()->setDate(2026, 10, 30));
+
+        $response = $this->actingAs($user)->get(route('academic.teaching-journals.create'));
+        $response->assertOk();
+        $this->assertSame($payload['semester_id'], $response->viewData('journal')->semester_id);
+        $this->actingAs($user)->post(route('academic.teaching-journals.store'), [...$payload, 'journal_date' => '2026-10-30'])
+            ->assertSessionHasNoErrors()->assertRedirect();
+        $this->assertDatabaseHas('teaching_journals', ['semester_id' => $payload['semester_id'], 'journal_date' => '2026-10-30 00:00:00']);
+        $this->assertDatabaseHas('student_attendances', ['student_id' => $payload['attendances'][0]['student_id'], 'status' => 'present']);
+
+        $query = ['journal_date' => '2027-01-01', 'academic_year_id' => $payload['academic_year_id']];
+        $response = $this->actingAs($user)->withHeader('X-Journal-Context', '1')->get(route('academic.teaching-journals.create', $query));
+        $response->assertOk();
+        $this->assertSame($genap->id, $response->viewData('journal')->semester_id);
+
+        $journal = TeachingJournal::sole();
+        $response = $this->actingAs($user)->get(route('academic.teaching-journals.edit', $journal));
+        $response->assertOk();
+        $this->assertSame($payload['semester_id'], $response->viewData('journal')->semester_id);
+        $response = $this->actingAs($user)->withHeader('X-Journal-Context', '1')->get(route('academic.teaching-journals.edit', [$journal, ...$query]));
+        $response->assertOk();
+        $this->assertSame($genap->id, $response->viewData('journal')->semester_id);
+
+        $response = $this->actingAs($user)->withHeader('X-Journal-Context', '1')->get(route('academic.teaching-journals.create', [...$query, 'journal_date' => '2026-12-31']));
+        $response->assertOk();
+        $this->assertSame($payload['semester_id'], $response->viewData('journal')->semester_id);
+    }
+
+    public function test_explicit_semester_is_preserved_and_invalid_date_explains_the_semester_range(): void
+    {
+        [$user, $payload] = $this->journalContext(false);
+        $genap = Semester::create(['academic_year_id' => $payload['academic_year_id'], 'name' => 'Semester Genap', 'type' => SemesterType::Genap, 'starts_at' => '2027-01-01', 'ends_at' => '2027-06-30', 'is_active' => false]);
+        $response = $this->actingAs($user)->get(route('academic.teaching-journals.create', ['journal_date' => '2026-10-30', 'semester_id' => $genap->id]));
+        $response->assertOk();
+        $this->assertSame($genap->id, $response->viewData('journal')->semester_id);
+        $this->actingAs($user)->post(route('academic.teaching-journals.store'), [...$payload, 'semester_id' => $genap->id])
+            ->assertSessionHasErrors(['journal_date' => 'Tanggal jurnal tidak sesuai dengan '.$genap->display_name.' ('.$genap->display_period.'). Pilih semester yang sesuai dengan tanggal jurnal.']);
+        $this->assertDatabaseCount('teaching_journals', 0);
+        $this->assertDatabaseCount('student_attendances', 0);
+    }
+
     public function test_period_validation_and_schedule_management_follow_permissions(): void
     {
         [$user, $payload] = $this->journalContext(false);

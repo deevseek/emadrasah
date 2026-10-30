@@ -76,8 +76,14 @@ class TeachingJournalAccessService
         $year = AcademicYear::find($data['academic_year_id']);
         $semester = Semester::whereKey($data['semester_id'])->where('academic_year_id', $data['academic_year_id'])->first();
         $room = Classroom::whereKey($data['classroom_id'])->where('academic_year_id', $data['academic_year_id'])->first();
-        if (! $year || ! $semester || ! $room || ! $date->betweenIncluded($year->starts_at, $year->ends_at) || ! $date->betweenIncluded($semester->starts_at, $semester->ends_at)) {
-            throw ValidationException::withMessages(['journal_date' => 'Rombel, tahun ajaran, semester, dan tanggal jurnal harus sesuai periode yang dipilih.']);
+        if (! $year || ! $semester || ! $room) {
+            throw ValidationException::withMessages(['semester_id' => 'Rombel dan semester harus sesuai dengan tahun ajaran yang dipilih.']);
+        }
+        if (! $date->betweenIncluded($year->starts_at, $year->ends_at)) {
+            throw ValidationException::withMessages(['journal_date' => 'Tanggal jurnal harus berada dalam tahun ajaran '.$year->name.' ('.$year->display_period.').']);
+        }
+        if (! $date->betweenIncluded($semester->starts_at, $semester->ends_at)) {
+            throw ValidationException::withMessages(['journal_date' => 'Tanggal jurnal tidak sesuai dengan '.$semester->display_name.' ('.$semester->display_period.'). Pilih semester yang sesuai dengan tanggal jurnal.']);
         }
         if (! $room->is_active || ! AcademicSubject::whereKey($data['academic_subject_id'])->where('is_active', true)->exists()) {
             throw ValidationException::withMessages(['classroom_id' => 'Rombel dan mata pelajaran harus aktif.']);
