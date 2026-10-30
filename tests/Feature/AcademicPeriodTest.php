@@ -78,6 +78,55 @@ class AcademicPeriodTest extends TestCase
         $this->assertTrue($second->fresh()->is_active);
     }
 
+    public function test_switching_semesters_in_the_same_year_keeps_summary_and_header_active(): void
+    {
+        $operator = User::factory()->create(['must_change_password' => false]);
+        $operator->assignRole('operator');
+        $service = app(AcademicPeriodService::class);
+        $year = $service->create($this->payload(), $operator);
+        $odd = $year->semesters()->where('type', 'ganjil')->firstOrFail();
+        $even = $year->semesters()->where('type', 'genap')->firstOrFail();
+        $service->activate($odd, $operator);
+        $this->assertSame($odd->id, $service->current()->activeSemester->id);
+
+        $this->actingAs($operator)->patch(route('academic-periods.activate', $even))->assertRedirect();
+        $this->assertTrue($year->fresh()->is_active);
+        $this->assertFalse($odd->fresh()->is_active);
+        $this->assertTrue($even->fresh()->is_active);
+        $this->assertSame($even->id, $service->current()->activeSemester->id);
+        $this->assertFalse($service->activate($even, $operator));
+        $this->assertTrue($even->fresh()->is_active);
+        $this->assertTrue($year->fresh()->is_active);
+        $this->actingAs($operator)->get(route('academic-periods.index'))
+            ->assertOk()->assertSee('2026/2027')->assertSee('Semester Genap')
+            ->assertDontSee('Belum Ada Periode Aktif')
+            ->assertDontSee('Tahun ajaran belum diatur')->assertDontSee('Semester belum diatur');
+    }
+
+    public function test_repair_restores_year_from_existing_active_semester_and_clears_cache(): void
+    {
+        $operator = User::factory()->create(['must_change_password' => false]);
+        $operator->assignRole('operator');
+        $service = app(AcademicPeriodService::class);
+        $year = $service->create($this->payload(), $operator);
+        $odd = $year->semesters()->where('type', 'ganjil')->firstOrFail();
+        $odd->update(['is_active' => true]);
+        Cache::put(AcademicPeriodService::CACHE_KEY, 'stale');
+
+        $migration = require database_path('migrations/2026_10_30_000000_repair_active_academic_year.php');
+        $migration->up();
+        $migration->up();
+
+        $this->assertFalse(Cache::has(AcademicPeriodService::CACHE_KEY));
+        $this->assertTrue($year->fresh()->is_active);
+        $this->assertTrue($odd->fresh()->is_active);
+        $this->assertSame($year->id, $service->current()->id);
+        $this->assertSame($odd->id, $service->current()->activeSemester->id);
+        $this->actingAs($operator)->get(route('academic-periods.index'))
+            ->assertOk()->assertDontSee('Belum Ada Periode Aktif')
+            ->assertDontSee('Tahun ajaran belum diatur')->assertDontSee('Semester belum diatur');
+    }
+
     public function test_delete_rules_and_default_roles(): void
     {
         $operator = User::factory()->create(['must_change_password' => false]); $operator->assignRole('operator');
