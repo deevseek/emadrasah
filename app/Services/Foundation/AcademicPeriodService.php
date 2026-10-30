@@ -58,8 +58,9 @@ class AcademicPeriodService
             $target = Semester::query()->with('academicYear')->lockForUpdate()->findOrFail($semester->id);
             $previous = Semester::query()->where('is_active', true)->with('academicYear')->first();
             $alreadyActive = $target->is_active && $target->academicYear->is_active;
-            AcademicYear::query()->where('is_active', true)->update(['is_active' => false]);
-            Semester::query()->where('is_active', true)->update(['is_active' => false]);
+            // Keep the target models in sync with their database values before update().
+            AcademicYear::query()->whereKeyNot($target->academic_year_id)->where('is_active', true)->update(['is_active' => false]);
+            Semester::query()->whereKeyNot($target->id)->where('is_active', true)->update(['is_active' => false]);
             $target->academicYear->update(['is_active' => true, 'updated_by' => $actor->id]);
             $target->update(['is_active' => true, 'updated_by' => $actor->id]);
             activity('periode-akademik')->causedBy($actor)->performedOn($target)->withProperties(['periode_lama' => $previous ? ['semester_id' => $previous->id, 'tahun_ajaran' => $previous->academicYear->name, 'semester' => $previous->type->value] : null, 'periode_baru' => ['semester_id' => $target->id, 'tahun_ajaran' => $target->academicYear->name, 'semester' => $target->type->value]])->log("Mengaktifkan {$target->display_name} Tahun Ajaran {$target->academicYear->name}.");
