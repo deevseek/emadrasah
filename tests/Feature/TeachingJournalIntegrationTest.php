@@ -728,6 +728,47 @@ class TeachingJournalIntegrationTest extends TestCase
         $this->assertTrue($response->viewData('drivePicker')['ready']);
     }
 
+    public function test_monthly_recap_includes_month_boundaries_and_excludes_other_months(): void
+    {
+        [$user, $payload] = $this->journalContext();
+        $service = app(TeachingJournalService::class);
+        foreach (['2026-09-30', '2026-10-01', '2026-10-31', '2026-11-01'] as $date) {
+            $service->save([...$payload, 'journal_date' => $date], $user);
+        }
+
+        $this->actingAs($user)->get(route('academic.teaching-journals.index', [
+            'period' => 'monthly', 'journal_month' => '2026-10',
+            'journal_date' => '2026-10-07',
+        ]))->assertOk()->assertViewHas('journals', function ($journals): bool {
+            return $journals->pluck('journal_date')->map->toDateString()->all()
+                === ['2026-10-31', '2026-10-01'];
+        });
+    }
+
+    public function test_monthly_recap_requires_a_valid_month(): void
+    {
+        [$user] = $this->journalContext();
+        foreach (['', '2026-13', 'invalid'] as $month) {
+            $this->actingAs($user)->get(route('academic.teaching-journals.index', [
+                'period' => 'monthly', 'journal_month' => $month,
+            ]))->assertSessionHasErrors('journal_month');
+        }
+    }
+
+    public function test_monthly_recap_does_not_expose_another_teachers_journals(): void
+    {
+        [$owner, $payload] = $this->journalContext();
+        app(TeachingJournalService::class)->save($payload, $owner);
+        $other = User::factory()->create(['must_change_password' => false]);
+        $other->givePermissionTo('teaching-journals.view');
+        $this->actingAs($other)->get(route('academic.teaching-journals.index', [
+            'period' => 'monthly', 'journal_month' => '2026-10',
+        ]))->assertOk()->assertViewHas('journals', fn ($journals) => $journals->isEmpty());
+        $this->actingAs($other)->get(route('academic.teaching-journals.report', [
+            'format' => 'pdf', 'period' => 'monthly', 'journal_month' => '2026-10',
+        ]))->assertRedirect()->assertSessionHas('error');
+    }
+
     private function journalContext(bool $admin = true): array
     {
         $user = User::factory()->create(['must_change_password' => false]);
