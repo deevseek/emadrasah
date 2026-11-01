@@ -57,6 +57,7 @@ class ApplicantIndonesianViewTest extends TestCase
             'Akta Kelahiran', 'Sudah diunggah', 'Pembayaran awal', 'Transfer bank', 'Pendaftaran diterima'] as $text) {
             $view->assertSeeText($text);
         }
+        $view->assertSee('href="#fitting"', false);
         foreach (['Full Name', 'Birth Date', 'bank_transfer', 'Catatan privat'] as $text) {
             $view->assertDontSeeText($text);
         }
