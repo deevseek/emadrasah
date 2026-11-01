@@ -15,7 +15,10 @@ use Illuminate\View\View;
 
 class PaymentController extends Controller
 {
-    public function index(): View { return view('pmbm.admin.payments', ['payments'=>PmbmPayment::with(['applicant.academicYear','receiver','verifier'])->latest()->paginate(30)]); }
+    public function index(\App\Http\Requests\Pmbm\PaymentIndexRequest $request, \App\Services\Pmbm\PaymentRegisterService $register): View
+    {
+        return view('pmbm.admin.payments', $register->data($request->validated()));
+    }
     public function store(StorePaymentRequest $request, PmbmApplicant $applicant, PmbmPaymentService $service): RedirectResponse
     {
         $service->record($applicant, $request->validated(), $request->user());
