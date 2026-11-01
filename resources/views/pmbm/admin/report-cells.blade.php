@@ -1,0 +1,1 @@
+<td>{{ $a->registration_number }}</td><td>{{ $a->full_name }}</td><td>{{ $a->academicYear?->name ?? '—' }}</td><td>{{ $a->submitted_at?->format('d/m/Y') ?? '—' }}</td><td>{{ $a->gender === 'male' ? 'Laki-laki' : ($a->gender === 'female' ? 'Perempuan' : '—') }}</td><td>{{ ucfirst($a->registration_source) }}</td><td>{{ $a->status->label() }}</td>

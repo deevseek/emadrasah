@@ -5,21 +5,50 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Pmbm;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Pmbm\ReportFilterRequest;
 use App\Models\AcademicYear;
-use App\Models\Pmbm\PmbmApplicant;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Http\{Request, StreamedResponse};
+use App\Services\Foundation\SchoolProfileService;
+use App\Services\Pmbm\PmbmReportService;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
 {
-    public function index(Request $request): View { return view('pmbm.admin.report',['applicants'=>$this->query($request)->paginate(30)->withQueryString(),'years'=>AcademicYear::latest('starts_at')->get()]); }
-    public function export(Request $request): StreamedResponse
+    private function data(ReportFilterRequest $request, PmbmReportService $reports): array
     {
-        return response()->streamDownload(function() use($request): void { $out=fopen('php://output','w'); fputcsv($out,['Nomor','Nama','Tahun ajaran','Tanggal','Sumber','Status','Gender']); $this->query($request)->with('academicYear')->each(fn($a)=>fputcsv($out,[$a->registration_number,$a->full_name,$a->academicYear?->name,$a->submitted_at?->format('Y-m-d'),$a->registration_source,$a->status->label(),$a->gender])); fclose($out); },'laporan-pmbm-'.now()->format('Ymd-His').'.csv',['Content-Type'=>'text/csv; charset=UTF-8']);
+        $filters = array_filter($request->validated(), fn ($value) => $value !== null && $value !== '');
+        $years = AcademicYear::latest('starts_at')->get();
+
+        return ['filters' => $filters, 'years' => $years, 'summary' => $reports->summary($filters), 'selectedYear' => $years->firstWhere('id', $filters['academic_year_id'] ?? null)];
     }
-    private function query(Request $request): Builder
+
+    public function index(ReportFilterRequest $request, PmbmReportService $reports): View
     {
-        return PmbmApplicant::query()->with('academicYear')->when($request->integer('academic_year_id'),fn($q,$v)=>$q->where('academic_year_id',$v))->when($request->input('date_from'),fn($q,$v)=>$q->whereDate('submitted_at','>=',$v))->when($request->input('date_to'),fn($q,$v)=>$q->whereDate('submitted_at','<=',$v))->when($request->input('source'),fn($q,$v)=>$q->where('registration_source',$v))->when($request->input('status'),fn($q,$v)=>$q->where('status',$v))->when($request->input('gender'),fn($q,$v)=>$q->where('gender',$v))->latest();
+        $data = $this->data($request, $reports);
+
+        return view('pmbm.admin.report', [...$data, 'applicants' => $reports->ordered($data['filters'])->paginate(30)->withQueryString()]);
+    }
+
+    public function print(ReportFilterRequest $request, PmbmReportService $reports, SchoolProfileService $profiles): View
+    {
+        $data = $this->data($request, $reports);
+
+        return view('pmbm.admin.report-print', [...$data, 'applicants' => $reports->ordered($data['filters'])->lazy(500), 'school' => $profiles->current(), 'printedAt' => now(), 'officer' => $request->user()->name]);
+    }
+
+    public function export(ReportFilterRequest $request, PmbmReportService $reports): StreamedResponse
+    {
+        $filters = $request->validated();
+
+        return response()->streamDownload(function () use ($filters, $reports): void {
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\xEF\xBB\xBF");
+            fputcsv($out, ['Nomor Pendaftaran', 'Nama Lengkap', 'Tahun Pelajaran', 'Tanggal Pendaftaran', 'Sumber', 'Status', 'Jenis Kelamin'], ';', '"', '');
+            foreach ($reports->ordered($filters)->lazy(500) as $a) {
+                $cells = [$a->registration_number, $a->full_name, $a->academicYear?->name, $a->submitted_at?->format('d/m/Y'), ucfirst($a->registration_source), $a->status->label(), $a->gender === 'male' ? 'Laki-laki' : ($a->gender === 'female' ? 'Perempuan' : '—')];
+                fputcsv($out, array_map($reports->csvCell(...), $cells), ';', '"', '');
+            }
+            fclose($out);
+        }, 'laporan-spmb-'.now()->format('Ymd-His').'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 }
