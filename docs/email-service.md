@@ -4,7 +4,7 @@
 
 Kotak masuk menerima pesan dari penyedia email melalui endpoint `POST /api/webhooks/email/incoming`. Atur `INBOUND_EMAIL_TOKEN` dengan nilai acak yang kuat di lingkungan deployment, lalu konfigurasikan penyedia agar mengirim nilai tersebut melalui header `X-Inbound-Email-Token`. Token tidak boleh disimpan di repositori.
 
-Payload menggunakan `multipart/form-data` dengan field wajib `message_id`, `from_address`, `to_addresses[]`, dan `received_at`. Field opsionalnya adalah `from_name`, `cc_addresses[]`, `subject`, `body`, serta maksimal sepuluh `attachments[]`. `message_id` harus stabil dan unik agar webhook yang dikirim ulang tidak menggandakan email. Lampiran disimpan sebagai file pada disk lokal privat, bukan sebagai base64 di database.
+Payload menggunakan `multipart/form-data` dengan field wajib `message_id`, `from_address`, `to_addresses[]`, dan `received_at`. Field opsionalnya adalah `from_name`, `cc_addresses[]`, `subject`, `body` (teks biasa), `html_body` (isi HTML asli, maksimal 2 MB), serta maksimal sepuluh `attachments[]`. Jika tersedia, `html_body` dipakai untuk menampilkan format email dan tautan; `body` tetap disimpan sebagai cadangan teks biasa. `message_id` harus stabil dan unik agar webhook yang dikirim ulang tidak menggandakan email. Lampiran disimpan sebagai file pada disk lokal privat, bukan sebagai base64 di database.
 
 Membuka detail email akan menandainya sebagai sudah dibaca. Petugas dapat menyaring email yang belum dibaca, mencari berdasarkan pengirim atau subjek, mengunduh lampiran, dan membuka formulir balasan yang sudah berisi alamat pengirim serta subjek balasan.
 
