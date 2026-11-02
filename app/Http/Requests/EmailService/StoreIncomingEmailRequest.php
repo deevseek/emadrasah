@@ -25,6 +25,7 @@ class StoreIncomingEmailRequest extends FormRequest
             'cc_addresses.*' => ['required', 'email:rfc', 'max:255'],
             'subject' => ['nullable', 'string', 'max:255'],
             'body' => ['nullable', 'string', 'max:1000000'],
+            'html_body' => ['nullable', 'string', 'max:2000000'],
             'received_at' => ['required', 'date'],
             'attachments' => ['nullable', 'array', 'max:10'],
             'attachments.*' => ['file', 'max:10240', 'mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png,txt'],
