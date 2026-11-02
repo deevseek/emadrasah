@@ -20,7 +20,13 @@
 
         <x-ui.card>
             <h2 class="mb-4 text-lg font-bold text-emerald-950">Isi Email</h2>
-            <div class="whitespace-pre-wrap rounded-xl border border-slate-200 bg-slate-50 p-5 text-sm leading-7 text-slate-800">{{ $email->body ?: '(Email ini tidak memiliki isi teks.)' }}</div>
+            @if(filled($htmlBody))
+                <div class="email-html-content overflow-x-auto rounded-xl border border-slate-200 bg-white p-5 text-sm leading-7 text-slate-800 [&_a]:font-semibold [&_a]:text-blue-700 [&_a]:underline [&_img]:max-w-full [&_table]:max-w-full [&_td]:p-1 [&_th]:p-1">
+                    {!! $htmlBody !!}
+                </div>
+            @else
+                <div class="whitespace-pre-wrap break-words rounded-xl border border-slate-200 bg-slate-50 p-5 text-sm leading-7 text-slate-800">{{ $email->body ?: '(Email ini tidak memiliki isi teks.)' }}</div>
+            @endif
         </x-ui.card>
 
         @if($email->attachments)
