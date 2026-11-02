@@ -99,6 +99,34 @@ class EmailServiceTest extends TestCase
             ->assertSee('Wali Siswa');
     }
 
+    public function test_incoming_html_email_keeps_safe_clickable_links(): void
+    {
+        config(['email-service.inbound_token' => 'token-pengujian']);
+        $payload = [
+            'message_id' => 'html-001@example.test',
+            'from_address' => 'noreply@example.test',
+            'to_addresses' => ['madrasah@example.test'],
+            'subject' => 'Verifikasi Akun',
+            'body' => 'Silakan verifikasi akun.',
+            'html_body' => '<html><body><p>Silakan verifikasi akun.</p><a href="https://example.com/verify">Verify account</a><script>alert("xss")</script></body></html>',
+            'received_at' => now()->toDateTimeString(),
+        ];
+
+        $this->withHeader('X-Inbound-Email-Token', 'token-pengujian')
+            ->postJson(route('api.email.incoming'), $payload)
+            ->assertAccepted();
+
+        $email = IncomingEmail::where('provider_message_id', 'html-001@example.test')->firstOrFail();
+        $this->assertSame($payload['html_body'], $email->html_body);
+
+        $this->actingAs($this->user(['email-service.view']))
+            ->get(route('email-service.incoming.show', $email))
+            ->assertOk()
+            ->assertSee('href="https://example.com/verify"', false)
+            ->assertSee('Verify account')
+            ->assertDontSee('<script>', false);
+    }
+
     public function test_opening_incoming_email_marks_it_as_read(): void
     {
         $user = $this->user(['email-service.view']);
