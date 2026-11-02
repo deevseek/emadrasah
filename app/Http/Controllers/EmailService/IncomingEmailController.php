@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\EmailService\StoreIncomingEmailRequest;
 use App\Models\IncomingEmail;
 use App\Services\EmailService\IncomingEmailService;
+use App\Support\EmailHtmlSanitizer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -37,9 +38,15 @@ class IncomingEmailController extends Controller
         ]);
     }
 
-    public function show(Request $request, IncomingEmail $incomingEmail, IncomingEmailService $service): View
+    public function show(Request $request, IncomingEmail $incomingEmail, IncomingEmailService $service, EmailHtmlSanitizer $sanitizer): View
     {
-        return view('email-service.incoming-show', ['email' => $service->markAsRead($incomingEmail, $request->user())]);
+        $email = $service->markAsRead($incomingEmail, $request->user());
+        $htmlBody = $email->html_body ? $sanitizer->sanitize($email->html_body) : null;
+
+        return view('email-service.incoming-show', [
+            'email' => $email,
+            'htmlBody' => $htmlBody,
+        ]);
     }
 
     public function store(StoreIncomingEmailRequest $request, IncomingEmailService $service): JsonResponse
