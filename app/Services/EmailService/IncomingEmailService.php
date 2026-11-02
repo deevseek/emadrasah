@@ -47,6 +47,7 @@ class IncomingEmailService
                 'cc_addresses' => empty($data['cc_addresses']) ? null : array_map('strtolower', $data['cc_addresses']),
                 'subject' => filled($data['subject'] ?? null) ? trim($data['subject']) : '(Tanpa subjek)',
                 'body' => (string) ($data['body'] ?? ''),
+                'html_body' => filled($data['html_body'] ?? null) ? $data['html_body'] : null,
                 'attachments' => $stored ?: null,
                 'received_at' => $data['received_at'],
             ]));
